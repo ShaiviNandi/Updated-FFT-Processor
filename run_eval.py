@@ -26,7 +26,7 @@ def main():
 
     # 4 stages for N=16. Chromosome length = 8 (2 genes per stage)
     # Binary pattern maps varying FP4 vs FP8 allocation profiles
-    chromosome = [1, 1, 0, 0, 1, 0, 1, 1] 
+    chromosome = [1, 1, 1, 1, 1, 1, 1, 1] 
     print(f"         Target Precision Chromosome Map: {chromosome}")
 
     # Generate pipeline code-blocks

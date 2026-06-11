@@ -143,8 +143,8 @@ module cordic_twiddle_generator #(
     q2_14_to_fp4_e2m1 conv_sin_4 (.fixed_in(final_sin), .fp_out(sin_fp4));
 
     // Continuous assignment eliminates the extra clock cycle delay
-    assign twiddle_out = (v_pipe[LATENCY]) ? 
-                     ((p_pipe[LATENCY] == 1'b1) ? {cos_fp8, sin_fp8} : {4'h0, cos_fp4, 4'h0, sin_fp4}) : 
+    assign twiddle_out = (v_pipe[LATENCY]) ?
+                     ((p_pipe[LATENCY] == 1'b1) ? {cos_fp8, sin_fp8} : {8'h00, cos_fp4, sin_fp4}) : 
                      16'h0000;
 
 endmodule

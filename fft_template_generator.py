@@ -35,7 +35,7 @@ class FFTTemplateGenerator:
         self.BUTTERFLY_LATENCY = 0           # Combinational butterfly wrapper execution depth
         
         # Total latency from starting an address read to writeback availability
-        self.TOTAL_PIPE_LATENCY = self.CORDIC_LATENCY + self.BUTTERFLY_LATENCY
+        self.TOTAL_PIPE_LATENCY = self.CORDIC_LATENCY + self.BUTTERFLY_LATENCY + 1  # +1 for aligned memory read register stage
 
         print(f"FFTTemplateGenerator FFT-{fft_size}:")
         print(f"  Stages            : {self.num_stages}")
@@ -247,19 +247,19 @@ class FFTTemplateGenerator:
             "    wire [23:0] mem_rd_a_24 = cur_rd_prec ? {rd_data_a_16, rd_a_fp8_as_fp4} : {rd_a_fp4_as_fp8, rd_data_a_16[7:0]};\n"
             "    wire [23:0] mem_rd_b_24 = cur_rd_prec ? {rd_data_b_16, rd_b_fp8_as_fp4} : {rd_b_fp4_as_fp8, rd_data_b_16[7:0]};\n"
             "\n"
-            "    // Read matching line registers (BRAM Read Latency 2 -> CORDIC Execution 10 = 8 Cycle Shift Needed)\n"
-            "    reg [23:0] A_24_pipe [0:7];\n"
-            "    reg [23:0] B_24_pipe [0:7];\n"
+            "    // Read matching line registers (BRAM Read Latency 2 -> CORDIC Execution 11 = 9 Cycle Shift Needed)\n"
+            "    reg [23:0] A_24_pipe [0:8];\n"
+            "    reg [23:0] B_24_pipe [0:8];\n"
             "    always @(posedge clk) begin\n"
             "        A_24_pipe[0] <= mem_rd_a_24;\n"
             "        B_24_pipe[0] <= mem_rd_b_24;\n"
-            "        for (integer j = 1; j < 8; j = j + 1) begin\n"
+            "        for (integer j = 1; j < 9; j = j + 1) begin\n"
             "            A_24_pipe[j] <= A_24_pipe[j-1];\n"
             "            B_24_pipe[j] <= B_24_pipe[j-1];\n"
             "        end\n"
             "    end\n"
-            "    wire [23:0] A_24_aligned = A_24_pipe[7];\n"
-            "    wire [23:0] B_24_aligned = B_24_pipe[7];"
+            "    wire [23:0] A_24_aligned = A_24_pipe[8];\n"
+            "    wire [23:0] B_24_aligned = B_24_pipe[8];"
         )
 
         # ---- Writeback formatting block ----
@@ -322,7 +322,7 @@ module {core_module_name} #(
     reg cur_wr_prec;
 
     // =========================================================================
-    // HIGH-PERFORMANCE STREAMING AGU
+    // HIGH-PERFORMANCE STREAMING AGU WITH STALL LOGIC
     // =========================================================================
     reg  start_agu_reg;
     wire streaming_enable;
@@ -330,12 +330,26 @@ module {core_module_name} #(
     wire done_stage, done_fft;
     wire [ADDR_WIDTH-1:0] curr_stage;
 
+    reg [5:0] pipeline_stall_cnt;
+    wire agu_stall = (pipeline_stall_cnt > 0);
+    
+    always @(posedge clk or negedge rst) begin
+        if (!rst) begin
+            pipeline_stall_cnt <= 0;
+        end else if (done_stage && !done_fft) begin
+            pipeline_stall_cnt <= {self.TOTAL_PIPE_LATENCY + 1};
+        end else if (pipeline_stall_cnt > 0) begin
+            pipeline_stall_cnt <= pipeline_stall_cnt - 1;
+        end
+    end
+
     dit_fft_agu_streaming #(
         .MAX_N     (MAX_N),
         .ADDR_WIDTH(ADDR_WIDTH)
     ) agu (
         .clk          (clk),
         .reset        (rst),
+        .stall        (agu_stall),
         .start        (start_agu_reg),
         .N            ({aw}'d{n}),
         .stream_en    (streaming_enable),
@@ -355,7 +369,11 @@ module {core_module_name} #(
     wire [15:0] twiddle;
     localparam CORDIC_LATENCY = {self.CORDIC_LATENCY};
 
-    cordic_twiddle_generator #(\n        .LATENCY(CORDIC_LATENCY),\n        .MAX_N(MAX_N),\n        .ADDR_WIDTH(ADDR_WIDTH)\n    ) twiddle_gen (
+    cordic_twiddle_generator #(
+        .LATENCY(CORDIC_LATENCY),
+        .MAX_N(MAX_N),
+        .ADDR_WIDTH(ADDR_WIDTH)
+    ) twiddle_gen (
         .clk        (clk),
         .rst        (rst),
         .k          (k),
@@ -435,7 +453,7 @@ module {core_module_name} #(
         
         // Concurrent Independent Port Reads (Cycle 0 Request Paths)
         .bank_pingpong (active_rd_bank),
-        .stage_mask    (ext_reading ? 11'h001 : current_rd_mask),
+        .stage_mask    (11'h001),
         .rd_addr_a     (mem_rd_addr_a),
         .rd_addr_b     (mem_rd_addr_b),
         .rd_precision  (cur_rd_prec),
@@ -447,7 +465,10 @@ module {core_module_name} #(
         .wr_addr_a     (ext_wr_en ? ext_wr_addr : mem_wr_addr_a),
         .wr_addr_b     (ext_wr_en ? ext_wr_addr : mem_wr_addr_b),
         .wr_data_a     (ext_wr_en ? ext_wr_data : X_wr_24),
-        .wr_data_b     (ext_wr_en ? ext_wr_data : Y_wr_24)
+        .wr_data_b     (ext_wr_en ? ext_wr_data : Y_wr_24),
+
+        .bank_pingpong_wr (ext_wr_en ? 1'b0 : mem_wr_bank),
+        .stage_mask_wr    (11'h001)
     );
 
 {mem_expand}
@@ -464,7 +485,6 @@ module {core_module_name} #(
 
     reg [1:0]  state;
     reg [5:0]  flush_counter;
-    reg [10:0] done_fft_pipe;
 
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
@@ -478,7 +498,7 @@ module {core_module_name} #(
                 IDLE_ST: begin
                     done <= 1'b0;
                     if (start) begin
-                        fft_bank_sel  <= 1'b0;
+                        fft_bank_sel  <= 1'b1;
                         start_agu_reg <= 1'b1;
                         state         <= RUN_ST;
                     end
@@ -486,7 +506,7 @@ module {core_module_name} #(
 
                 RUN_ST: begin
                     start_agu_reg <= 1'b0;
-                    if (done_stage) begin
+                    if (done_stage && !done_fft) begin
                         fft_bank_sel <= ~fft_bank_sel; // Flip macro ping-pong banks on stage boundaries
                     end
                     if (done_fft) begin
@@ -497,7 +517,7 @@ module {core_module_name} #(
 
                 FLUSH_ST: begin
                     if (flush_counter == 0) begin
-                        fft_bank_sel <= 1'b{ns % 2};
+                        fft_bank_sel <= 1'b{1 ^ (ns % 2)};
                         done         <= 1'b1;
                         state        <= DONE_ST;
                     end else begin
@@ -614,7 +634,7 @@ module {top_module_name} (
                 bank_sel <= 1'b1;
             end else if (core_done) begin
                 done     <= 1'b1;
-                bank_sel <= 1'b{ns % 2};
+                bank_sel <= 1'b{1 ^ (ns % 2)};
             end else if (!start && done) begin
                 done <= 1'b0;
             end

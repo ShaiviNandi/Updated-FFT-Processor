@@ -4,7 +4,7 @@
 // =============================================================================
 `timescale 1ns/1ps
 
-module pipelined_fft_16_top (
+module mixed_fft_16_test_top (
     input  wire        clk,
     input  wire        rst,     
 
@@ -38,7 +38,7 @@ module pipelined_fft_16_top (
     wire core_done;
     wire [15:0] core_rd_data;
 
-    pipelined_fft_16_core #(
+    mixed_fft_16_test_core #(
         .MAX_N     (1024),
         .ADDR_WIDTH(11)
     ) core (

@@ -162,13 +162,13 @@ class PerformanceEvaluator:
             exp_b = 0
             mant  = min(7, round(val / (2 ** -6) * 8))
         elif exp_b >= 15:
-            return sign_bit | 0x7E
+            return sign_bit | 0x77  # max finite: exp=14, mant=7 -> 240.0 (was 0x7E which has exp=15 = NaN)
         else:
             mant_f = val / (2 ** exp_u) - 1.0
             mant   = min(7, round(mant_f * 8))
             if mant >= 8:
                 mant = 0; exp_b += 1
-                if exp_b >= 15: return sign_bit | 0x7E
+                if exp_b >= 15: return sign_bit | 0x77  # same fix
         return (sign_bit & 0x80) | ((exp_b & 0x0F) << 3) | (mant & 0x07)
 
     def fp8_to_float(self, fp8_val):
@@ -178,7 +178,7 @@ class PerformanceEvaluator:
         exp  = (fp8_val >> 3) & 0xF
         mant =  fp8_val       & 0x7
         if exp == 0:    value = mant / 8.0 * (2 ** -6)
-        elif exp == 15: return float('nan')
+        elif exp == 15: value = (1.0 + 7 / 8.0) * (2 ** (14 - 7))  # saturate to max finite 240.0 (was: return nan)
         else:           value = (1.0 + mant / 8.0) * (2 ** (exp - 7))
         return -value if sign else value
 

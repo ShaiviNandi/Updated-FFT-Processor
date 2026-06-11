@@ -5,7 +5,7 @@
 // =============================================================================
 `timescale 1ns/1ps
 
-module pipelined_fft_16_core #(
+module mixed_fft_16_test_core #(
     parameter MAX_N      = 1024,
     parameter ADDR_WIDTH = 11
 )(
@@ -29,18 +29,18 @@ module pipelined_fft_16_core #(
     input  wire                  ext_bank_sel
 );
 
-    localparam STAGE0_MULT_PREC = 1;
+    localparam STAGE0_MULT_PREC = 0;
     localparam STAGE0_ADD_PREC  = 1;
     localparam STAGE0_OUT_PREC  = 1;
     localparam STAGE1_MULT_PREC = 1;
-    localparam STAGE1_ADD_PREC  = 1;
-    localparam STAGE1_OUT_PREC  = 1;
-    localparam STAGE2_MULT_PREC = 1;
+    localparam STAGE1_ADD_PREC  = 0;
+    localparam STAGE1_OUT_PREC  = 0;
+    localparam STAGE2_MULT_PREC = 0;
     localparam STAGE2_ADD_PREC  = 1;
     localparam STAGE2_OUT_PREC  = 1;
     localparam STAGE3_MULT_PREC = 1;
-    localparam STAGE3_ADD_PREC  = 1;
-    localparam STAGE3_OUT_PREC  = 1;
+    localparam STAGE3_ADD_PREC  = 0;
+    localparam STAGE3_OUT_PREC  = 0;
 
     // Dynamic Context Setup Configurations
     reg cur_mult_prec;
@@ -48,7 +48,7 @@ module pipelined_fft_16_core #(
     reg cur_wr_prec;
 
     // =========================================================================
-    // HIGH-PERFORMANCE STREAMING AGU WITH STALL LOGIC
+    // HIGH-PERFORMANCE STREAMING AGU
     // =========================================================================
     reg  start_agu_reg;
     wire streaming_enable;
@@ -56,26 +56,12 @@ module pipelined_fft_16_core #(
     wire done_stage, done_fft;
     wire [ADDR_WIDTH-1:0] curr_stage;
 
-    reg [5:0] pipeline_stall_cnt;
-    wire agu_stall = (pipeline_stall_cnt > 0);
-    
-    always @(posedge clk or negedge rst) begin
-        if (!rst) begin
-            pipeline_stall_cnt <= 0;
-        end else if (done_stage && !done_fft) begin
-            pipeline_stall_cnt <= 12;
-        end else if (pipeline_stall_cnt > 0) begin
-            pipeline_stall_cnt <= pipeline_stall_cnt - 1;
-        end
-    end
-
     dit_fft_agu_streaming #(
         .MAX_N     (MAX_N),
         .ADDR_WIDTH(ADDR_WIDTH)
     ) agu (
         .clk          (clk),
         .reset        (rst),
-        .stall        (agu_stall),
         .start        (start_agu_reg),
         .N            (11'd16),
         .stream_en    (streaming_enable),
@@ -90,7 +76,7 @@ module pipelined_fft_16_core #(
     always @(*) begin
         if (ext_reading) begin
             cur_mult_prec = 1'b0;
-            cur_rd_prec   = 1'b1;
+            cur_rd_prec   = 1'b0;
         end else begin
             case (curr_stage[3:0])
             4'd0: begin
@@ -157,7 +143,7 @@ module pipelined_fft_16_core #(
     // =========================================================================
     // BALANCING TIMING DELAY PIPELINE (II=1 Chain Matrix)
     // =========================================================================
-    localparam TOTAL_LATENCY = 11;
+    localparam TOTAL_LATENCY = 10;
 
     reg [TOTAL_LATENCY-1:0]  wr_en_pipe;
     reg [ADDR_WIDTH-1:0]     wr_addr_a_pipe   [0:TOTAL_LATENCY-1];
@@ -224,7 +210,7 @@ module pipelined_fft_16_core #(
         
         // Concurrent Independent Port Reads (Cycle 0 Request Paths)
         .bank_pingpong (active_rd_bank),
-        .stage_mask    (11'h001),
+        .stage_mask    (ext_reading ? 11'h001 : current_rd_mask),
         .rd_addr_a     (mem_rd_addr_a),
         .rd_addr_b     (mem_rd_addr_b),
         .rd_precision  (cur_rd_prec),
@@ -236,10 +222,7 @@ module pipelined_fft_16_core #(
         .wr_addr_a     (ext_wr_en ? ext_wr_addr : mem_wr_addr_a),
         .wr_addr_b     (ext_wr_en ? ext_wr_addr : mem_wr_addr_b),
         .wr_data_a     (ext_wr_en ? ext_wr_data : X_wr_24),
-        .wr_data_b     (ext_wr_en ? ext_wr_data : Y_wr_24),
-
-        .bank_pingpong_wr (ext_wr_en ? 1'b0 : mem_wr_bank),
-        .stage_mask_wr    (11'h001)
+        .wr_data_b     (ext_wr_en ? ext_wr_data : Y_wr_24)
     );
 
     // Unpack, decode and extend dual-bank concurrent memory lanes
@@ -254,19 +237,19 @@ module pipelined_fft_16_core #(
     wire [23:0] mem_rd_a_24 = cur_rd_prec ? {rd_data_a_16, rd_a_fp8_as_fp4} : {rd_a_fp4_as_fp8, rd_data_a_16[7:0]};
     wire [23:0] mem_rd_b_24 = cur_rd_prec ? {rd_data_b_16, rd_b_fp8_as_fp4} : {rd_b_fp4_as_fp8, rd_data_b_16[7:0]};
 
-    // Read matching line registers (BRAM Read Latency 2 -> CORDIC Execution 11 = 9 Cycle Shift Needed)
-    reg [23:0] A_24_pipe [0:8];
-    reg [23:0] B_24_pipe [0:8];
+    // Read matching line registers (BRAM Read Latency 2 -> CORDIC Execution 10 = 8 Cycle Shift Needed)
+    reg [23:0] A_24_pipe [0:7];
+    reg [23:0] B_24_pipe [0:7];
     always @(posedge clk) begin
         A_24_pipe[0] <= mem_rd_a_24;
         B_24_pipe[0] <= mem_rd_b_24;
-        for (integer j = 1; j < 9; j = j + 1) begin
+        for (integer j = 1; j < 8; j = j + 1) begin
             A_24_pipe[j] <= A_24_pipe[j-1];
             B_24_pipe[j] <= B_24_pipe[j-1];
         end
     end
-    wire [23:0] A_24_aligned = A_24_pipe[8];
-    wire [23:0] B_24_aligned = B_24_pipe[8];
+    wire [23:0] A_24_aligned = A_24_pipe[7];
+    wire [23:0] B_24_aligned = B_24_pipe[7];
     // Per-stage butterfly wrappers matrix matrix
     wire [15:0] X_st0, Y_st0;
     wire        fp8_out_st0;
@@ -278,7 +261,7 @@ module pipelined_fft_16_core #(
     wire        fp8_out_st3;
 
     butterfly_wrapper #(
-        .MULT_PRECISION(1),
+        .MULT_PRECISION(0),
         .ADD_PRECISION (1)
     ) bf_st0 (
         .A            (A_24_aligned),
@@ -291,7 +274,7 @@ module pipelined_fft_16_core #(
 
     butterfly_wrapper #(
         .MULT_PRECISION(1),
-        .ADD_PRECISION (1)
+        .ADD_PRECISION (0)
     ) bf_st1 (
         .A            (A_24_aligned),
         .B            (B_24_aligned),
@@ -302,7 +285,7 @@ module pipelined_fft_16_core #(
     );
 
     butterfly_wrapper #(
-        .MULT_PRECISION(1),
+        .MULT_PRECISION(0),
         .ADD_PRECISION (1)
     ) bf_st2 (
         .A            (A_24_aligned),
@@ -315,7 +298,7 @@ module pipelined_fft_16_core #(
 
     butterfly_wrapper #(
         .MULT_PRECISION(1),
-        .ADD_PRECISION (1)
+        .ADD_PRECISION (0)
     ) bf_st3 (
         .A            (A_24_aligned),
         .B            (B_24_aligned),
@@ -363,6 +346,7 @@ module pipelined_fft_16_core #(
 
     reg [1:0]  state;
     reg [5:0]  flush_counter;
+    reg [10:0] done_fft_pipe;
 
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
@@ -384,7 +368,7 @@ module pipelined_fft_16_core #(
 
                 RUN_ST: begin
                     start_agu_reg <= 1'b0;
-                    if (done_stage && !done_fft) begin
+                    if (done_stage) begin
                         fft_bank_sel <= ~fft_bank_sel; // Flip macro ping-pong banks on stage boundaries
                     end
                     if (done_fft) begin
