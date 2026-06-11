@@ -56,7 +56,7 @@ def main():
 
     for fft_size in fft_sizes_to_test:
         print(f"\n\n{'='*65}")
-        print(f"🚀 INITIATING SWEEP FOR N = {fft_size}")
+        print(f"INITIATING SWEEP FOR N = {fft_size}")
         print(f"{'='*65}")
 
         generator = FFTTemplateGenerator(fft_size=fft_size)
@@ -85,9 +85,9 @@ def main():
             # Record and display the iteration result
             results.append((label, chromosome, avg_sqnr))
             if avg_sqnr > -50.0:
-                print(f"✓ Iteration Passed! Avg System SQNR: {avg_sqnr:.2f} dB\n")
+                print(f"Iteration Passed! Avg System SQNR: {avg_sqnr:.2f} dB\n")
             else:
-                print("✗ Iteration Failed: Simulation did not return valid metrics.\n")
+                print("Iteration Failed: Simulation did not return valid metrics.\n")
 
         # Sort results from highest SQNR to lowest
         results.sort(key=lambda x: x[2], reverse=True)
@@ -106,7 +106,7 @@ def main():
     # ---------------------------------------------------------
     # Master Summary
     # ---------------------------------------------------------
-    print("\n\n🏆 MASTER SUMMARY 🏆")
+    print("\n\nMASTER SUMMARY")
     for size in fft_sizes_to_test:
         top_mixed = next((r for r in master_leaderboards[size] if r[0] != "Pure FP8"), None)
         pure_fp8 = next((r for r in master_leaderboards[size] if r[0] == "Pure FP8"), None)

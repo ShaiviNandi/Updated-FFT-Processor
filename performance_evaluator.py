@@ -8,6 +8,8 @@ and comparing against an FP32 (Single Precision NumPy) reference.
 Updates:
   - Enforced strict FP32/complex64 arrays to evaluate true hardware limits against float32.
   - Tailored watchdog and testbench parameters to match fast-flushing streaming pipelines.
+  - Added cycle counting reporting for execution and overall simulation length.
+  - Completely stripped of non-ASCII characters for secure Windows host file redirection.
 """
 
 import numpy as np
@@ -162,13 +164,13 @@ class PerformanceEvaluator:
             exp_b = 0
             mant  = min(7, round(val / (2 ** -6) * 8))
         elif exp_b >= 15:
-            return sign_bit | 0x77  # max finite: exp=14, mant=7 -> 240.0 (was 0x7E which has exp=15 = NaN)
+            return sign_bit | 0x77  
         else:
             mant_f = val / (2 ** exp_u) - 1.0
             mant   = min(7, round(mant_f * 8))
             if mant >= 8:
                 mant = 0; exp_b += 1
-                if exp_b >= 15: return sign_bit | 0x77  # same fix
+                if exp_b >= 15: return sign_bit | 0x77  
         return (sign_bit & 0x80) | ((exp_b & 0x0F) << 3) | (mant & 0x07)
 
     def fp8_to_float(self, fp8_val):
@@ -178,7 +180,7 @@ class PerformanceEvaluator:
         exp  = (fp8_val >> 3) & 0xF
         mant =  fp8_val       & 0x7
         if exp == 0:    value = mant / 8.0 * (2 ** -6)
-        elif exp == 15: value = (1.0 + 7 / 8.0) * (2 ** (14 - 7))  # saturate to max finite 240.0 (was: return nan)
+        elif exp == 15: value = (1.0 + 7 / 8.0) * (2 ** (14 - 7))  
         else:           value = (1.0 + mant / 8.0) * (2 ** (exp - 7))
         return -value if sign else value
 
@@ -205,7 +207,6 @@ class PerformanceEvaluator:
         return -value if sign else value
 
     def _write_twiddle_file(self, sim_dir):
-        # Kept as legacy fallback file tracker hook if needed downstream
         path = os.path.join(sim_dir, 'twiddles_1024.txt')
         with open(path, 'w') as f:
             for idx in range(512):
@@ -222,9 +223,8 @@ class PerformanceEvaluator:
         num_tests  = len(self.test_vectors)
         top_module = f"{design_name}_top"
 
-        # Refactored streaming cycle window thresholds
         butterflies     = (n // 2) * self.num_stages
-        cycles_per_fft  = n + butterflies + 50 # Pipelined execution limits drop cycle budgets completely
+        cycles_per_fft  = n + butterflies + 50 
         ready_timeout   = 512 + cycles_per_fft
         watchdog_ns     = (1024 + num_tests * (cycles_per_fft + n * 5) + 1000) * 10
 
@@ -306,8 +306,15 @@ module tb_{design_name};
             end
             unload_en = 0;
             repeat(2) @(posedge clk);
+            
+            // Log explicitly to console for python wrapper
             total_cycles = total_cycles + load_cycles + cycle_count + unload_cycles_cnt;
+            $display("  -> Test %0d | Exec Cycles: %0d | Load: %0d | Unload: %0d", ti, cycle_count, load_cycles, unload_cycles_cnt);
         end
+        $display("================================================================");
+        $display("FINAL_METRICS | Total Cycles: %0d", total_cycles);
+        $display("================================================================");
+        
         $fclose(out_file);
         $finish;
     end
@@ -347,9 +354,11 @@ endmodule
         try:
             res = subprocess.run(compile_cmd, capture_output=True, text=True)
             if res.returncode != 0: return None
+            
+            # Capture stdout to extract clock cycle trackers
             sim_res = subprocess.run(['vvp', vvp_path], capture_output=True, text=True, timeout=120, cwd=sim_dir)
             if sim_res.returncode != 0: return None
-            return os.path.join(sim_dir, f'{design_name}_output.txt')
+            return os.path.join(sim_dir, f'{design_name}_output.txt'), sim_res.stdout
         except Exception:
             return None
 
@@ -385,8 +394,26 @@ endmodule
         if chromosome is not None:
             final_stage_is_fp8 = bool(chromosome[-1])
 
-        output_file = self.run_verilog_simulation(verilog_file, design_name)
-        if output_file is None: return -100.0
+        # Run simulation and capture BOTH output text file and console log
+        run_result = self.run_verilog_simulation(verilog_file, design_name)
+        if run_result is None: return -100.0
+        output_file, sim_log = run_result
+
+        # Parse Cycle Clock metrics from Verilog stdout
+        avg_exec_cycles = "N/A"
+        tot_sim_cycles = "N/A"
+        execs = []
+        for line in sim_log.splitlines():
+            if "Exec Cycles:" in line:
+                parts = line.split("|")
+                for p in parts:
+                    if "Exec Cycles:" in p:
+                        execs.append(int(p.split(":")[1].strip()))
+            if "FINAL_METRICS" in line:
+                tot_sim_cycles = line.split("Total Cycles:")[1].strip()
+
+        if execs:
+            avg_exec_cycles = str(sum(execs) // len(execs))
 
         sim_outputs = self._parse_simulation_output(output_file, final_stage_is_fp8)
         if sim_outputs is None or len(sim_outputs) == 0: return -100.0
@@ -394,7 +421,14 @@ endmodule
         n, num_tests = self.fft_size, len(self.test_vectors)
         total_sqnr, valid = 0.0, 0
 
-        print(f"\n{'─'*55}\n  Pipelined FP32 SQNR Breakdown — {design_name}\n{'─'*55}")
+        # Print detailed SQNR and Cycle Time reporting with safe ASCII characters
+        print("")
+        print("-------------------------------------------------------")
+        print(f"  Pipelined Metrics Breakdown - {design_name}")
+        print(f"  > Avg FFT Execution Time : {avg_exec_cycles} clock cycles")
+        print(f"  > Total Simulation Time  : {tot_sim_cycles} clock cycles")
+        print("-------------------------------------------------------")
+        
         for i in range(min(num_tests, len(sim_outputs) // n)):
             approx = sim_outputs[i * n : (i + 1) * n]
             golden = self.golden_outputs[i]
@@ -408,5 +442,5 @@ endmodule
                 print(f"  {label:<25}  {sqnr:>10.2f} dB")
                 total_sqnr += sqnr; valid += 1
 
-        print(f"{'─'*55}")
+        print("-------------------------------------------------------")
         return total_sqnr / valid if valid > 0 else -100.0
