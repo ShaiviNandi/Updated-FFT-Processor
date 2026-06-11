@@ -70,6 +70,23 @@ class FFTTemplateGenerator:
                 'output_precision': out_prec,
             })
         return config
+    
+    def analyze_chromosome_statistics(self, chromosome):
+        """Analyze the composition of the chromosome for logging."""
+        config = self.chromosome_to_config(chromosome)
+        num_stages = len(config['stages'])
+        
+        fp8_mult = sum(1 for s in config['stages'] if s['mult_precision'] == 1)
+        fp4_mult = num_stages - fp8_mult
+        fp8_add  = sum(1 for s in config['stages'] if s['add_precision'] == 1)
+        fp4_add  = num_stages - fp8_add
+        
+        return {
+            "FP8 Multipliers": f"{fp8_mult} ({fp8_mult/num_stages*100:.1f}%)",
+            "FP4 Multipliers": f"{fp4_mult} ({fp4_mult/num_stages*100:.1f}%)",
+            "FP8 Adders": f"{fp8_add} ({fp8_add/num_stages*100:.1f}%)",
+            "FP4 Adders": f"{fp4_add} ({fp4_add/num_stages*100:.1f}%)",
+        }
 
     # ------------------------------------------------------------------
     # File generation helpers

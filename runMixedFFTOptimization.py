@@ -27,7 +27,7 @@ from objectiveEvaluationFFT import MixedPrecisionFFTProblem
 from optimizationUtils import (
     MyCallback,
     SmartInitialSampling,
-    BlockwiseMutation,
+    StagewiseMutation,
     StagewiseCrossover,
 )
 
@@ -771,7 +771,7 @@ def run_optimization_for_fft_size(fft_size):
         pop_size=POPULATION,
         sampling=SmartInitialSampling(),
         crossover=StagewiseCrossover(fft_size=fft_size, prob=CROSSOVER_RATE),
-        mutation=BlockwiseMutation(fft_size=fft_size),
+        mutation=StagewiseMutation(fft_size=fft_size),
     )
     termination = get_termination("n_gen", GENERATIONS)
 
