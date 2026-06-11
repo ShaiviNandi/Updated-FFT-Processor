@@ -5,7 +5,7 @@
 // =============================================================================
 `timescale 1ns/1ps
 
-module pipelined_fft_16_core #(
+module pipelined_fft_16_sweep_6_core #(
     parameter MAX_N      = 1024,
     parameter ADDR_WIDTH = 11
 )(
@@ -29,16 +29,16 @@ module pipelined_fft_16_core #(
     input  wire                  ext_bank_sel
 );
 
-    localparam STAGE0_MULT_PREC = 1;
-    localparam STAGE0_ADD_PREC  = 1;
-    localparam STAGE0_OUT_PREC  = 1;
+    localparam STAGE0_MULT_PREC = 0;
+    localparam STAGE0_ADD_PREC  = 0;
+    localparam STAGE0_OUT_PREC  = 0;
     localparam STAGE1_MULT_PREC = 1;
     localparam STAGE1_ADD_PREC  = 1;
     localparam STAGE1_OUT_PREC  = 1;
-    localparam STAGE2_MULT_PREC = 0;
-    localparam STAGE2_ADD_PREC  = 0;
-    localparam STAGE2_OUT_PREC  = 0;
-    localparam STAGE3_MULT_PREC = 0;
+    localparam STAGE2_MULT_PREC = 1;
+    localparam STAGE2_ADD_PREC  = 1;
+    localparam STAGE2_OUT_PREC  = 1;
+    localparam STAGE3_MULT_PREC = 1;
     localparam STAGE3_ADD_PREC  = 0;
     localparam STAGE3_OUT_PREC  = 0;
 
@@ -278,8 +278,8 @@ module pipelined_fft_16_core #(
     wire        fp8_out_st3;
 
     butterfly_wrapper #(
-        .MULT_PRECISION(1),
-        .ADD_PRECISION (1)
+        .MULT_PRECISION(0),
+        .ADD_PRECISION (0)
     ) bf_st0 (
         .A            (A_24_aligned),
         .B            (B_24_aligned),
@@ -302,8 +302,8 @@ module pipelined_fft_16_core #(
     );
 
     butterfly_wrapper #(
-        .MULT_PRECISION(0),
-        .ADD_PRECISION (0)
+        .MULT_PRECISION(1),
+        .ADD_PRECISION (1)
     ) bf_st2 (
         .A            (A_24_aligned),
         .B            (B_24_aligned),
@@ -314,7 +314,7 @@ module pipelined_fft_16_core #(
     );
 
     butterfly_wrapper #(
-        .MULT_PRECISION(0),
+        .MULT_PRECISION(1),
         .ADD_PRECISION (0)
     ) bf_st3 (
         .A            (A_24_aligned),

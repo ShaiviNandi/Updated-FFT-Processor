@@ -5,7 +5,7 @@
 // =============================================================================
 `timescale 1ns/1ps
 
-module pipelined_fft_16_core #(
+module pipelined_fft_16_sweep_2_core #(
     parameter MAX_N      = 1024,
     parameter ADDR_WIDTH = 11
 )(
