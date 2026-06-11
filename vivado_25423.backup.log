@@ -1,0 +1,61 @@
+#-----------------------------------------------------------
+# Vivado v2021.1 (64-bit)
+# SW Build 3247384 on Thu Jun 10 19:36:07 MDT 2021
+# IP Build 3246043 on Fri Jun 11 00:30:35 MDT 2021
+# Start of session at: Thu Jun 11 14:37:11 2026
+# Process ID: 25424
+# Current directory: /home/fftacc/Updated-FFT-Processor
+# Command line: vivado -mode batch -source ./vivado_synthesis.tcl -tclargs fft_1024_sol3_gen3 ./reports/fft_1024_sol3_gen3_metrics.csv 100.0 /home/fftacc/Updated-FFT-Processor/generated_designs/fft_1024_sol3_gen3.v /home/fftacc/Updated-FFT-Processor/generated_designs/fft_1024_sol3_gen3_top.v /home/fftacc/Updated-FFT-Processor/verilog_sources xc7a35tcpg236-1
+# Log file: /home/fftacc/Updated-FFT-Processor/vivado.log
+# Journal file: /home/fftacc/Updated-FFT-Processor/vivado.jou
+#-----------------------------------------------------------
+source ./vivado_synthesis.tcl
+# set design_name  [lindex $argv 0]
+# set csv_output   [lindex $argv 1]
+# set clock_period [lindex $argv 2]
+# set core_file    [lindex $argv 3]
+# set top_file     [lindex $argv 4]
+# set verilog_dir  [lindex $argv 5]
+# set fpga_part "xc7a35tcpg236-1"
+# if { [llength $argv] >= 7 } {
+#     set fpga_part [lindex $argv 6]
+# }
+# set top_module "${design_name}_top"
+# puts "INFO: design_name  = $design_name"
+INFO: design_name  = fft_1024_sol4_gen3
+# puts "INFO: top_module   = $top_module"
+INFO: top_module   = fft_1024_sol4_gen3_top
+# puts "INFO: clock_period = $clock_period ns"
+INFO: clock_period = 100.0 ns
+# puts "INFO: target_part  = $fpga_part"
+INFO: target_part  = xc7a35tcpg236-1
+# create_project -in_memory -part $fpga_part
+# foreach f [glob -nocomplain ${verilog_dir}/*.v] {
+#     # Skip temporary files or testbenches if present
+#     if { [string match "*tb_*" [file tail $f]] == 0 } {
+#         add_files -norecurse $f
+#     }
+# }
+# add_files -norecurse $core_file
+# add_files -norecurse $top_file
+# set_property include_dirs $verilog_dir [current_fileset]
+# set_property top $top_module [current_fileset]
+# update_compile_order -fileset sources_1
+# synth_design -top $top_module -part $fpga_part -mode out_of_context
+Command: synth_design -top fft_1024_sol4_gen3_top -part xc7a35tcpg236-1 -mode out_of_context
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7a35t'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7a35t'
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 4 processes.
+INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
+INFO: [Synth 8-7075] Helper process launched with PID 25627
+ERROR: [Synth 8-2301] loop variable declaration is not allowed in this mode of verilog [/home/fftacc/Updated-FFT-Processor/generated_designs/fft_1024_sol4_gen3.v:323]
+WARNING: [Synth 8-992] X_wr_24 is already implicitly declared earlier [/home/fftacc/Updated-FFT-Processor/generated_designs/fft_1024_sol4_gen3.v:503]
+WARNING: [Synth 8-992] Y_wr_24 is already implicitly declared earlier [/home/fftacc/Updated-FFT-Processor/generated_designs/fft_1024_sol4_gen3.v:504]
+WARNING: [Synth 8-6901] identifier 'curr_stage_delayed' is used before its declaration [/home/fftacc/Updated-FFT-Processor/generated_designs/fft_1024_sol4_gen3.v:162]
+Failed to read verilog '/home/fftacc/Updated-FFT-Processor/generated_designs/fft_1024_sol4_gen3.v'
+INFO: [Common 17-83] Releasing license: Synthesis
+5 Infos, 3 Warnings, 0 Critical Warnings and 2 Errors encountered.
+synth_design failed
+ERROR: [Common 17-69] Command failed: Vivado Synthesis failed
+INFO: [Common 17-206] Exiting Vivado at Thu Jun 11 14:37:22 2026...

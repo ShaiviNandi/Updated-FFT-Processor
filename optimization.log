@@ -393,3 +393,179 @@
 [2026-06-11 14:28:24] [INFO] Solution 0: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
 [2026-06-11 14:28:24] [INFO] Solution 4: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
 [2026-06-11 14:28:24] [INFO] Solution 1: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:35:48] [INFO] Initialized directory structure
+[2026-06-11 14:35:48] [INFO] Running quick test with 16-point FFT
+[2026-06-11 14:35:48] [INFO] Setting up Verilog source files
+[2026-06-11 14:35:48] [INFO] 
+============================================================
+[2026-06-11 14:35:48] [INFO] Starting optimisation for 1024-point FFT
+[2026-06-11 14:35:48] [INFO] ============================================================
+
+[2026-06-11 14:35:48] [INFO] Initialized FFT-1024 problem with Vivado timing as 4th objective
+[2026-06-11 14:35:48] [INFO] NSGA-II Configuration:
+[2026-06-11 14:35:48] [INFO]   Population size : 6
+[2026-06-11 14:35:48] [INFO]   Generations     : 3
+[2026-06-11 14:35:48] [INFO]   Crossover rate  : 0.9
+[2026-06-11 14:35:48] [INFO]   Mutation rate   : 0.05
+[2026-06-11 14:35:48] [INFO]   Objectives      : 4  (Power, Area, SQNR, CritDelay)
+[2026-06-11 14:35:48] [INFO]   Parallel threads: 6
+[2026-06-11 14:35:48] [INFO]   Clock target    : 100.0 ns
+[2026-06-11 14:35:48] [GEN] === Generation 0 ===
+[2026-06-11 14:35:48] [INFO] Evaluating solution 0: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:35:48] [INFO] Evaluating solution 1: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[2026-06-11 14:35:48] [INFO] Running Vivado synthesis for fft_1024_sol0_gen1
+[2026-06-11 14:35:48] [INFO] Evaluating solution 2: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:35:48] [INFO] Running Vivado synthesis for fft_1024_sol1_gen1
+[2026-06-11 14:35:48] [INFO] Evaluating solution 3: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[2026-06-11 14:35:48] [INFO] Evaluating solution 4: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+[2026-06-11 14:35:48] [INFO] Running Vivado synthesis for fft_1024_sol2_gen1
+[2026-06-11 14:35:48] [INFO] Evaluating solution 5: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+[2026-06-11 14:35:48] [INFO] Running Vivado synthesis for fft_1024_sol3_gen1
+[2026-06-11 14:35:48] [INFO] Running Vivado synthesis for fft_1024_sol5_gen1
+[2026-06-11 14:35:48] [INFO] Running Vivado synthesis for fft_1024_sol4_gen1
+[2026-06-11 14:36:08] [ERROR] Vivado failed for fft_1024_sol3_gen1
+[2026-06-11 14:36:08] [ERROR] Vivado failed for fft_1024_sol0_gen1
+[2026-06-11 14:36:08] [ERROR] Vivado failed for fft_1024_sol5_gen1
+[2026-06-11 14:36:08] [ERROR] Vivado failed for fft_1024_sol2_gen1
+[2026-06-11 14:36:08] [ERROR] Vivado failed for fft_1024_sol4_gen1
+[2026-06-11 14:36:08] [ERROR] Vivado failed for fft_1024_sol1_gen1
+[2026-06-11 14:36:09] [INFO] Solution 3: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:09] [INFO] Solution 2: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:09] [INFO] Solution 0: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:09] [INFO] Solution 1: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:09] [INFO] Solution 4: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:09] [INFO] Solution 5: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:09] [INFO] Generation 0 complete
+[2026-06-11 14:36:09] [GEN] === Generation 1 ===
+[2026-06-11 14:36:09] [INFO] Evaluating solution 1: [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+[2026-06-11 14:36:09] [INFO] Evaluating solution 0: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:36:09] [INFO] Evaluating solution 2: [0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+[2026-06-11 14:36:09] [INFO] Evaluating solution 3: [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:36:09] [INFO] Evaluating solution 4: [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[2026-06-11 14:36:09] [INFO] Evaluating solution 5: [0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+[2026-06-11 14:36:09] [INFO] Running Vivado synthesis for fft_1024_sol1_gen2
+[2026-06-11 14:36:09] [INFO] Running Vivado synthesis for fft_1024_sol2_gen2
+[2026-06-11 14:36:09] [INFO] Running Vivado synthesis for fft_1024_sol4_gen2
+[2026-06-11 14:36:09] [INFO] Running Vivado synthesis for fft_1024_sol3_gen2
+[2026-06-11 14:36:09] [INFO] Running Vivado synthesis for fft_1024_sol0_gen2
+[2026-06-11 14:36:09] [INFO] Running Vivado synthesis for fft_1024_sol5_gen2
+[2026-06-11 14:36:23] [ERROR] Vivado failed for fft_1024_sol3_gen2
+[2026-06-11 14:36:23] [ERROR] Vivado failed for fft_1024_sol5_gen2
+[2026-06-11 14:36:23] [ERROR] Vivado failed for fft_1024_sol1_gen2
+[2026-06-11 14:36:23] [ERROR] Vivado failed for fft_1024_sol4_gen2
+[2026-06-11 14:36:23] [ERROR] Vivado failed for fft_1024_sol2_gen2
+[2026-06-11 14:36:23] [ERROR] Vivado failed for fft_1024_sol0_gen2
+[2026-06-11 14:36:23] [INFO] Solution 3: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:23] [INFO] Solution 4: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:23] [INFO] Solution 2: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:23] [INFO] Solution 0: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:23] [INFO] Solution 1: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:23] [INFO] Solution 5: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:32] [INFO] Initialized directory structure
+[2026-06-11 14:36:32] [INFO] Running quick test with 16-point FFT
+[2026-06-11 14:36:32] [INFO] Setting up Verilog source files
+[2026-06-11 14:36:32] [INFO] 
+============================================================
+[2026-06-11 14:36:32] [INFO] Starting optimisation for 1024-point FFT
+[2026-06-11 14:36:32] [INFO] ============================================================
+
+[2026-06-11 14:36:32] [INFO] Initialized FFT-1024 problem with Vivado timing as 4th objective
+[2026-06-11 14:36:32] [INFO] NSGA-II Configuration:
+[2026-06-11 14:36:32] [INFO]   Population size : 6
+[2026-06-11 14:36:32] [INFO]   Generations     : 3
+[2026-06-11 14:36:32] [INFO]   Crossover rate  : 0.9
+[2026-06-11 14:36:32] [INFO]   Mutation rate   : 0.05
+[2026-06-11 14:36:32] [INFO]   Objectives      : 4  (Power, Area, SQNR, CritDelay)
+[2026-06-11 14:36:32] [INFO]   Parallel threads: 6
+[2026-06-11 14:36:32] [INFO]   Clock target    : 100.0 ns
+[2026-06-11 14:36:32] [GEN] === Generation 0 ===
+[2026-06-11 14:36:32] [INFO] Evaluating solution 0: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:36:32] [INFO] Evaluating solution 1: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[2026-06-11 14:36:32] [INFO] Evaluating solution 2: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:36:32] [INFO] Evaluating solution 3: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[2026-06-11 14:36:32] [INFO] Evaluating solution 4: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+[2026-06-11 14:36:32] [INFO] Evaluating solution 5: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+[2026-06-11 14:36:32] [INFO] Running Vivado synthesis for fft_1024_sol1_gen1
+[2026-06-11 14:36:32] [INFO] Running Vivado synthesis for fft_1024_sol0_gen1
+[2026-06-11 14:36:32] [INFO] Running Vivado synthesis for fft_1024_sol2_gen1
+[2026-06-11 14:36:32] [INFO] Running Vivado synthesis for fft_1024_sol5_gen1
+[2026-06-11 14:36:32] [INFO] Running Vivado synthesis for fft_1024_sol3_gen1
+[2026-06-11 14:36:32] [INFO] Running Vivado synthesis for fft_1024_sol4_gen1
+[2026-06-11 14:36:47] [ERROR] Vivado failed for fft_1024_sol3_gen1
+[2026-06-11 14:36:47] [INFO] Solution 3: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:49] [ERROR] Vivado failed for fft_1024_sol2_gen1
+[2026-06-11 14:36:49] [ERROR] Vivado failed for fft_1024_sol4_gen1
+[2026-06-11 14:36:50] [INFO] Solution 2: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:50] [INFO] Solution 4: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:50] [ERROR] Vivado failed for fft_1024_sol5_gen1
+[2026-06-11 14:36:50] [ERROR] Vivado failed for fft_1024_sol0_gen1
+[2026-06-11 14:36:50] [INFO] Solution 5: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:50] [INFO] Solution 0: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:51] [ERROR] Vivado failed for fft_1024_sol1_gen1
+[2026-06-11 14:36:51] [INFO] Solution 1: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:36:51] [INFO] Generation 0 complete
+[2026-06-11 14:36:51] [GEN] === Generation 1 ===
+[2026-06-11 14:36:51] [INFO] Evaluating solution 1: [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+[2026-06-11 14:36:51] [INFO] Evaluating solution 0: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:36:51] [INFO] Evaluating solution 2: [0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+[2026-06-11 14:36:51] [INFO] Evaluating solution 3: [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:36:51] [INFO] Evaluating solution 4: [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[2026-06-11 14:36:51] [INFO] Running Vivado synthesis for fft_1024_sol0_gen2
+[2026-06-11 14:36:51] [INFO] Running Vivado synthesis for fft_1024_sol1_gen2
+[2026-06-11 14:36:51] [INFO] Running Vivado synthesis for fft_1024_sol2_gen2
+[2026-06-11 14:36:51] [INFO] Evaluating solution 5: [0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+[2026-06-11 14:36:51] [INFO] Running Vivado synthesis for fft_1024_sol4_gen2
+[2026-06-11 14:36:51] [INFO] Running Vivado synthesis for fft_1024_sol3_gen2
+[2026-06-11 14:36:51] [INFO] Running Vivado synthesis for fft_1024_sol5_gen2
+[2026-06-11 14:37:08] [ERROR] Vivado failed for fft_1024_sol1_gen2
+[2026-06-11 14:37:08] [ERROR] Vivado failed for fft_1024_sol2_gen2
+[2026-06-11 14:37:08] [ERROR] Vivado failed for fft_1024_sol0_gen2
+[2026-06-11 14:37:09] [INFO] Solution 1: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:37:09] [INFO] Solution 2: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:37:09] [INFO] Solution 0: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:37:09] [ERROR] Vivado failed for fft_1024_sol5_gen2
+[2026-06-11 14:37:09] [ERROR] Vivado failed for fft_1024_sol4_gen2
+[2026-06-11 14:37:09] [INFO] Solution 5: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:37:09] [INFO] Solution 4: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:37:10] [ERROR] Vivado failed for fft_1024_sol3_gen2
+[2026-06-11 14:37:10] [INFO] Solution 3: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:37:10] [INFO] Generation 1 complete
+[2026-06-11 14:37:10] [GEN] === Generation 2 ===
+[2026-06-11 14:37:10] [INFO] Evaluating solution 0: [1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:37:10] [INFO] Evaluating solution 1: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1]
+[2026-06-11 14:37:10] [INFO] Evaluating solution 2: [0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[2026-06-11 14:37:10] [INFO] Evaluating solution 3: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:37:10] [INFO] Evaluating solution 4: [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:37:10] [INFO] Evaluating solution 5: [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[2026-06-11 14:37:10] [INFO] Running Vivado synthesis for fft_1024_sol1_gen3
+[2026-06-11 14:37:10] [INFO] Running Vivado synthesis for fft_1024_sol0_gen3
+[2026-06-11 14:37:10] [INFO] Running Vivado synthesis for fft_1024_sol2_gen3
+[2026-06-11 14:37:10] [INFO] Running Vivado synthesis for fft_1024_sol3_gen3
+[2026-06-11 14:37:10] [INFO] Running Vivado synthesis for fft_1024_sol4_gen3
+[2026-06-11 14:37:10] [INFO] Running Vivado synthesis for fft_1024_sol5_gen3
+[2026-06-11 14:37:25] [ERROR] Vivado failed for fft_1024_sol5_gen3
+[2026-06-11 14:37:25] [ERROR] Vivado failed for fft_1024_sol2_gen3
+[2026-06-11 14:37:25] [INFO] Solution 5: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:37:25] [INFO] Solution 2: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:37:27] [ERROR] Vivado failed for fft_1024_sol3_gen3
+[2026-06-11 14:37:27] [ERROR] Vivado failed for fft_1024_sol1_gen3
+[2026-06-11 14:37:27] [INFO] Solution 3: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:37:27] [INFO] Solution 1: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:37:27] [ERROR] Vivado failed for fft_1024_sol4_gen3
+[2026-06-11 14:37:27] [INFO] Solution 4: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:37:28] [ERROR] Vivado failed for fft_1024_sol0_gen3
+[2026-06-11 14:37:28] [INFO] Solution 0: P=6.0000W, A=20000 LUTs, SQNR=-100.00dB, CritDelay=200.000ns → NormLat=3.333x
+[2026-06-11 14:37:28] [INFO] Generation 2 complete
+[2026-06-11 14:37:28] [INFO] Optimisation complete for 1024-point FFT
+[2026-06-11 14:37:28] [INFO] Saving optimization results...
+[2026-06-11 14:37:28] [WARN] WARNING: No feasible solutions — saving least-infeasible fallback.
+[2026-06-11 14:37:28] [INFO] Summary saved → ./results/fft_1024/summary.txt
+[2026-06-11 14:37:28] [INFO] Solution CSV saved → ./results/fft_1024/all_solutions_fft1024.csv  (6 rows)
+[2026-06-11 14:37:29] [INFO] 2-D Pareto plot (6 panels) saved → ./results/fft_1024/pareto_2d_fft1024.png
+[2026-06-11 14:37:30] [INFO] 3-D Pareto plot saved → ./results/fft_1024/pareto_3d_fft1024.png
+[2026-06-11 14:37:30] [INFO] Latency dashboard saved → ./results/fft_1024/pareto_latency_fft1024.png
+[2026-06-11 14:37:30] [INFO] All-generations CSV saved → ./results/fft_1024/all_generations_fft1024.csv  (18 solutions)
+[2026-06-11 14:37:30] [INFO] Compressed 18 solution log(s) → ./results/fft_1024/solution_logs_fft1024.zip (18 deleted)
+[2026-06-11 14:37:30] [INFO] RTL zip: 54 file(s) → ./results/fft_1024/rtl_fft1024.zip (originals deleted)
+[2026-06-11 14:37:30] [INFO] Results saved to ./results/fft_1024  (Fallback front: 6 solutions)
+[2026-06-11 14:37:30] [INFO] Quick test complete
