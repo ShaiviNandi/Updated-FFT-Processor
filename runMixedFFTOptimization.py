@@ -988,7 +988,7 @@ def quick_test():
     orig_pop, orig_gen = POPULATION, GENERATIONS
     POPULATION, GENERATIONS = 6, 3
 
-    run_optimization_for_fft_size(fft_size=16)
+    run_optimization_for_fft_size(fft_size=1024)
 
     POPULATION, GENERATIONS = orig_pop, orig_gen
     log_message("Quick test complete")
@@ -1002,8 +1002,8 @@ def main():
     """
     Default entry-point: full sweep across all FFT sizes (2 → 1024).
     """
-    run_full_optimization_sweep()
-    # quick_test()
+    #run_full_optimization_sweep()
+    quick_test()
 
 
 if __name__ == "__main__":

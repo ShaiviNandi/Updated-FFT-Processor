@@ -1,0 +1,88 @@
+[2026-06-11 14:19:36] [INFO] Initialized directory structure
+[2026-06-11 14:19:36] [INFO] Running quick test with 16-point FFT
+[2026-06-11 14:19:36] [INFO] Setting up Verilog source files
+[2026-06-11 14:19:36] [INFO] 
+============================================================
+[2026-06-11 14:19:36] [INFO] Starting optimisation for 1024-point FFT
+[2026-06-11 14:19:36] [INFO] ============================================================
+
+[2026-06-11 14:19:36] [INFO] Initialized FFT-1024 problem with Vivado timing as 4th objective
+[2026-06-11 14:19:36] [INFO] NSGA-II Configuration:
+[2026-06-11 14:19:36] [INFO]   Population size : 6
+[2026-06-11 14:19:36] [INFO]   Generations     : 3
+[2026-06-11 14:19:36] [INFO]   Crossover rate  : 0.9
+[2026-06-11 14:19:36] [INFO]   Mutation rate   : 0.05
+[2026-06-11 14:19:36] [INFO]   Objectives      : 4  (Power, Area, SQNR, CritDelay)
+[2026-06-11 14:19:36] [INFO]   Parallel threads: 6
+[2026-06-11 14:19:36] [INFO]   Clock target    : 100.0 ns
+[2026-06-11 14:19:36] [GEN] === Generation 0 ===
+[2026-06-11 14:19:36] [INFO] Evaluating solution 0: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:19:36] [INFO] Evaluating solution 3: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[2026-06-11 14:19:36] [INFO] Evaluating solution 4: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+[2026-06-11 14:19:36] [INFO] Evaluating solution 5: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+[2026-06-11 14:19:36] [INFO] Evaluating solution 1: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[2026-06-11 14:19:36] [INFO] Evaluating solution 2: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:19:36] [INFO] Running Vivado synthesis for fft_1024_sol3_gen1
+[2026-06-11 14:19:36] [INFO] Running Vivado synthesis for fft_1024_sol5_gen1
+[2026-06-11 14:19:36] [INFO] Running Vivado synthesis for fft_1024_sol0_gen1
+[2026-06-11 14:19:36] [INFO] Running Vivado synthesis for fft_1024_sol2_gen1
+[2026-06-11 14:19:36] [INFO] Running Vivado synthesis for fft_1024_sol1_gen1
+[2026-06-11 14:19:36] [INFO] Running Vivado synthesis for fft_1024_sol4_gen1
+[2026-06-11 14:20:20] [ERROR] Vivado failed for fft_1024_sol2_gen1
+[2026-06-11 14:20:20] [ERROR] Vivado failed for fft_1024_sol1_gen1
+[2026-06-11 14:20:20] [ERROR] Vivado failed for fft_1024_sol3_gen1
+[2026-06-11 14:20:20] [ERROR] Vivado failed for fft_1024_sol4_gen1
+[2026-06-11 14:20:20] [ERROR] Vivado failed for fft_1024_sol0_gen1
+[2026-06-11 14:20:20] [ERROR] Vivado failed for fft_1024_sol5_gen1
+[2026-06-11 14:20:21] [ERROR] Solution 4 failed: 'FFTTemplateGenerator' object has no attribute 'analyze_chromosome_statistics'
+[2026-06-11 14:20:21] [ERROR] Solution 0 failed: 'FFTTemplateGenerator' object has no attribute 'analyze_chromosome_statistics'
+[2026-06-11 14:20:21] [ERROR] Solution 2 failed: 'FFTTemplateGenerator' object has no attribute 'analyze_chromosome_statistics'
+[2026-06-11 14:20:21] [ERROR] Solution 5 failed: 'FFTTemplateGenerator' object has no attribute 'analyze_chromosome_statistics'
+[2026-06-11 14:20:21] [ERROR] Solution 1 failed: 'FFTTemplateGenerator' object has no attribute 'analyze_chromosome_statistics'
+[2026-06-11 14:20:21] [ERROR] Solution 3 failed: 'FFTTemplateGenerator' object has no attribute 'analyze_chromosome_statistics'
+[2026-06-11 14:20:21] [INFO] Generation 0 complete
+[2026-06-11 14:20:21] [GEN] === Generation 1 ===
+[2026-06-11 14:20:21] [INFO] Evaluating solution 2: [0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+[2026-06-11 14:20:21] [INFO] Evaluating solution 0: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:20:21] [INFO] Evaluating solution 1: [1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+[2026-06-11 14:20:21] [INFO] Evaluating solution 4: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[2026-06-11 14:20:21] [INFO] Evaluating solution 3: [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:20:21] [INFO] Evaluating solution 5: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1]
+[2026-06-11 14:20:21] [INFO] Running Vivado synthesis for fft_1024_sol2_gen2
+[2026-06-11 14:20:21] [INFO] Running Vivado synthesis for fft_1024_sol1_gen2
+[2026-06-11 14:20:21] [INFO] Running Vivado synthesis for fft_1024_sol4_gen2
+[2026-06-11 14:20:21] [INFO] Running Vivado synthesis for fft_1024_sol0_gen2
+[2026-06-11 14:20:21] [INFO] Running Vivado synthesis for fft_1024_sol5_gen2
+[2026-06-11 14:20:21] [INFO] Running Vivado synthesis for fft_1024_sol3_gen2
+[2026-06-11 14:20:28] [ERROR] Vivado failed for fft_1024_sol1_gen2
+[2026-06-11 14:20:28] [ERROR] Vivado failed for fft_1024_sol0_gen2
+[2026-06-11 14:20:28] [ERROR] Vivado failed for fft_1024_sol4_gen2
+[2026-06-11 14:20:28] [ERROR] Vivado failed for fft_1024_sol5_gen2
+[2026-06-11 14:20:28] [ERROR] Solution 1 failed: 'FFTTemplateGenerator' object has no attribute 'analyze_chromosome_statistics'
+[2026-06-11 14:20:28] [ERROR] Vivado failed for fft_1024_sol3_gen2
+[2026-06-11 14:20:28] [ERROR] Solution 4 failed: 'FFTTemplateGenerator' object has no attribute 'analyze_chromosome_statistics'
+[2026-06-11 14:20:28] [ERROR] Solution 5 failed: 'FFTTemplateGenerator' object has no attribute 'analyze_chromosome_statistics'
+[2026-06-11 14:20:28] [ERROR] Solution 0 failed: 'FFTTemplateGenerator' object has no attribute 'analyze_chromosome_statistics'
+[2026-06-11 14:20:28] [ERROR] Solution 3 failed: 'FFTTemplateGenerator' object has no attribute 'analyze_chromosome_statistics'
+[2026-06-11 14:20:29] [ERROR] Vivado failed for fft_1024_sol2_gen2
+[2026-06-11 14:20:29] [ERROR] Solution 2 failed: 'FFTTemplateGenerator' object has no attribute 'analyze_chromosome_statistics'
+[2026-06-11 14:20:29] [INFO] Generation 1 complete
+[2026-06-11 14:20:29] [GEN] === Generation 2 ===
+[2026-06-11 14:20:29] [INFO] Evaluating solution 0: [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:20:29] [INFO] Evaluating solution 1: [0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+[2026-06-11 14:20:29] [INFO] Evaluating solution 2: [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[2026-06-11 14:20:29] [INFO] Running Vivado synthesis for fft_1024_sol0_gen3
+[2026-06-11 14:20:29] [INFO] Evaluating solution 3: [1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:20:29] [INFO] Evaluating solution 5: [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[2026-06-11 14:20:29] [INFO] Evaluating solution 4: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+[2026-06-11 14:20:29] [INFO] Running Vivado synthesis for fft_1024_sol2_gen3
+[2026-06-11 14:20:29] [INFO] Running Vivado synthesis for fft_1024_sol1_gen3
+[2026-06-11 14:20:29] [INFO] Running Vivado synthesis for fft_1024_sol5_gen3
+[2026-06-11 14:20:29] [INFO] Running Vivado synthesis for fft_1024_sol3_gen3
+[2026-06-11 14:20:29] [INFO] Running Vivado synthesis for fft_1024_sol4_gen3
+[2026-06-11 14:20:33] [ERROR] Vivado failed for fft_1024_sol5_gen3
+[2026-06-11 14:20:33] [ERROR] Vivado failed for fft_1024_sol1_gen3
+[2026-06-11 14:20:33] [ERROR] Vivado failed for fft_1024_sol4_gen3
+[2026-06-11 14:20:33] [ERROR] Vivado failed for fft_1024_sol3_gen3
+[2026-06-11 14:20:33] [ERROR] Vivado failed for fft_1024_sol0_gen3
+[2026-06-11 14:20:33] [ERROR] Vivado failed for fft_1024_sol2_gen3
