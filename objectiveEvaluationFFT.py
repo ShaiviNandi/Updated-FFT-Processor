@@ -112,19 +112,55 @@ class MixedPrecisionFFTProblem(Problem):
         cmd = [
             VIVADO_PATH, '-mode', 'batch', '-source', './vivado_synthesis.tcl',
             '-tclargs', design_name, csv_output, str(CLOCK_PERIOD),
-            core_abs, top_abs, verilog_dir, FPGA_DEVICE  # Added FPGA_DEVICE to forward 'xc7a35tcpg236-1'
+            core_abs, top_abs, verilog_dir, FPGA_DEVICE
         ]
 
         try:
+            # Capture stdout and stderr streams to catch unexpected shell execution drops
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+            
             if result.returncode != 0:
-                log_message(f"Vivado failed for {design_name}", level='ERROR')
+                log_message(f"Vivado failed for {design_name} with exit code {result.returncode}", level='ERROR')
+                self._extract_and_log_vivado_errors(design_name)
                 return MAX_POWER_W*2, MAX_AREA_LUTS*2, 200.0
+                
             return self._parse_vivado_metrics(csv_output)
+            
+        except subprocess.TimeoutExpired:
+            log_message(f"Vivado synthesis TIMEOUT (900s limit exceeded) for {design_name}", level='ERROR')
+            return MAX_POWER_W*2, MAX_AREA_LUTS*2, 200.0
         except Exception as e:
-            log_message(f"Vivado error: {e}", level='ERROR')
+            log_message(f"Subprocess invocation error for {design_name}: {e}", level='ERROR')
             return MAX_POWER_W*2, MAX_AREA_LUTS*2, 200.0
 
+    def _extract_and_log_vivado_errors(self, design_name):
+        """Scans the current workspace's vivado.log file to isolate and report the true underlying error."""
+        log_candidates = ['vivado.log', f'./vivado_projects/{design_name}/vivado.log']
+        log_parsed = False
+
+        for log_path in log_candidates:
+            if os.path.exists(log_path):
+                log_parsed = True
+                log_message(f"Parsing tool log [{log_path}] for fatal signatures...", level='WARN')
+                
+                error_lines = []
+                with open(log_path, 'r') as f:
+                    for line in f:
+                        # Extract Vivado's standard warning/error flags or stack traces
+                        if "ERROR:" in line or "CRITICAL WARNING:" in line or "FATAL:" in line:
+                            error_lines.append(line.strip())
+                
+                if error_lines:
+                    log_message(f"=== FOUND {len(error_lines)} VIVADO FAULT SIGNATURES ===", level='ERROR')
+                    for err in error_lines[-10:]: # Display the last 10 relevant errors to prevent terminal flood
+                        log_message(f"  >>> {err}", level='ERROR')
+                    log_message("=================================================", level='ERROR')
+                else:
+                    log_message(f"No explicit ERROR strings found inside {log_path}. Check for silent system process terminations (OOM).", level='WARN')
+                break
+                
+        if not log_parsed:
+            log_message("Could not locate a raw vivado.log file in standard workspace paths. Vivado likely failed before initializing logging.", level='ERROR')
     def _parse_vivado_metrics(self, csv_file):
         power = MAX_POWER_W * 2
         area = MAX_AREA_LUTS * 2
