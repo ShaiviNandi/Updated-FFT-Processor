@@ -112,7 +112,7 @@ class MixedPrecisionFFTProblem(Problem):
         cmd = [
             VIVADO_PATH, '-mode', 'batch', '-source', './vivado_synthesis.tcl',
             '-tclargs', design_name, csv_output, str(CLOCK_PERIOD),
-            core_abs, top_abs, verilog_dir
+            core_abs, top_abs, verilog_dir, FPGA_DEVICE  # Added FPGA_DEVICE to forward 'xc7a35tcpg236-1'
         ]
 
         try:
