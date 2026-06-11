@@ -38,7 +38,7 @@ module fft_1024_sol1_gen3_core #(
     localparam STAGE2_MULT_PREC = 0;
     localparam STAGE2_ADD_PREC  = 1;
     localparam STAGE2_OUT_PREC  = 1;
-    localparam STAGE3_MULT_PREC = 1;
+    localparam STAGE3_MULT_PREC = 0;
     localparam STAGE3_ADD_PREC  = 1;
     localparam STAGE3_OUT_PREC  = 1;
     localparam STAGE4_MULT_PREC = 0;
@@ -48,8 +48,8 @@ module fft_1024_sol1_gen3_core #(
     localparam STAGE5_ADD_PREC  = 1;
     localparam STAGE5_OUT_PREC  = 1;
     localparam STAGE6_MULT_PREC = 0;
-    localparam STAGE6_ADD_PREC  = 1;
-    localparam STAGE6_OUT_PREC  = 1;
+    localparam STAGE6_ADD_PREC  = 0;
+    localparam STAGE6_OUT_PREC  = 0;
     localparam STAGE7_MULT_PREC = 0;
     localparam STAGE7_ADD_PREC  = 1;
     localparam STAGE7_OUT_PREC  = 1;
@@ -386,7 +386,7 @@ module fft_1024_sol1_gen3_core #(
     );
 
     butterfly_wrapper #(
-        .MULT_PRECISION(1),
+        .MULT_PRECISION(0),
         .ADD_PRECISION (1)
     ) bf_st3 (
         .A            (A_24_aligned),
@@ -423,7 +423,7 @@ module fft_1024_sol1_gen3_core #(
 
     butterfly_wrapper #(
         .MULT_PRECISION(0),
-        .ADD_PRECISION (1)
+        .ADD_PRECISION (0)
     ) bf_st6 (
         .A            (A_24_aligned),
         .B            (B_24_aligned),

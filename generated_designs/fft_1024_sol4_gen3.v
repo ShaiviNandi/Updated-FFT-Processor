@@ -29,12 +29,12 @@ module fft_1024_sol4_gen3_core #(
     input  wire                  ext_bank_sel
 );
 
-    localparam STAGE0_MULT_PREC = 1;
-    localparam STAGE0_ADD_PREC  = 1;
-    localparam STAGE0_OUT_PREC  = 1;
-    localparam STAGE1_MULT_PREC = 0;
-    localparam STAGE1_ADD_PREC  = 0;
-    localparam STAGE1_OUT_PREC  = 0;
+    localparam STAGE0_MULT_PREC = 0;
+    localparam STAGE0_ADD_PREC  = 0;
+    localparam STAGE0_OUT_PREC  = 0;
+    localparam STAGE1_MULT_PREC = 1;
+    localparam STAGE1_ADD_PREC  = 1;
+    localparam STAGE1_OUT_PREC  = 1;
     localparam STAGE2_MULT_PREC = 1;
     localparam STAGE2_ADD_PREC  = 1;
     localparam STAGE2_OUT_PREC  = 1;
@@ -350,8 +350,8 @@ module fft_1024_sol4_gen3_core #(
     wire        fp8_out_st9;
 
     butterfly_wrapper #(
-        .MULT_PRECISION(1),
-        .ADD_PRECISION (1)
+        .MULT_PRECISION(0),
+        .ADD_PRECISION (0)
     ) bf_st0 (
         .A            (A_24_aligned),
         .B            (B_24_aligned),
@@ -362,8 +362,8 @@ module fft_1024_sol4_gen3_core #(
     );
 
     butterfly_wrapper #(
-        .MULT_PRECISION(0),
-        .ADD_PRECISION (0)
+        .MULT_PRECISION(1),
+        .ADD_PRECISION (1)
     ) bf_st1 (
         .A            (A_24_aligned),
         .B            (B_24_aligned),

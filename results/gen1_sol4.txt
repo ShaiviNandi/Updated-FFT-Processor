@@ -1,0 +1,17 @@
+FFT Size          : 1024
+Generation        : 1
+Solution ID       : 4
+Chromosome        : [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+
+Results:
+  Power             : 6.000000 W
+  Area              : 20000 LUTs
+  SQNR              : -100.00 dB
+  Crit Path Delay   : 200.000 ns
+  Norm Latency      : 3.3333x
+
+Precision Stats:
+  FP8 Multipliers: 10 (100.0%)
+  FP4 Multipliers: 0 (0.0%)
+  FP8 Adders: 0 (0.0%)
+  FP4 Adders: 10 (100.0%)

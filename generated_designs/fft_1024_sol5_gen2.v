@@ -41,10 +41,10 @@ module fft_1024_sol5_gen2_core #(
     localparam STAGE3_MULT_PREC = 0;
     localparam STAGE3_ADD_PREC  = 1;
     localparam STAGE3_OUT_PREC  = 1;
-    localparam STAGE4_MULT_PREC = 0;
+    localparam STAGE4_MULT_PREC = 1;
     localparam STAGE4_ADD_PREC  = 1;
     localparam STAGE4_OUT_PREC  = 1;
-    localparam STAGE5_MULT_PREC = 1;
+    localparam STAGE5_MULT_PREC = 0;
     localparam STAGE5_ADD_PREC  = 1;
     localparam STAGE5_OUT_PREC  = 1;
     localparam STAGE6_MULT_PREC = 0;
@@ -54,8 +54,8 @@ module fft_1024_sol5_gen2_core #(
     localparam STAGE7_ADD_PREC  = 1;
     localparam STAGE7_OUT_PREC  = 1;
     localparam STAGE8_MULT_PREC = 0;
-    localparam STAGE8_ADD_PREC  = 0;
-    localparam STAGE8_OUT_PREC  = 0;
+    localparam STAGE8_ADD_PREC  = 1;
+    localparam STAGE8_OUT_PREC  = 1;
     localparam STAGE9_MULT_PREC = 0;
     localparam STAGE9_ADD_PREC  = 1;
     localparam STAGE9_OUT_PREC  = 1;
@@ -398,7 +398,7 @@ module fft_1024_sol5_gen2_core #(
     );
 
     butterfly_wrapper #(
-        .MULT_PRECISION(0),
+        .MULT_PRECISION(1),
         .ADD_PRECISION (1)
     ) bf_st4 (
         .A            (A_24_aligned),
@@ -410,7 +410,7 @@ module fft_1024_sol5_gen2_core #(
     );
 
     butterfly_wrapper #(
-        .MULT_PRECISION(1),
+        .MULT_PRECISION(0),
         .ADD_PRECISION (1)
     ) bf_st5 (
         .A            (A_24_aligned),
@@ -447,7 +447,7 @@ module fft_1024_sol5_gen2_core #(
 
     butterfly_wrapper #(
         .MULT_PRECISION(0),
-        .ADD_PRECISION (0)
+        .ADD_PRECISION (1)
     ) bf_st8 (
         .A            (A_24_aligned),
         .B            (B_24_aligned),
