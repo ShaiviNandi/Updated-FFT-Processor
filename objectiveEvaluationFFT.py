@@ -94,7 +94,7 @@ class MixedPrecisionFFTProblem(Problem):
         self._save_solution_result(sol_id, chromosome, results)
 
         stats = self.template_gen.analyze_chromosome_statistics(chromosome)
-        log_message(f"Solution {sol_id}: P={power:.4f}W, A={area} LUTs, SQNR={sqnr:.2f}dB, CritDelay={crit_delay:.3f}ns → NormLat={norm_latency:.3f}x")
+        log_message(f"Solution {sol_id}: P={power:.4f}W, A={area} LUTs, SQNR={sqnr:.2f}dB, CritDelay={crit_delay:.3f}ns -> NormLat={norm_latency:.3f}x")
 
         return self._compute_objectives_and_constraints(results)
 

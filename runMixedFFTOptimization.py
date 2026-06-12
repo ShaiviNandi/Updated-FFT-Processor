@@ -576,7 +576,7 @@ def plot_pareto_front(pareto_objectives, fft_size, results_subdir, feasible=True
                    label=f'Target = {REFERENCE_CLOCK_PERIOD_NS:.1f} ns')
     ax_cpd.set_xlabel("Power (W)",              fontsize=10)
     ax_cpd.set_ylabel("Critical Path Delay (ns)", fontsize=10)
-    ax_cpd.set_title("Crit Delay vs Power\n(bubble size ∝ Area)",
+    ax_cpd.set_title("Crit Delay vs Power\n(bubble size proportional to Area)",
                      fontsize=11)
     ax_cpd.legend(fontsize=8)
     ax_cpd.grid(True, linestyle='--', alpha=0.4)

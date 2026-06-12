@@ -229,7 +229,7 @@ class PerformanceEvaluator:
         watchdog_ns     = (1024 + num_tests * (cycles_per_fft + n * 5) + 1000) * 10
 
         sim_dir  = os.path.abspath('./sim')
-        out_path = os.path.join(sim_dir, f'{design_name}_output.txt').replace('\\', '/')
+        out_path = os.path.join(sim_dir, f'{design_name}_output.txt')
 
         vec_hex_lines = []
         for ti, vec in enumerate(self.test_vectors):
@@ -353,13 +353,21 @@ endmodule
 
         try:
             res = subprocess.run(compile_cmd, capture_output=True, text=True)
-            if res.returncode != 0: return None
-            
+            if res.returncode != 0:
+                print(f"[COMPILE ERROR] iverilog returned {res.returncode} for {design_name}")
+                if res.stdout: print("[COMPILE STDOUT]\n" + res.stdout[:2000])
+                if res.stderr: print("[COMPILE STDERR]\n" + res.stderr[:2000])
+                return None
             # Capture stdout to extract clock cycle trackers
             sim_res = subprocess.run(['vvp', vvp_path], capture_output=True, text=True, timeout=120, cwd=sim_dir)
-            if sim_res.returncode != 0: return None
+            if sim_res.returncode != 0:
+                print(f"[SIM ERROR] vvp returned {sim_res.returncode} for {design_name}")
+                if sim_res.stdout: print("[SIM STDOUT]\n" + sim_res.stdout[:2000])
+                if sim_res.stderr: print("[SIM STDERR]\n" + sim_res.stderr[:2000])
+                return None
             return os.path.join(sim_dir, f'{design_name}_output.txt'), sim_res.stdout
-        except Exception:
+        except Exception as e:
+            print(f"[EXCEPTION] Simulation subprocess failed for {design_name}: {e}")
             return None
 
     def _parse_simulation_output(self, output_file, final_stage_is_fp8=True):
