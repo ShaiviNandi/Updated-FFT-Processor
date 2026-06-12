@@ -1,6 +1,7 @@
 // =============================================================================
 // Mixed-Precision Concurrent FFT Memory Subsystem (Fully Backward-Compatible)
 // FIXED: Verilog-2001 syntax compatible port list with internal fallback logic.
+// STRICT BRAM INFERENCE IMPLEMENTED
 // =============================================================================
 `timescale 1ns/1ps
 
@@ -35,9 +36,9 @@ module mixed_dual_bank_memory_concurrent #(
 );
 
     localparam SUB_DEPTH = n / 2;
-    (* ram_style = "block" *) reg [23:0] b0_sub0 [0:SUB_DEPTH-1]; 
+    (* ram_style = "block" *) reg [23:0] b0_sub0 [0:SUB_DEPTH-1];
     (* ram_style = "block" *) reg [23:0] b0_sub1 [0:SUB_DEPTH-1]; 
-    (* ram_style = "block" *) reg [23:0] b1_sub0 [0:SUB_DEPTH-1]; 
+    (* ram_style = "block" *) reg [23:0] b1_sub0 [0:SUB_DEPTH-1];
     (* ram_style = "block" *) reg [23:0] b1_sub1 [0:SUB_DEPTH-1]; 
 
     // -------------------------------------------------------------------------
@@ -72,34 +73,69 @@ module mixed_dual_bank_memory_concurrent #(
             if (actual_wr_bank == 1'b0) begin
                 if (!write_sub_sel_a) b1_sub0[c_wr_addr_a] <= wr_data_a;
                 else                  b1_sub1[c_wr_addr_a] <= wr_data_a;
+                
                 if (!write_sub_sel_b) b1_sub0[c_wr_addr_b] <= wr_data_b;
                 else                  b1_sub1[c_wr_addr_b] <= wr_data_b;
             end else begin
                 if (!write_sub_sel_a) b0_sub0[c_wr_addr_a] <= wr_data_a;
                 else                  b0_sub1[c_wr_addr_a] <= wr_data_a;
+                
                 if (!write_sub_sel_b) b0_sub0[c_wr_addr_b] <= wr_data_b;
                 else                  b0_sub1[c_wr_addr_b] <= wr_data_b;
             end
         end
     end
 
-    // Pipelined Read Interface
-    reg [23:0] rd_full_a, rd_full_b;
-    reg        rd_prec_d1;
+    // =========================================================================
+    // Pipelined Read Interface (STRICT BRAM INFERENCE TEMPLATE)
+    // =========================================================================
+    
+    // 1. Unconditional Synchronous BRAM Reads
+    reg [23:0] r_b0_sub0_a, r_b0_sub1_a, r_b1_sub0_a, r_b1_sub1_a;
+    reg [23:0] r_b0_sub0_b, r_b0_sub1_b, r_b1_sub0_b, r_b1_sub1_b;
+    
+    // Pipeline the control signals to match the 1-cycle BRAM delay
+    reg pipe_bank_pingpong;
+    reg pipe_read_sub_sel_a;
+    reg pipe_read_sub_sel_b;
+    reg rd_prec_d1;
+
+    always @(posedge clk) begin
+        // Port A reads
+        r_b0_sub0_a <= b0_sub0[c_rd_addr_a];
+        r_b0_sub1_a <= b0_sub1[c_rd_addr_a];
+        r_b1_sub0_a <= b1_sub0[c_rd_addr_a];
+        r_b1_sub1_a <= b1_sub1[c_rd_addr_a];
+        
+        // Port B reads
+        r_b0_sub0_b <= b0_sub0[c_rd_addr_b];
+        r_b0_sub1_b <= b0_sub1[c_rd_addr_b];
+        r_b1_sub0_b <= b1_sub0[c_rd_addr_b];
+        r_b1_sub1_b <= b1_sub1[c_rd_addr_b];
+
+        // Delay control signals
+        pipe_bank_pingpong  <= bank_pingpong;
+        pipe_read_sub_sel_a <= read_sub_sel_a;
+        pipe_read_sub_sel_b <= read_sub_sel_b;
+        rd_prec_d1          <= rd_precision;
+    end
+
+    // 2. Combinational Multiplexing AFTER the BRAM blocks
+    wire [23:0] rd_full_a = (pipe_bank_pingpong == 1'b0) ? 
+                            (pipe_read_sub_sel_a ? r_b0_sub1_a : r_b0_sub0_a) :
+                            (pipe_read_sub_sel_a ? r_b1_sub1_a : r_b1_sub0_a);
+
+    wire [23:0] rd_full_b = (pipe_bank_pingpong == 1'b0) ? 
+                            (pipe_read_sub_sel_b ? r_b0_sub1_b : r_b0_sub0_b) :
+                            (pipe_read_sub_sel_b ? r_b1_sub1_b : r_b1_sub0_b);
+
+    // 3. Final Output Register (Cycle 2)
     reg [15:0] out_reg_a, out_reg_b;
 
     always @(posedge clk) begin
-        if (bank_pingpong == 1'b0) begin
-            rd_full_a <= (!read_sub_sel_a) ? b0_sub0[c_rd_addr_a] : b0_sub1[c_rd_addr_a];
-            rd_full_b <= (!read_sub_sel_b) ? b0_sub0[c_rd_addr_b] : b0_sub1[c_rd_addr_b];
-        end else begin
-            rd_full_a <= (!read_sub_sel_a) ? b1_sub0[c_rd_addr_a] : b1_sub1[c_rd_addr_a];
-            rd_full_b <= (!read_sub_sel_b) ? b1_sub0[c_rd_addr_b] : b1_sub1[c_rd_addr_b];
-        end
-        rd_prec_d1 <= rd_precision;
-
         if (!rst) begin
-            out_reg_a <= 16'h0000; out_reg_b <= 16'h0000;
+            out_reg_a <= 16'h0000; 
+            out_reg_b <= 16'h0000;
         end else begin
             if (rd_prec_d1) begin
                 out_reg_a <= rd_full_a[23:8];

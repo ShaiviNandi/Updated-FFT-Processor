@@ -161,10 +161,12 @@ class FFTTemplateGenerator:
         last_out_prec = stages[-1]['output_precision']
 
         # ---- read-side precision mux (driven by immediate AGU curr_stage) ----
+        # Stage 0 reads its own add-precision lane (not hardwired FP8).
+        # Every subsequent stage reads whatever the previous stage wrote.
         rd_prec_cases = []
         for s in stages:
             sn       = s['stage_num']
-            rd_prec  = "1'b1" if sn == 0 else f"STAGE{sn-1}_OUT_PREC"
+            rd_prec  = f"STAGE{sn}_ADD_PREC" if sn == 0 else f"STAGE{sn-1}_OUT_PREC"
             rd_prec_cases.append(
                 f"            4'd{sn}: begin\n"
                 f"                cur_mult_prec = STAGE{sn}_MULT_PREC;\n"
@@ -379,8 +381,6 @@ module {core_module_name} #(
         .curr_stage   (curr_stage)
     );
 
-{prec_mux}
-
     // =========================================================================
     // PIPELINED CORDIC TWIDDLE GENERATION ENGINE (ROM-LESS)
     // =========================================================================
@@ -452,6 +452,8 @@ module {core_module_name} #(
     wire [ADDR_WIDTH-1:0] mem_wr_mask     = stage_mask_pipe[TOTAL_LATENCY-1];
     wire [ADDR_WIDTH-1:0] curr_stage_delayed = curr_stage_pipe[TOTAL_LATENCY-1];
 
+{prec_mux}
+
     // =========================================================================
     // MULTI-BANK TRUE CONCURRENT MEMORY SUBSYSTEM
     // =========================================================================
@@ -465,7 +467,7 @@ module {core_module_name} #(
     assign ext_rd_data = rd_data_a_16;
 
     mixed_dual_bank_memory_concurrent #(
-        .n         (MAX_N),
+        .n         ({n}), // fft_size from config
         .ADDR_WIDTH(ADDR_WIDTH)
     ) mem (
         .clk          (clk),
@@ -619,6 +621,16 @@ module {top_module_name} (
     wire core_done;
     wire [15:0] core_rd_data;
 
+    // Pack incoming 16-bit FP8 sample into unified 24-bit memory format.
+    // Bits [23:8] = FP8 representation (direct from testbench).
+    // Bits  [7:0] = FP4 representation (converted so FP4 stages read correctly).
+    wire [7:0] load_fp4;
+    complex_fp8_to_fp4 load_fmt_conv (
+        .complex_fp8 (load_data),
+        .complex_fp4 (load_fp4)
+    );
+    wire [23:0] load_data_24 = {{load_data, load_fp4}};
+
     {core_module_name} #(
         .MAX_N     ({MAXn}),
         .ADDR_WIDTH({aw})
@@ -630,7 +642,7 @@ module {top_module_name} (
 
         .ext_wr_en    (load_en),
         .ext_wr_addr  (load_addr_rev),
-        .ext_wr_data  ({{ load_data, 8'h00 }}),  
+        .ext_wr_data  (load_data_24),
 
         .ext_reading  (unload_en),
         .ext_rd_addr  ({unload_addr_expr}),

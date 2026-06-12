@@ -28,15 +28,14 @@ module fp4_mul(
     wire hidden_b = (exp_b != 2'b00);
     wire [2:0] sig_a = {1'b0, hidden_a, mant_a};
     wire [2:0] sig_b = {1'b0, hidden_b, mant_b};
-    wire [4:0] prod = sig_a * sig_b;
+    
+    // Force Vivado to map this to a DSP48 slice
+    (* use_dsp = "yes" *) wire [4:0] prod = sig_a * sig_b;
+    
     wire need_norm = (prod >= 5'd8);
     wire [4:0] prod_norm = (need_norm) ? (prod >> 1) : prod;
     wire signed [3:0] exp_norm = (need_norm) ? (exp_temp + 1) : exp_temp;
     wire mant_out = prod_norm[1];  // correct round-to-nearest for all cases
-    // prod_norm[1] is the MSB of the result mantissa after normalization
-    // prod_norm[0] would be the round bit — add if you want R-T-N-E:
-    // wire round_up = prod_norm[0] & (prod_norm[1]);  // tie-break to even
-    // wire mant_out = prod_norm[1] + round_up;        // with overflow check
 
     //Preparing the output
     reg [3:0] output_reg;
@@ -80,6 +79,7 @@ module fp4_cmul (
     fp4_add_sub a1(.a(ad), .b(bc), .sub(1'b0), .out(res_imag));
     assign out_real = res_real;
     assign out_imag = res_imag;
+
 endmodule
 
 
@@ -115,7 +115,10 @@ module fp8_mul(
     wire hidden_b = (exp_b != 4'b0000);
     wire [4:0] sig_a = {1'b0, hidden_a, mant_a};
     wire [4:0] sig_b = {1'b0, hidden_b, mant_b};
-    wire [10:0] prod = sig_a * sig_b;
+    
+    // Force Vivado to map this to a DSP48 slice
+    (* use_dsp = "yes" *) wire [10:0] prod = sig_a * sig_b;
+    
     wire need_norm = (prod >= 8'd128);
     wire [10:0] prod_norm = (need_norm) ? (prod >> 1) : prod;
     wire signed [5:0] exp_norm = (need_norm) ? (exp_temp + 1) : exp_temp;

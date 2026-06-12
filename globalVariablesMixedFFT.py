@@ -2,6 +2,7 @@
 Global Variables for Mixed-Precision FFT Optimization
 Stage-level precision control (Option A).
 Now using actual Vivado synthesis timing for the latency objective.
+Includes proper [0,1] normalization for NSGA-II crowding distance stability.
 """
 
 import random
@@ -17,7 +18,7 @@ CROSSOVER_RATE = 0.9
 OBJECTIVES = 4               # Power, Area, Performance, Latency (from Vivado)
 
 CURRENT_GEN = 0
-SOLUTION_THREADS = 6
+SOLUTION_THREADS = 12
 
 FITNESS = 'fitness.npy'
 DPI = 200
@@ -41,9 +42,9 @@ for size in [8, 16, 32, 64, 128, 256, 512, 1024]:
     print(f"  FFT-{size:<4}: {ns:>2} stages x 2 = {chrom_size:>3} genes")
 
 # ======================= Vivado Configuration =======================
-VIVADO_PATH = '/tools/Xilinx/Vivado/2021.1/bin/vivado'
+VIVADO_PATH = '/home/digital-1/2025.2/Vivado/bin/vivado'
 VIVADO_BATCH_MODE = True
-CLOCK_PERIOD = 100.0
+CLOCK_PERIOD = 80.0
 FPGA_DEVICE = 'xc7a35tcpg236-1'
 
 # ======================= File Paths =======================
@@ -54,21 +55,30 @@ REPORTS_DIR = './reports'
 SIMULATION_DIR = './sim'
 RESULTS_DIR = './results'
 
-# ======================= Optimization Weights =======================
-WEIGHT_POWER = 1.0
-WEIGHT_AREA = 0.001
-WEIGHT_PERFORMANCE = 50.0
-WEIGHT_LATENCY = 8.0          # Higher weight for actual timing objective
-
 # ======================= Constraint Thresholds =======================
 MAX_POWER_W = 3.0
-MAX_AREA_LUTS = 10000
-MIN_SQNR_DB = -10.0
-MAX_LATENCY_NORM = 3.0        # Max acceptable normalized latency
+MAX_AREA_LUTS = 100000
+MIN_SQNR_DB = 5.0              # Tightened to reject poor signal quality early
+MAX_LATENCY_NORM = 10.0        # Max acceptable normalized latency
 MIN_FREQ_MHZ = 80.0
 
 # Reference for normalization (target clock period)
 REFERENCE_CLOCK_PERIOD_NS = CLOCK_PERIOD
+
+# ======================= Normalization References ===================
+# Used to map objectives to a ~[0,1] scale before applying weights
+REF_POWER_W      = MAX_POWER_W          # 3.0 W
+REF_AREA_LUTS    = MAX_AREA_LUTS        # 10000
+REF_SQNR_RANGE   = 50.0                 # dB range of interest
+SQNR_OFFSET      = 50.0                 # Ensures negated SQNR is positive
+REF_LATENCY      = MAX_LATENCY_NORM     # 10.0
+
+# ======================= Optimization Weights =======================
+# Applied AFTER normalization to bias crowding distance
+WEIGHT_POWER = 1.0
+WEIGHT_AREA = 1.0
+WEIGHT_PERFORMANCE = 10.0
+WEIGHT_LATENCY = 8.0          
 
 # Model parameters kept only as fallback
 FP8_MULT_DELAY_NS = 6.5
@@ -157,13 +167,5 @@ def initialize_directories():
     for d in dirs:
         os.makedirs(d, exist_ok=True)
     log_message("Initialized directory structure")
-
-# ======================= Chromosome Encoding Notes =======================
-"""
-CHROMOSOME ENCODING:
-  [s0_mult, s0_add, s1_mult, s1_add, ..., sN_mult, sN_add]
-
-4th OBJECTIVE: Actual latency from Vivado synthesis timing report.
-"""
 
 initialize_directories()

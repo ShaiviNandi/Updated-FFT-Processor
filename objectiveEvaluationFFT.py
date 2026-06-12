@@ -58,7 +58,7 @@ class MixedPrecisionFFTProblem(Problem):
                     G[idx] = g_vals
                 except Exception as e:
                     log_message(f"Solution {idx} failed: {e}", level='ERROR')
-                    F[idx] = [MAX_POWER_W*2, MAX_AREA_LUTS*2, 1e6, 50.0]  # heavy latency penalty
+                    F[idx] = [MAX_POWER_W*2, MAX_AREA_LUTS*2, 1e6, 50.0]  # heavy penalty
                     G[idx] = [MAX_POWER_W, MAX_AREA_LUTS, MIN_SQNR_DB]
 
         out["F"] = np.array(F)
@@ -66,7 +66,7 @@ class MixedPrecisionFFTProblem(Problem):
         log_message(f"Generation {CURRENT_GEN-1} complete")
 
     def evaluate_solution(self, chromosome, sol_id):
-        log_message(f"Evaluating solution {sol_id}: {list(chromosome)}")
+        log_message(f"Evaluating solution {sol_id}: {[int(x) for x in chromosome]}")
 
         chrom_hash = self._hash_chromosome(chromosome)
         if ENABLE_RESULT_CACHE and chrom_hash in RESULT_CACHE:
@@ -78,23 +78,32 @@ class MixedPrecisionFFTProblem(Problem):
         core_file, top_file = self.template_gen.generate_verilog(chromosome, core_file)
 
         power, area, crit_delay = self._run_vivado_synthesis(design_name, core_file, top_file)
-        sqnr = self._run_performance_evaluation(core_file, design_name, chromosome)
+        perf = self._run_performance_evaluation(core_file, design_name, chromosome)
+        sqnr           = perf['sqnr']
+        avg_exec_cycles = perf['avg_exec_cycles']
+        tot_sim_cycles  = perf['tot_sim_cycles']
 
         norm_latency = self._compute_actual_normalized_latency(crit_delay)
 
         results = {
-            'power': power,
-            'area': area,
-            'sqnr': sqnr,
-            'norm_latency': norm_latency,
-            'crit_delay_ns': crit_delay
+            'power':            power,
+            'area':             area,
+            'sqnr':             sqnr,
+            'norm_latency':     norm_latency,
+            'crit_delay_ns':    crit_delay,
+            'avg_exec_cycles':  avg_exec_cycles,
+            'tot_sim_cycles':   tot_sim_cycles,
         }
 
         RESULT_CACHE[chrom_hash] = results
         self._save_solution_result(sol_id, chromosome, results)
 
         stats = self.template_gen.analyze_chromosome_statistics(chromosome)
-        log_message(f"Solution {sol_id}: P={power:.4f}W, A={area} LUTs, SQNR={sqnr:.2f}dB, CritDelay={crit_delay:.3f}ns -> NormLat={norm_latency:.3f}x")
+        log_message(
+            f"Solution {sol_id}: P={power:.4f}W, A={area} LUTs, SQNR={sqnr:.2f}dB, "
+            f"CritDelay={crit_delay:.3f}ns -> NormLat={norm_latency:.3f}x, "
+            f"ExecCycles={avg_exec_cycles}, TotSimCycles={tot_sim_cycles}"
+        )
 
         return self._compute_objectives_and_constraints(results)
 
@@ -116,7 +125,6 @@ class MixedPrecisionFFTProblem(Problem):
         ]
 
         try:
-            # Capture stdout and stderr streams to catch unexpected shell execution drops
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
             
             if result.returncode != 0:
@@ -134,7 +142,6 @@ class MixedPrecisionFFTProblem(Problem):
             return MAX_POWER_W*2, MAX_AREA_LUTS*2, 200.0
 
     def _extract_and_log_vivado_errors(self, design_name):
-        """Scans the current workspace's vivado.log file to isolate and report the true underlying error."""
         log_candidates = ['vivado.log', f'./vivado_projects/{design_name}/vivado.log']
         log_parsed = False
 
@@ -146,13 +153,12 @@ class MixedPrecisionFFTProblem(Problem):
                 error_lines = []
                 with open(log_path, 'r') as f:
                     for line in f:
-                        # Extract Vivado's standard warning/error flags or stack traces
                         if "ERROR:" in line or "CRITICAL WARNING:" in line or "FATAL:" in line:
                             error_lines.append(line.strip())
                 
                 if error_lines:
                     log_message(f"=== FOUND {len(error_lines)} VIVADO FAULT SIGNATURES ===", level='ERROR')
-                    for err in error_lines[-10:]: # Display the last 10 relevant errors to prevent terminal flood
+                    for err in error_lines[-10:]: 
                         log_message(f"  >>> {err}", level='ERROR')
                     log_message("=================================================", level='ERROR')
                 else:
@@ -161,6 +167,7 @@ class MixedPrecisionFFTProblem(Problem):
                 
         if not log_parsed:
             log_message("Could not locate a raw vivado.log file in standard workspace paths. Vivado likely failed before initializing logging.", level='ERROR')
+
     def _parse_vivado_metrics(self, csv_file):
         power = MAX_POWER_W * 2
         area = MAX_AREA_LUTS * 2
@@ -182,14 +189,10 @@ class MixedPrecisionFFTProblem(Problem):
         return power, area, crit_delay
 
     def _compute_actual_normalized_latency(self, crit_delay_ns):
-        """Normalize actual critical path delay from Vivado synthesis."""
         if crit_delay_ns <= 0 or math.isnan(crit_delay_ns) or math.isinf(crit_delay_ns):
             return 10.0
 
-        # Basic normalization against target clock
         norm = crit_delay_ns / REFERENCE_CLOCK_PERIOD_NS
-
-        # Rough scaling with number of stages (pipeline depth)
         num_stages = self.template_gen.num_stages
         pipeline_factor = max(1.0, num_stages / 6.0)
 
@@ -200,7 +203,7 @@ class MixedPrecisionFFTProblem(Problem):
             return self.perf_eval.evaluate_design(verilog_file, design_name, chromosome=chromosome)
         except Exception as e:
             log_message(f"Performance evaluation failed: {e}", level='ERROR')
-            return -100.0
+            return {'sqnr': -100.0, 'avg_exec_cycles': -1, 'tot_sim_cycles': -1}
 
     def _compute_objectives_and_constraints(self, results):
         power = results['power']
@@ -208,14 +211,14 @@ class MixedPrecisionFFTProblem(Problem):
         sqnr = results['sqnr']
         norm_latency = results.get('norm_latency', 10.0)
 
-        sqnr_clamped = max(sqnr, 0.0)
-        perf_error = 1.0 / (sqnr_clamped + 1.0)
+        # Fix 1 & 3: Linear inversion & Scale Normalization
+        perf_obj = (SQNR_OFFSET - sqnr) / REF_SQNR_RANGE
 
         objectives = [
-            power * WEIGHT_POWER,
-            area * WEIGHT_AREA,
-            perf_error * WEIGHT_PERFORMANCE,
-            norm_latency * WEIGHT_LATENCY      # 4th objective: actual Vivado timing
+            (power / REF_POWER_W)        * WEIGHT_POWER,
+            (area / REF_AREA_LUTS)       * WEIGHT_AREA,
+            perf_obj                     * WEIGHT_PERFORMANCE,
+            (norm_latency / REF_LATENCY) * WEIGHT_LATENCY
         ]
 
         constraints = [
@@ -229,17 +232,22 @@ class MixedPrecisionFFTProblem(Problem):
         result_file = os.path.join(RESULTS_DIR, f"gen{CURRENT_GEN}_sol{sol_id}.txt")
         stats = self.template_gen.analyze_chromosome_statistics(chromosome)
 
+        avg_exec = results.get('avg_exec_cycles', -1)
+        tot_sim  = results.get('tot_sim_cycles',  -1)
+
         with open(result_file, 'w') as f:
             f.write(f"FFT Size          : {self.fft_size}\n")
             f.write(f"Generation        : {CURRENT_GEN}\n")
             f.write(f"Solution ID       : {sol_id}\n")
-            f.write(f"Chromosome        : {list(chromosome)}\n\n")
+            f.write(f"Chromosome        : {[int(x) for x in chromosome]}\n\n")
             f.write(f"Results:\n")
             f.write(f"  Power             : {results['power']:.6f} W\n")
             f.write(f"  Area              : {results['area']} LUTs\n")
             f.write(f"  SQNR              : {results['sqnr']:.2f} dB\n")
             f.write(f"  Crit Path Delay   : {results.get('crit_delay_ns', 0):.3f} ns\n")
             f.write(f"  Norm Latency      : {results.get('norm_latency', 0):.4f}x\n")
+            f.write(f"  Avg Exec Cycles   : {avg_exec}\n")
+            f.write(f"  Tot Sim Cycles    : {tot_sim}\n")
             f.write(f"\nPrecision Stats:\n")
             for k, v in stats.items():
                 if not isinstance(v, list):

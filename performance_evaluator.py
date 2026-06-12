@@ -138,15 +138,31 @@ class PerformanceEvaluator:
         return vecs
 
     def _compute_golden_outputs(self):
-        """Compute golden FFT references using strict FP32 casting constraints."""
+        """Default golden (FP8-quantised inputs) used when no chromosome is available."""
+        return self._compute_golden_for_precision(fp8_input=True)
+
+    def _compute_golden_for_precision(self, fp8_input=True):
+        """
+        Compute golden FFT references quantising the input to match the
+        actual first-stage precision so SQNR is measured fairly.
+
+        fp8_input=True  -> quantise inputs through FP8 codec (E4M3)
+        fp8_input=False -> quantise inputs through FP4 codec (E2M1)
+        """
         goldens = []
         for v in self.test_vectors:
-            v_quantized = np.array([
-                np.float32(self.fp8_to_float(self.float_to_fp8_e4m3(x.real))) +
-                1j * np.float32(self.fp8_to_float(self.float_to_fp8_e4m3(x.imag)))
-                for x in v
-            ], dtype=np.complex64)
-            # Perform FFT in FP32 space
+            if fp8_input:
+                v_quantized = np.array([
+                    np.float32(self.fp8_to_float(self.float_to_fp8_e4m3(x.real))) +
+                    1j * np.float32(self.fp8_to_float(self.float_to_fp8_e4m3(x.imag)))
+                    for x in v
+                ], dtype=np.complex64)
+            else:
+                v_quantized = np.array([
+                    np.float32(self.fp4_to_float(self.float_to_fp4(x.real))) +
+                    1j * np.float32(self.fp4_to_float(self.float_to_fp4(x.imag)))
+                    for x in v
+                ], dtype=np.complex64)
             goldens.append(np.fft.fft(v_quantized).astype(np.complex64))
         return goldens
 
@@ -402,9 +418,18 @@ endmodule
         if chromosome is not None:
             final_stage_is_fp8 = bool(chromosome[-1])
 
+        # Choose golden reference that matches the actual first-stage input precision.
+        # chromosome[1] = stage-0 add_precision gene (determines what lane stage-0 reads).
+        # If no chromosome is supplied fall back to the default FP8 golden.
+        if chromosome is not None:
+            first_stage_is_fp8 = bool(chromosome[1])   # gene index 1 = stage-0 add_prec
+        else:
+            first_stage_is_fp8 = True
+        goldens = self._compute_golden_for_precision(fp8_input=first_stage_is_fp8)
+
         # Run simulation and capture BOTH output text file and console log
         run_result = self.run_verilog_simulation(verilog_file, design_name)
-        if run_result is None: return -100.0
+        if run_result is None: return {'sqnr': -100.0, 'avg_exec_cycles': -1, 'tot_sim_cycles': -1}
         output_file, sim_log = run_result
 
         # Parse Cycle Clock metrics from Verilog stdout
@@ -424,7 +449,7 @@ endmodule
             avg_exec_cycles = str(sum(execs) // len(execs))
 
         sim_outputs = self._parse_simulation_output(output_file, final_stage_is_fp8)
-        if sim_outputs is None or len(sim_outputs) == 0: return -100.0
+        if sim_outputs is None or len(sim_outputs) == 0: return {'sqnr': -100.0, 'avg_exec_cycles': -1, 'tot_sim_cycles': -1}
 
         n, num_tests = self.fft_size, len(self.test_vectors)
         total_sqnr, valid = 0.0, 0
@@ -435,11 +460,12 @@ endmodule
         print(f"  Pipelined Metrics Breakdown - {design_name}")
         print(f"  > Avg FFT Execution Time : {avg_exec_cycles} clock cycles")
         print(f"  > Total Simulation Time  : {tot_sim_cycles} clock cycles")
+        print(f"  > Golden reference       : {'FP8' if first_stage_is_fp8 else 'FP4'} input quantisation")
         print("-------------------------------------------------------")
         
         for i in range(min(num_tests, len(sim_outputs) // n)):
             approx = sim_outputs[i * n : (i + 1) * n]
-            golden = self.golden_outputs[i]
+            golden = goldens[i]
             label  = SIGNAL_LABELS[i]
             sqnr   = self.calculate_sqnr(golden, approx)
 
@@ -451,4 +477,20 @@ endmodule
                 total_sqnr += sqnr; valid += 1
 
         print("-------------------------------------------------------")
-        return total_sqnr / valid if valid > 0 else -100.0
+        avg_sqnr = total_sqnr / valid if valid > 0 else -100.0
+
+        # Parse cycle counts to integers where possible
+        try:
+            avg_exec_int = int(avg_exec_cycles)
+        except (ValueError, TypeError):
+            avg_exec_int = -1
+        try:
+            tot_sim_int = int(tot_sim_cycles)
+        except (ValueError, TypeError):
+            tot_sim_int = -1
+
+        return {
+            'sqnr':            avg_sqnr,
+            'avg_exec_cycles': avg_exec_int,
+            'tot_sim_cycles':  tot_sim_int,
+        }
