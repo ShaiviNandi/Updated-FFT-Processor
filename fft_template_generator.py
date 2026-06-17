@@ -3,55 +3,30 @@ Mixed-Precision FFT Template Generator (Pipelined II=1 Edition)
 ===============================================================
 Generates per-solution core + top Verilog files for a high-performance,
 fully pipelined DIT radix-2 FFT.
-
-Architectural Upgrades:
-  - II=1 Continuous Pipelined Execution Path (Removes multi-cycle sequential FSM)
-  - Parameterized pipeline latency matching for Memory, CORDIC, and Butterfly units
-  - Dual-bank conflict-free concurrent memory routing signals
-  - Active-low async reset (negedge rst)
-  - Fractured/packed mixed-precision stage configuration mapping
-  - SINGLE SHARED BUTTERFLY unit to vastly reduce DSP/LUT utilization
-  - SRL pragmas enforced on all delay matching pipes to prevent FF explosion
 """
 
 import os
 import math
 
-
 class FFTTemplateGenerator:
-    # ------------------------------------------------------------------
-    # Construction
-    # ------------------------------------------------------------------
     def __init__(self, fft_size):
         self.fft_size          = fft_size
         self.num_stages        = int(math.log2(fft_size))
-        self.addr_width        = 11          # fixed 11-bit address (matches AGU/memory)
+        self.addr_width        = 11
         self.butterflies_per_stage = fft_size // 2
         self.total_butterflies = self.butterflies_per_stage * self.num_stages
         self.chromosome_length = self.num_stages * 2
         self.MAX_N_HW          = 1024
 
-        # Pipeline Latency Parameters
-        self.MEM_RD_LATENCY    = 2           # Synchronous BRAM read latency
-        self.CORDIC_LATENCY    = 10          # Pipelined CORDIC engine depth
-        self.BUTTERFLY_LATENCY = 0           # Combinational butterfly wrapper execution depth
-        
-        # Total latency from starting an address read to writeback availability
-        self.TOTAL_PIPE_LATENCY = self.CORDIC_LATENCY + self.BUTTERFLY_LATENCY + 1  # +1 for aligned memory read register stage
+        self.MEM_RD_LATENCY    = 1
+        self.CORDIC_LATENCY    = 10
+        self.BUTTERFLY_LATENCY = 0
+        self.TOTAL_PIPE_LATENCY = self.CORDIC_LATENCY + self.BUTTERFLY_LATENCY + 1
 
-        print(f"FFTTemplateGenerator FFT-{fft_size}:")
-        print(f"  Stages            : {self.num_stages}")
-        print(f"  Butterflies/stage : {self.butterflies_per_stage}")
-        print(f"  Chromosome length : {self.chromosome_length}")
-
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
     def get_chromosome_length(self):
         return self.chromosome_length
 
     def chromosome_to_config(self, chromosome):
-        """Convert flat chromosome list to structured stage configuration."""
         config = {
             'fft_size'  : self.fft_size,
             'num_stages': self.num_stages,
@@ -72,7 +47,7 @@ class FFTTemplateGenerator:
                 'output_precision': out_prec,
             })
         return config
-    
+
     def analyze_chromosome_statistics(self, chromosome):
         """Analyze the composition of the chromosome for logging."""
         config = self.chromosome_to_config(chromosome)
@@ -90,16 +65,8 @@ class FFTTemplateGenerator:
             "FP4 Adders": f"{fp4_add} ({fp4_add/num_stages*100:.1f}%)",
         }
 
-    # ------------------------------------------------------------------
-    # File generation helpers
-    # ------------------------------------------------------------------
     def generate_verilog(self, chromosome, output_file):
-        """
-        Generate core + top into the directory of output_file.
-        Returns (core_file_path, top_file_path).
-        """
         config = self.chromosome_to_config(chromosome)
-
         out_dir = os.path.dirname(os.path.abspath(output_file))
         os.makedirs(out_dir, exist_ok=True)
 
@@ -135,13 +102,8 @@ class FFTTemplateGenerator:
         with open(top_file, 'w') as f:
             f.write(self._generate_top(config, core_module_name, top_module_name))
 
-        print(f"[OK] Generated: {core_file}")
-        print(f"[OK] Generated: {top_file}")
         return top_file
 
-    # ==================================================================
-    # Core Verilog generator
-    # ==================================================================
     def _generate_core(self, config, core_module_name):
         n    = config['fft_size']
         aw   = self.addr_width        
@@ -149,7 +111,6 @@ class FFTTemplateGenerator:
         MAXn = config['MAX_N_HW']
         stages = config['stages']
 
-        # ---- stage localparams ----
         lparams_lines = []
         for s in stages:
             sn = s['stage_num']
@@ -159,12 +120,8 @@ class FFTTemplateGenerator:
                 f"    localparam STAGE{sn}_OUT_PREC  = {s['output_precision']};",
             ]
         lparams = '\n'.join(lparams_lines)
-
         last_out_prec = stages[-1]['output_precision']
 
-        # ---- read-side precision mux (driven by immediate AGU curr_stage) ----
-        # Stage 0 reads its own add-precision lane (not hardwired FP8).
-        # Every subsequent stage reads whatever the previous stage wrote.
         rd_prec_cases = []
         for s in stages:
             sn       = s['stage_num']
@@ -176,7 +133,6 @@ class FFTTemplateGenerator:
                 f"            end"
             )
 
-        # ---- write-side precision mux (driven by delayed pipeline stage) ----
         wr_prec_cases = []
         for s in stages:
             sn       = s['stage_num']
@@ -192,7 +148,7 @@ class FFTTemplateGenerator:
             "            cur_mult_prec = 1'b0;\n"
             f"            cur_rd_prec   = 1'b{last_out_prec};\n"
             "        end else begin\n"
-            "            case (curr_stage[3:0])\n"
+            "            case (current_stage_stable)\n"
             + '\n'.join(rd_prec_cases) + "\n"
             "                default: begin\n"
             "                    cur_mult_prec = 1'b0; cur_rd_prec = 1'b1;\n"
@@ -201,19 +157,18 @@ class FFTTemplateGenerator:
             "        end\n"
             "    end\n\n"
             "    always @(*) begin\n"
-            "        case (curr_stage_delayed[3:0])\n"
+            "        case (current_stage_stable_delayed)\n"
             + '\n'.join(wr_prec_cases) + "\n"
             "            default: cur_wr_prec = 1'b0;\n"
             "        endcase\n"
             "    end"
         )
 
-        # ---- Shared Butterfly Instantiation ----
         bf_lines = [
-            "    // SINGLE SHARED BUTTERFLY UNIT (Dynamic Precision Runtime Selection)",
+            "    // SINGLE SHARED BUTTERFLY UNIT",
             "    reg bf_mult_prec, bf_add_prec;",
             "    always @(*) begin",
-            "        case (curr_stage_delayed[3:0])"
+            "        case (current_stage_stable_delayed)",
         ]
         for s in stages:
             sn = s['stage_num']
@@ -241,9 +196,7 @@ class FFTTemplateGenerator:
         ]
         butterfly_block = '\n'.join(bf_lines)
 
-        # ---- Memory Expand with Internal Port-A and Port-B Alignments ----
         mem_expand = (
-            "    // Unpack, decode and extend dual-bank concurrent memory lanes\n"
             "    wire [7:0]  rd_a_fp8_as_fp4, rd_b_fp8_as_fp4;\n"
             "    complex_fp8_to_fp4 dec_a (.complex_fp8(rd_data_a_16), .complex_fp4(rd_a_fp8_as_fp4));\n"
             "    complex_fp8_to_fp4 dec_b (.complex_fp8(rd_data_b_16), .complex_fp4(rd_b_fp8_as_fp4));\n"
@@ -255,25 +208,22 @@ class FFTTemplateGenerator:
             "    wire [23:0] mem_rd_a_24 = cur_rd_prec ? {rd_data_a_16, rd_a_fp8_as_fp4} : {rd_a_fp4_as_fp8, rd_data_a_16[7:0]};\n"
             "    wire [23:0] mem_rd_b_24 = cur_rd_prec ? {rd_data_b_16, rd_b_fp8_as_fp4} : {rd_b_fp4_as_fp8, rd_data_b_16[7:0]};\n"
             "\n"
-            "    // Read matching line registers (BRAM Read Latency 2 -> CORDIC Execution 11 = 9 Cycle Shift Needed)\n"
-            "    (* srl_style = \"srl\" *) reg [23:0] A_24_pipe [0:8];\n"
-            "    (* srl_style = \"srl\" *) reg [23:0] B_24_pipe [0:8];\n"
+            "    (* srl_style = \"srl\" *) reg [23:0] A_24_pipe [0:9];\n"
+            "    (* srl_style = \"srl\" *) reg [23:0] B_24_pipe [0:9];\n"
             "    integer j;\n"
             "    always @(posedge clk) begin\n"
             "        A_24_pipe[0] <= mem_rd_a_24;\n"
             "        B_24_pipe[0] <= mem_rd_b_24;\n"
-            "        for (j = 1; j < 9; j = j + 1) begin\n"
+            "        for (j = 1; j < 10; j = j + 1) begin\n"
             "            A_24_pipe[j] <= A_24_pipe[j-1];\n"
             "            B_24_pipe[j] <= B_24_pipe[j-1];\n"
             "        end\n"
             "    end\n"
-            "    wire [23:0] A_24_aligned = A_24_pipe[8];\n"
-            "    wire [23:0] B_24_aligned = B_24_pipe[8];"
+            "    wire [23:0] A_24_aligned = A_24_pipe[9];\n"
+            "    wire [23:0] B_24_aligned = B_24_pipe[9];"
         )
 
-        # ---- Writeback formatting block ----
         writeback_block = (
-            "    // Stream writeback formatting matrix\n"
             "    wire [7:0]  X_fp4_packed, Y_fp4_packed;\n"
             "    wire [15:0] X_fp8_packed, Y_fp8_packed;\n"
             "\n"
@@ -294,7 +244,6 @@ class FFTTemplateGenerator:
         return f"""\
 // =============================================================================
 // Mixed-Precision FFT Core - {n}-point FULLY PIPELINED II=1 ARCHITECTURE
-// Auto-generated by FFTTemplateGenerator
 // Active-low asynchronous reset (negedge rst).
 // =============================================================================
 `timescale 1ns/1ps
@@ -304,18 +253,15 @@ module {core_module_name} #(
     parameter ADDR_WIDTH = {aw}
 )(
     input  wire        clk,
-    input  wire        rst,     // active-low async reset
+    input  wire        rst,
 
-    // Control Channels
     input  wire        start,
     output reg         done,
 
-    // External Load Interface
     input  wire                  ext_wr_en,
     input  wire [ADDR_WIDTH-1:0] ext_wr_addr,
     input  wire [23:0]           ext_wr_data,
 
-    // External Unload Interface
     input  wire                  ext_reading,
     input  wire [ADDR_WIDTH-1:0] ext_rd_addr,
     output wire [15:0]           ext_rd_data,
@@ -325,14 +271,10 @@ module {core_module_name} #(
 
 {lparams}
 
-    // Dynamic Context Setup Configurations
     reg cur_mult_prec;
     reg cur_rd_prec;
     reg cur_wr_prec;
 
-    // =========================================================================
-    // HIGH-PERFORMANCE STREAMING AGU WITH STALL LOGIC
-    // =========================================================================
     reg  start_agu_reg;
     wire streaming_enable;
     wire [ADDR_WIDTH-1:0] idx_a, idx_b, k;
@@ -342,13 +284,36 @@ module {core_module_name} #(
     reg [5:0] pipeline_stall_cnt;
     wire agu_stall = (pipeline_stall_cnt > 0);
     
+    // GHOST STALL FIX: Prevents the AGU from double-triggering after a flush
+    reg just_unstalled;
+    always @(posedge clk or negedge rst) begin
+        if (!rst) just_unstalled <= 1'b0;
+        else if (agu_stall) just_unstalled <= 1'b1;
+        else just_unstalled <= 1'b0;
+    end
+
+    wire safe_done_stage = done_stage && !just_unstalled;
+    wire safe_done_fft   = done_fft && !just_unstalled;
+    
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
             pipeline_stall_cnt <= 0;
-        end else if (done_stage && !done_fft) begin
+        end else if (safe_done_stage && !safe_done_fft) begin
             pipeline_stall_cnt <= {self.TOTAL_PIPE_LATENCY + 1};
         end else if (pipeline_stall_cnt > 0) begin
             pipeline_stall_cnt <= pipeline_stall_cnt - 1;
+        end
+    end
+
+    // STALL-ALIGNED STAGE TRACKER
+    reg [3:0] current_stage_stable;
+    always @(posedge clk or negedge rst) begin
+        if (!rst) begin
+            current_stage_stable <= 0;
+        end else if (start) begin
+            current_stage_stable <= 0;
+        end else if (pipeline_stall_cnt == 1) begin
+            current_stage_stable <= current_stage_stable + 1;
         end
     end
 
@@ -370,9 +335,6 @@ module {core_module_name} #(
         .curr_stage   (curr_stage)
     );
 
-    // =========================================================================
-    // PIPELINED CORDIC TWIDDLE GENERATION ENGINE (ROM-LESS)
-    // =========================================================================
     wire [15:0] twiddle;
     localparam CORDIC_LATENCY = {self.CORDIC_LATENCY};
 
@@ -390,79 +352,65 @@ module {core_module_name} #(
         .twiddle_out(twiddle)
     );
 
-    // =========================================================================
-    // BALANCING TIMING DELAY PIPELINE (II=1 Chain Matrix)
-    // =========================================================================
     localparam TOTAL_LATENCY = {self.TOTAL_PIPE_LATENCY};
 
     (* srl_style = "srl" *) reg [TOTAL_LATENCY-1:0]  wr_en_pipe;
-    (* srl_style = "srl" *) reg [ADDR_WIDTH-1:0]     wr_addr_a_pipe   [0:TOTAL_LATENCY-1];
-    (* srl_style = "srl" *) reg [ADDR_WIDTH-1:0]     wr_addr_b_pipe   [0:TOTAL_LATENCY-1];
-    (* srl_style = "srl" *) reg                      bank_sel_pipe    [0:TOTAL_LATENCY-1];
-    (* srl_style = "srl" *) reg [ADDR_WIDTH-1:0]     stage_mask_pipe  [0:TOTAL_LATENCY-1];
-    (* srl_style = "srl" *) reg [ADDR_WIDTH-1:0]     curr_stage_pipe  [0:TOTAL_LATENCY-1];
+    (* srl_style = "srl" *) reg [ADDR_WIDTH-1:0]     wr_addr_a_pipe    [0:TOTAL_LATENCY-1];
+    (* srl_style = "srl" *) reg [ADDR_WIDTH-1:0]     wr_addr_b_pipe    [0:TOTAL_LATENCY-1];
+    (* srl_style = "srl" *) reg [3:0]                stable_stage_pipe [0:TOTAL_LATENCY-1];
 
     reg                      fft_bank_sel;
-    wire [ADDR_WIDTH-1:0]    current_rd_mask = (11'b1 << curr_stage);
 
     integer i;
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
             wr_en_pipe <= 0;
             for (i = 0; i < TOTAL_LATENCY; i = i + 1) begin
-                wr_addr_a_pipe[i]  <= 0;  wr_addr_b_pipe[i]  <= 0;
-                bank_sel_pipe[i]   <= 0;  stage_mask_pipe[i] <= 0;
-                curr_stage_pipe[i] <= 0;
+                wr_addr_a_pipe[i]  <= 0;  
+                wr_addr_b_pipe[i]  <= 0;
+                stable_stage_pipe[i] <= 0;
             end
         end else begin
             wr_en_pipe <= {{wr_en_pipe[TOTAL_LATENCY-2:0], streaming_enable}};
             
             wr_addr_a_pipe[0]  <= idx_a;
             wr_addr_b_pipe[0]  <= idx_b;
-            bank_sel_pipe[0]   <= fft_bank_sel;
-            stage_mask_pipe[0] <= current_rd_mask;
-            curr_stage_pipe[0] <= curr_stage;
+            stable_stage_pipe[0] <= current_stage_stable;
 
             for (i = 1; i < TOTAL_LATENCY; i = i + 1) begin
                 wr_addr_a_pipe[i]  <= wr_addr_a_pipe[i-1];
                 wr_addr_b_pipe[i]  <= wr_addr_b_pipe[i-1];
-                bank_sel_pipe[i]   <= bank_sel_pipe[i-1];
-                stage_mask_pipe[i] <= stage_mask_pipe[i-1];
-                curr_stage_pipe[i] <= curr_stage_pipe[i-1];
+                stable_stage_pipe[i] <= stable_stage_pipe[i-1];
             end
         end
     end
 
-    // Pull aligned execution handles from tail of delay line
     wire                  mem_wr_en       = wr_en_pipe[TOTAL_LATENCY-1];
     wire [ADDR_WIDTH-1:0] mem_wr_addr_a   = wr_addr_a_pipe[TOTAL_LATENCY-1];
     wire [ADDR_WIDTH-1:0] mem_wr_addr_b   = wr_addr_b_pipe[TOTAL_LATENCY-1];
-    wire                  mem_wr_bank     = bank_sel_pipe[TOTAL_LATENCY-1];
-    wire [ADDR_WIDTH-1:0] mem_wr_mask     = stage_mask_pipe[TOTAL_LATENCY-1];
-    wire [ADDR_WIDTH-1:0] curr_stage_delayed = curr_stage_pipe[TOTAL_LATENCY-1];
+    
+    // CRITICAL FIX: Eliminate the 11-cycle delay on the write bank!
+    // Stalls guarantee writes finish before the next stage starts.
+    wire                  mem_wr_bank     = fft_bank_sel;
+    wire [3:0]            current_stage_stable_delayed = stable_stage_pipe[TOTAL_LATENCY-1];
 
 {prec_mux}
 
-    // =========================================================================
-    // MULTI-BANK TRUE CONCURRENT MEMORY SUBSYSTEM
-    // =========================================================================
     wire                  active_rd_bank = ext_reading ? ext_bank_sel : fft_bank_sel;
     wire [ADDR_WIDTH-1:0] mem_rd_addr_a  = ext_reading ? ext_rd_addr  : idx_a;
     wire [ADDR_WIDTH-1:0] mem_rd_addr_b  = ext_reading ? ext_rd_addr  : idx_b;
 
-    // Forward declarations - driven by mem_expand / writeback_block below
     wire [15:0] rd_data_a_16, rd_data_b_16;
     wire [23:0] X_wr_24, Y_wr_24;
     assign ext_rd_data = rd_data_a_16;
 
     mixed_dual_bank_memory_concurrent #(
-        .n         ({n}), // fft_size from config
+        .n         ({n}),
         .ADDR_WIDTH(ADDR_WIDTH)
     ) mem (
         .clk          (clk),
         .rst          (rst),
         
-        // Concurrent Independent Port Reads (Cycle 0 Request Paths)
         .bank_pingpong (active_rd_bank),
         .stage_mask    (11'h001),
         .rd_addr_a     (mem_rd_addr_a),
@@ -471,7 +419,6 @@ module {core_module_name} #(
         .rd_data_a     (rd_data_a_16),
         .rd_data_b     (rd_data_b_16),
         
-        // Concurrent Independent Port Writes (Delayed Pipeline Execution Paths)
         .wr_en         (ext_wr_en ? 1'b1 : mem_wr_en),
         .wr_addr_a     (ext_wr_en ? ext_wr_addr : mem_wr_addr_a),
         .wr_addr_b     (ext_wr_en ? ext_wr_addr : mem_wr_addr_b),
@@ -486,9 +433,6 @@ module {core_module_name} #(
 {butterfly_block}
 {writeback_block}
 
-    // =========================================================================
-    // CONTROL PATH COUPLING FSM
-    // =========================================================================
     localparam IDLE_ST   = 2'd0,
                RUN_ST    = 2'd1,
                FLUSH_ST  = 2'd2,
@@ -517,10 +461,10 @@ module {core_module_name} #(
 
                 RUN_ST: begin
                     start_agu_reg <= 1'b0;
-                    if (done_stage && !done_fft) begin
-                        fft_bank_sel <= ~fft_bank_sel; // Flip macro ping-pong banks on stage boundaries
+                    if (pipeline_stall_cnt == 1) begin
+                        fft_bank_sel <= ~fft_bank_sel;
                     end
-                    if (done_fft) begin
+                    if (safe_done_fft) begin
                         state         <= FLUSH_ST;
                         flush_counter <= TOTAL_LATENCY;
                     end
@@ -546,13 +490,9 @@ module {core_module_name} #(
             endcase
         end
     end
-
 endmodule
 """
 
-    # ==================================================================
-    # Top Verilog generator
-    # ==================================================================
     def _generate_top(self, config, core_module_name, top_module_name):
         n    = config['fft_size']
         aw   = self.addr_width
@@ -572,7 +512,6 @@ endmodule
         return f"""\
 // =============================================================================
 // Mixed-Precision FFT TOP - {n}-point PIPELINED CONFIGURATION
-// Auto-generated by FFTTemplateGenerator
 // =============================================================================
 `timescale 1ns/1ps
 
@@ -580,16 +519,13 @@ module {top_module_name} (
     input  wire        clk,
     input  wire        rst,     
 
-    // Control
     input  wire        start,
     output reg         done,
 
-    // Load Interface
     input  wire              load_en,
     input  wire [{addr_msb}:0]  load_addr,
     input  wire [15:0]       load_data,
 
-    // Unload Interface
     input  wire              unload_en,
     input  wire [{addr_msb}:0]  unload_addr,
     output wire [15:0]       unload_data
@@ -610,9 +546,6 @@ module {top_module_name} (
     wire core_done;
     wire [15:0] core_rd_data;
 
-    // Pack incoming 16-bit FP8 sample into unified 24-bit memory format.
-    // Bits [23:8] = FP8 representation (direct from testbench).
-    // Bits  [7:0] = FP4 representation (converted so FP4 stages read correctly).
     wire [7:0] load_fp4;
     complex_fp8_to_fp4 load_fmt_conv (
         .complex_fp8 (load_data),
@@ -661,25 +594,5 @@ module {top_module_name} (
             end
         end
     end
-
 endmodule
 """
-
-
-if __name__ == "__main__":
-    import os
-    os.makedirs("./generated_designs", exist_ok=True)
-
-    for fft_sz in [8, 16, 32]:
-        gen = FFTTemplateGenerator(fft_size=fft_sz)
-        ns  = gen.num_stages
-        chrom = []
-        for s in range(ns):
-            chrom += [s % 2, (s + 1) % 2]
-        print(f"\n--- FFT-{fft_sz} chromosome: {chrom} ---")
-        core_f, top_f = gen.generate_verilog(
-            chrom,
-            f"./generated_designs/mixed_fft_{fft_sz}_test.v"
-        )
-        print(f"  Core : {core_f}")
-        print(f"  Top  : {top_f}")

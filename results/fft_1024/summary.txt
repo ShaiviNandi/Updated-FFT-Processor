@@ -1,0 +1,70 @@
+Mixed-Precision FFT Optimization Results
+========================================================================
+
+FFT Size              : 1024
+Population            : 6
+Generations           : 3
+Objectives            : 4  (Power, Area, SQNR, Critical-Path Delay)
+Clock target          : 80.0 ns
+FPGA device           : xc7a35tcpg236-1
+
+Pareto Front Solutions: 6
+
+Timing pass rate      : 6/6 (100%)
+
+ID    Power(W)     Area(LUTs)   SQNR(dB)     NormLat    CritDelay(ns)   MeetsTiming   ExecCycles   TotSimCycles
+---------------------------------------------------------------------------------------------------------------
+0     0.074000     1064         8.56         0.4506     21.631          YES           5243         102740      
+1     0.076000     1849         17.67        0.9397     45.105          YES           5243         102740      
+2     0.076000     1895         9.33         0.9395     45.094          YES           5243         102740      
+3     0.074000     1493         9.26         0.7502     36.010          YES           5243         102740      
+4     0.075000     1402         8.57         0.6164     29.589          YES           5243         102740      
+5     0.076000     1845         11.61        0.9478     45.496          YES           5243         102740      
+
+
+Best Solutions by Objective:
+------------------------------------------------------------
+
+Best Power (min):
+  Solution ID       : 0
+  Power             : 0.074000 W
+  Area              : 1064 LUTs
+  SQNR              : 8.56 dB
+  Norm Latency      : 0.4506x (clock = 80.0 ns)
+  Crit Path Delay   : 21.631 ns    <- MEETS TIMING
+  Avg Exec Cycles   : 5243
+  Tot Sim Cycles    : 102740
+  Chromosome        : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+Best Area (min):
+  Solution ID       : 0
+  Power             : 0.074000 W
+  Area              : 1064 LUTs
+  SQNR              : 8.56 dB
+  Norm Latency      : 0.4506x (clock = 80.0 ns)
+  Crit Path Delay   : 21.631 ns    <- MEETS TIMING
+  Avg Exec Cycles   : 5243
+  Tot Sim Cycles    : 102740
+  Chromosome        : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+Best SQNR (max perf):
+  Solution ID       : 1
+  Power             : 0.076000 W
+  Area              : 1849 LUTs
+  SQNR              : 17.67 dB
+  Norm Latency      : 0.9397x (clock = 80.0 ns)
+  Crit Path Delay   : 45.105 ns    <- MEETS TIMING
+  Avg Exec Cycles   : 5243
+  Tot Sim Cycles    : 102740
+  Chromosome        : [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+Best Crit-Path (min):
+  Solution ID       : 0
+  Power             : 0.074000 W
+  Area              : 1064 LUTs
+  SQNR              : 8.56 dB
+  Norm Latency      : 0.4506x (clock = 80.0 ns)
+  Crit Path Delay   : 21.631 ns    <- MEETS TIMING
+  Avg Exec Cycles   : 5243
+  Tot Sim Cycles    : 102740
+  Chromosome        : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

@@ -10,6 +10,7 @@ Updates:
   - Tailored watchdog and testbench parameters to match fast-flushing streaming pipelines.
   - Added cycle counting reporting for execution and overall simulation length.
   - Completely stripped of non-ASCII characters for secure Windows host file redirection.
+  - FIX: Golden reference bit-reversal removed (Hardware handles bit-reverse internally).
 """
 
 import numpy as np
@@ -137,17 +138,26 @@ class PerformanceEvaluator:
         assert len(vecs) == len(SIGNAL_LABELS), "Signal mapping count tracking mismatched"
         return vecs
 
+    # ------------------------------------------------------------------
+    # Helper: bit-reverse a single index for given FFT size
+    # ------------------------------------------------------------------
+    def _bit_reverse_index(self, idx, log2_n):
+        # reverse the lower log2_n bits
+        rev = 0
+        for _ in range(log2_n):
+            rev = (rev << 1) | (idx & 1)
+            idx >>= 1
+        return rev
+
     def _compute_golden_outputs(self):
-        """Default golden (FP8-quantised inputs) used when no chromosome is available."""
+        """Default golden (FP8-quantized inputs) used when no chromosome is available."""
         return self._compute_golden_for_precision(fp8_input=True)
 
     def _compute_golden_for_precision(self, fp8_input=True):
         """
-        Compute golden FFT references quantising the input to match the
-        actual first-stage precision so SQNR is measured fairly.
-
-        fp8_input=True  -> quantise inputs through FP8 codec (E4M3)
-        fp8_input=False -> quantise inputs through FP4 codec (E2M1)
+        Compute golden FFT references quantizing the input to match the
+        actual first-stage precision. Natural-order is required because 
+        the hardware _top module already handles bit-reversal on load.
         """
         goldens = []
         for v in self.test_vectors:
@@ -163,11 +173,16 @@ class PerformanceEvaluator:
                     1j * np.float32(self.fp4_to_float(self.float_to_fp4(x.imag)))
                     for x in v
                 ], dtype=np.complex64)
+
+            # REMOVED the bit-reversal scramble here.
+            # np.fft.fft takes a natural-order array and accurately models
+            # the macroscopic behavior of your DIT pipeline.
             goldens.append(np.fft.fft(v_quantized).astype(np.complex64))
+            
         return goldens
 
     # ==================================================================
-    # Float <-> FP conversion helpers
+    # Float <-> FP conversion helpers (unchanged, but kept for completeness)
     # ==================================================================
     def float_to_fp8_e4m3(self, val):
         if val == 0.0: return 0
@@ -222,6 +237,9 @@ class PerformanceEvaluator:
         else:           value = (1.0 + mant * 0.5) * (2 ** (exp - 1))
         return -value if sign else value
 
+    # ------------------------------------------------------------------
+    # Testbench generation and simulation (unchanged from original)
+    # ------------------------------------------------------------------
     def _write_twiddle_file(self, sim_dir):
         path = os.path.join(sim_dir, 'twiddles_1024.txt')
         with open(path, 'w') as f:
@@ -419,8 +437,6 @@ endmodule
             final_stage_is_fp8 = bool(chromosome[-1])
 
         # Choose golden reference that matches the actual first-stage input precision.
-        # chromosome[1] = stage-0 add_precision gene (determines what lane stage-0 reads).
-        # If no chromosome is supplied fall back to the default FP8 golden.
         if chromosome is not None:
             first_stage_is_fp8 = bool(chromosome[1])   # gene index 1 = stage-0 add_prec
         else:
