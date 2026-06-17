@@ -1,8 +1,0 @@
-xilinx rtfpga
-rt::do_reinfer_area_combined 0
-DSP Report: Generating DSP idx_a, operation Mode is: C+A*B.
-DSP Report: operator idx_a is absorbed into DSP idx_a.
-DSP Report: operator group_offset is absorbed into DSP idx_a.
-DSP Report: Generating DSP k, operation Mode is: A*B.
-DSP Report: operator k is absorbed into DSP k.
-INFO: [Synth 8-5546] ROM "x_start" won't be mapped to RAM because it is too sparse

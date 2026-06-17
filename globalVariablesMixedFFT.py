@@ -18,7 +18,7 @@ CROSSOVER_RATE = 0.9
 OBJECTIVES = 4               # Power, Area, Performance, Latency (from Vivado)
 
 CURRENT_GEN = 0
-SOLUTION_THREADS = 8
+SOLUTION_THREADS = 12
 
 FITNESS = 'fitness.npy'
 DPI = 200

@@ -375,7 +375,7 @@ endmodule
                 if res.stderr: print("[COMPILE STDERR]\n" + res.stderr[:2000])
                 return None
             # Capture stdout to extract clock cycle trackers
-            sim_res = subprocess.run(['vvp', vvp_path], capture_output=True, text=True, cwd=sim_dir)
+            sim_res = subprocess.run(['vvp', vvp_path], capture_output=True, text=True, timeout=120, cwd=sim_dir)
             if sim_res.returncode != 0:
                 print(f"[SIM ERROR] vvp returned {sim_res.returncode} for {design_name}")
                 if sim_res.stdout: print("[SIM STDOUT]\n" + sim_res.stdout[:2000])
