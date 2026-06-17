@@ -1,0 +1,35 @@
+xilinx rtfpga
+rt::do_reinfer_area_combined 0
+DSP Report: Generating DSP idx_a, operation Mode is: C+A*B.
+DSP Report: operator idx_a is absorbed into DSP idx_a.
+DSP Report: operator group_offset is absorbed into DSP idx_a.
+DSP Report: Generating DSP k, operation Mode is: A*B.
+DSP Report: operator k is absorbed into DSP k.
+INFO: [Synth 8-5546] ROM "x_start" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "x_start" won't be mapped to RAM because it is too sparse
+DSP Report: Generating DSP p_0_out, operation Mode is: A*(B:0x65).
+DSP Report: operator p_0_out is absorbed into DSP p_0_out.
+DSP Report: Generating DSP m1/prod, operation Mode is: A*B.
+DSP Report: operator m1/prod is absorbed into DSP m1/prod.
+DSP Report: Generating DSP m2/prod, operation Mode is: A*B.
+DSP Report: operator m2/prod is absorbed into DSP m2/prod.
+DSP Report: Generating DSP m3/prod, operation Mode is: A*B.
+DSP Report: operator m3/prod is absorbed into DSP m3/prod.
+DSP Report: Generating DSP m4/prod, operation Mode is: A*B.
+DSP Report: operator m4/prod is absorbed into DSP m4/prod.
+DSP Report: Generating DSP m1/prod, operation Mode is: A*B.
+DSP Report: operator m1/prod is absorbed into DSP m1/prod.
+DSP Report: Generating DSP m2/prod, operation Mode is: A*B.
+DSP Report: operator m2/prod is absorbed into DSP m2/prod.
+DSP Report: Generating DSP m3/prod, operation Mode is: A*B.
+DSP Report: operator m3/prod is absorbed into DSP m3/prod.
+DSP Report: Generating DSP m4/prod, operation Mode is: A*B.
+DSP Report: operator m4/prod is absorbed into DSP m4/prod.
+DSP Report: Generating DSP m1/prod, operation Mode is: A*B.
+DSP Report: operator m1/prod is absorbed into DSP m1/prod.
+DSP Report: Generating DSP m2/prod, operation Mode is: A*B.
+DSP Report: operator m2/prod is absorbed into DSP m2/prod.
+DSP Report: Generating DSP m3/prod, operation Mode is: A*B.
+DSP Report: operator m3/prod is absorbed into DSP m3/prod.
+DSP Report: Generating DSP m4/prod, operation Mode is: A*B.
+DSP Report: operator m4/prod is absorbed into DSP m4/prod.
