@@ -34,10 +34,6 @@ module fp4_mul(
     wire [4:0] prod_norm = (need_norm) ? (prod >> 1) : prod;
     wire signed [3:0] exp_norm = (need_norm) ? (exp_temp + 1) : exp_temp;
     wire mant_out = prod_norm[1];  // correct round-to-nearest for all cases
-    // prod_norm[1] is the MSB of the result mantissa after normalization
-    // prod_norm[0] would be the round bit — add if you want R-T-N-E:
-    // wire round_up = prod_norm[0] & (prod_norm[1]);  // tie-break to even
-    // wire mant_out = prod_norm[1] + round_up;        // with overflow check
 
     //Preparing the output
     reg [3:0] output_reg;
@@ -81,6 +77,7 @@ module fp4_cmul (
     fp4_add_sub a1(.a(ad), .b(bc), .sub(1'b0), .out(res_imag));
     assign out_real = res_real;
     assign out_imag = res_imag;
+
 endmodule
 
 

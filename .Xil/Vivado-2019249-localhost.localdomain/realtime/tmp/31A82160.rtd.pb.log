@@ -1,0 +1,16 @@
+xilinx rtfpga
+rt::do_techmap_steps
+INFO: [Synth 8-3886] merging instance 'corei_23/core/twiddle_gen/v_pipe_reg[0]' (FDC) to 'corei_23/core/wr_en_pipe_reg[0]'
+INFO: [Synth 8-3886] merging instance 'corei_23/core/twiddle_gen/cordic_stages[0].v_pipe_reg[1]' (FDC) to 'corei_23/core/wr_en_pipe_reg[1]'
+INFO: [Synth 8-3886] merging instance 'corei_23/core/twiddle_gen/cordic_stages[1].v_pipe_reg[2]' (FDC) to 'corei_23/core/wr_en_pipe_reg[2]'
+INFO: [Synth 8-3886] merging instance 'corei_23/core/twiddle_gen/cordic_stages[2].v_pipe_reg[3]' (FDC) to 'corei_23/core/wr_en_pipe_reg[3]'
+INFO: [Synth 8-3886] merging instance 'corei_23/core/twiddle_gen/cordic_stages[3].v_pipe_reg[4]' (FDC) to 'corei_23/core/wr_en_pipe_reg[4]'
+INFO: [Synth 8-3886] merging instance 'corei_23/core/twiddle_gen/cordic_stages[4].v_pipe_reg[5]' (FDC) to 'corei_23/core/wr_en_pipe_reg[5]'
+INFO: [Synth 8-3886] merging instance 'corei_23/core/twiddle_gen/cordic_stages[5].v_pipe_reg[6]' (FDC) to 'corei_23/core/wr_en_pipe_reg[6]'
+INFO: [Synth 8-3886] merging instance 'corei_23/core/twiddle_gen/cordic_stages[6].v_pipe_reg[7]' (FDC) to 'corei_23/core/wr_en_pipe_reg[7]'
+INFO: [Synth 8-3886] merging instance 'corei_23/core/twiddle_gen/cordic_stages[7].v_pipe_reg[8]' (FDC) to 'corei_23/core/wr_en_pipe_reg[8]'
+INFO: [Synth 8-3886] merging instance 'corei_23/core/twiddle_gen/cordic_stages[8].v_pipe_reg[9]' (FDC) to 'corei_23/core/wr_en_pipe_reg[9]'
+INFO: [Synth 8-3886] merging instance 'corei_23/core/twiddle_gen/cordic_stages[9].v_pipe_reg[10]' (FDC) to 'corei_23/core/wr_en_pipe_reg[10]'
+INFO: [Synth 8-5844] Detected registers with asynchronous reset at DSP/BRAM block boundary. Consider using synchronous reset for optimal packing [/home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources/agu.v:48]
+INFO: [Synth 8-5844] Detected registers with asynchronous reset at DSP/BRAM block boundary. Consider using synchronous reset for optimal packing [/home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources/agu.v:50]
+INFO: [Synth 8-5844] Detected registers with asynchronous reset at DSP/BRAM block boundary. Consider using synchronous reset for optimal packing [/home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources/agu.v:50]
