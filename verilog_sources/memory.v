@@ -46,8 +46,8 @@ module mixed_dual_bank_memory_concurrent #(
     // Verilog defaults their values to 'z' (high-impedance). We check for 'z'
     // or 'x' and seamlessly fall back to the standard memory_tb ports!
     // -------------------------------------------------------------------------
-    wire actual_wr_bank  = (bank_pingpong_wr === 1'bz || bank_pingpong_wr === 1'bx) ? bank_pingpong : bank_pingpong_wr;
-    wire [ADDR_WIDTH-1:0] actual_wr_mask = (stage_mask_wr[0] === 1'bz || stage_mask_wr[0] === 1'bx) ? stage_mask : stage_mask_wr;
+    wire actual_wr_bank  = bank_pingpong_wr;
+    wire [ADDR_WIDTH-1:0] actual_wr_mask = stage_mask_wr;
 
     // Sub-bank routing selection
     wire read_sub_sel_a  = |(rd_addr_a & stage_mask);

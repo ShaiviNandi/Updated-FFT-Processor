@@ -10,6 +10,8 @@ Architectural Upgrades:
   - Dual-bank conflict-free concurrent memory routing signals
   - Active-low async reset (negedge rst)
   - Fractured/packed mixed-precision stage configuration mapping
+  - SINGLE SHARED BUTTERFLY unit to vastly reduce DSP/LUT utilization
+  - SRL pragmas enforced on all delay matching pipes to prevent FF explosion
 """
 
 import os
@@ -204,49 +206,36 @@ class FFTTemplateGenerator:
             "    end"
         )
 
-        # ---- per-stage butterfly instantiations ----
-        bf_lines = ["    // Per-stage butterfly wrappers matrix matrix"]
-        for s in stages:
-            sn = s['stage_num']
-            bf_lines += [
-                f"    wire [15:0] X_st{sn}, Y_st{sn};",
-                f"    wire        fp8_out_st{sn};",
-            ]
-        bf_lines.append("")
+        # ---- Shared Butterfly Instantiation ----
+        bf_lines = [
+            "    // SINGLE SHARED BUTTERFLY UNIT (Dynamic Precision Runtime Selection)",
+            "    reg bf_mult_prec, bf_add_prec;",
+            "    always @(*) begin",
+            "        case (curr_stage_delayed[3:0])"
+        ]
         for s in stages:
             sn = s['stage_num']
             mp = s['mult_precision']
             ap = s['add_precision']
-            bf_lines += [
-                f"    butterfly_wrapper #(",
-                f"        .MULT_PRECISION({mp}),",
-                f"        .ADD_PRECISION ({ap})",
-                f"    ) bf_st{sn} (",
-                f"        .A            (A_24_aligned),",
-                f"        .B            (B_24_aligned),",
-                f"        .W            (twiddle),",
-                f"        .X            (X_st{sn}),",
-                f"        .Y            (Y_st{sn}),",
-                f"        .output_is_fp8(fp8_out_st{sn})",
-                f"    );",
-                "",
-            ]
+            bf_lines.append(f"            4'd{sn}: begin bf_mult_prec = 1'b{mp}; bf_add_prec = 1'b{ap}; end")
         
         bf_lines += [
-            "    reg [15:0] X_bf, Y_bf;",
-            "    reg        bf_is_fp8;",
-            "    always @(*) begin",
-            "        case (curr_stage_delayed[3:0])",
-        ]
-        for s in stages:
-            sn = s['stage_num']
-            bf_lines += [
-                f"            4'd{sn}: begin X_bf = X_st{sn}; Y_bf = Y_st{sn}; bf_is_fp8 = fp8_out_st{sn}; end",
-            ]
-        bf_lines += [
-            "            default: begin X_bf = 16'h0; Y_bf = 16'h0; bf_is_fp8 = 1'b0; end",
+            "            default: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b0; end",
             "        endcase",
             "    end",
+            "",
+            "    wire [15:0] X_bf, Y_bf;",
+            "    wire        bf_is_fp8;",
+            "    butterfly_wrapper shared_bf (",
+            "        .A            (A_24_aligned),",
+            "        .B            (B_24_aligned),",
+            "        .W            (twiddle),",
+            "        .mult_prec    (bf_mult_prec),",
+            "        .add_prec     (bf_add_prec),",
+            "        .X            (X_bf),",
+            "        .Y            (Y_bf),",
+            "        .output_is_fp8(bf_is_fp8)",
+            "    );"
         ]
         butterfly_block = '\n'.join(bf_lines)
 
@@ -265,8 +254,8 @@ class FFTTemplateGenerator:
             "    wire [23:0] mem_rd_b_24 = cur_rd_prec ? {rd_data_b_16, rd_b_fp8_as_fp4} : {rd_b_fp4_as_fp8, rd_data_b_16[7:0]};\n"
             "\n"
             "    // Read matching line registers (BRAM Read Latency 2 -> CORDIC Execution 11 = 9 Cycle Shift Needed)\n"
-            "    reg [23:0] A_24_pipe [0:8];\n"
-            "    reg [23:0] B_24_pipe [0:8];\n"
+            "    (* srl_style = \"srl\" *) reg [23:0] A_24_pipe [0:8];\n"
+            "    (* srl_style = \"srl\" *) reg [23:0] B_24_pipe [0:8];\n"
             "    integer j;\n"
             "    always @(posedge clk) begin\n"
             "        A_24_pipe[0] <= mem_rd_a_24;\n"
@@ -406,12 +395,12 @@ module {core_module_name} #(
     // =========================================================================
     localparam TOTAL_LATENCY = {self.TOTAL_PIPE_LATENCY};
 
-    reg [TOTAL_LATENCY-1:0]  wr_en_pipe;
-    reg [ADDR_WIDTH-1:0]     wr_addr_a_pipe   [0:TOTAL_LATENCY-1];
-    reg [ADDR_WIDTH-1:0]     wr_addr_b_pipe   [0:TOTAL_LATENCY-1];
-    reg                      bank_sel_pipe    [0:TOTAL_LATENCY-1];
-    reg [ADDR_WIDTH-1:0]     stage_mask_pipe  [0:TOTAL_LATENCY-1];
-    reg [ADDR_WIDTH-1:0]     curr_stage_pipe  [0:TOTAL_LATENCY-1];
+    (* srl_style = "srl" *) reg [TOTAL_LATENCY-1:0]  wr_en_pipe;
+    (* srl_style = "srl" *) reg [ADDR_WIDTH-1:0]     wr_addr_a_pipe   [0:TOTAL_LATENCY-1];
+    (* srl_style = "srl" *) reg [ADDR_WIDTH-1:0]     wr_addr_b_pipe   [0:TOTAL_LATENCY-1];
+    (* srl_style = "srl" *) reg                      bank_sel_pipe    [0:TOTAL_LATENCY-1];
+    (* srl_style = "srl" *) reg [ADDR_WIDTH-1:0]     stage_mask_pipe  [0:TOTAL_LATENCY-1];
+    (* srl_style = "srl" *) reg [ADDR_WIDTH-1:0]     curr_stage_pipe  [0:TOTAL_LATENCY-1];
 
     reg                      fft_bank_sel;
     wire [ADDR_WIDTH-1:0]    current_rd_mask = (11'b1 << curr_stage);

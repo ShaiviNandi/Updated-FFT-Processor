@@ -80,6 +80,8 @@ module cordic_twiddle_generator #(
     reg signed [W-1:0] x_pipe [0:LATENCY];
     reg signed [W-1:0] y_pipe [0:LATENCY];
     reg signed [W-1:0] z_pipe [0:LATENCY];
+    (* srl_style = "srl" *) reg v_pipe [0:LATENCY];  // <--- Add SRL
+    (* srl_style = "srl" *) reg p_pipe [0:LATENCY];  // <--- Add SRL
     reg                v_pipe [0:LATENCY];
     reg                p_pipe [0:LATENCY]; 
 

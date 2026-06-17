@@ -28,6 +28,7 @@ module fp4_mul(
     wire hidden_b = (exp_b != 2'b00);
     wire [2:0] sig_a = {1'b0, hidden_a, mant_a};
     wire [2:0] sig_b = {1'b0, hidden_b, mant_b};
+    (* use_dsp = "yes" *) wire [4:0] prod = sig_a * sig_b;
     wire [4:0] prod = sig_a * sig_b;
     wire need_norm = (prod >= 5'd8);
     wire [4:0] prod_norm = (need_norm) ? (prod >> 1) : prod;
@@ -115,6 +116,7 @@ module fp8_mul(
     wire hidden_b = (exp_b != 4'b0000);
     wire [4:0] sig_a = {1'b0, hidden_a, mant_a};
     wire [4:0] sig_b = {1'b0, hidden_b, mant_b};
+    (* use_dsp = "yes" *) wire [10:0] prod = sig_a * sig_b;
     wire [10:0] prod = sig_a * sig_b;
     wire need_norm = (prod >= 8'd128);
     wire [10:0] prod_norm = (need_norm) ? (prod >> 1) : prod;
