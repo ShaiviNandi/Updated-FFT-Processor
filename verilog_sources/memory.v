@@ -1,6 +1,6 @@
 // =============================================================================
 // Mixed-Precision Concurrent FFT Memory Subsystem
-// PERFECT TRUE DUAL-PORT (TDP) BRAM INFERENCE IMPLEMENTED (1-CYCLE READ)
+// PERFECT TRUE DUAL-PORT (TDP) MEMORY INFERENCE (1-CYCLE READ)
 // =============================================================================
 `timescale 1ns/1ps
 
@@ -30,12 +30,16 @@ module mixed_dual_bank_memory_concurrent #(
     input  wire [ADDR_WIDTH-1:0] stage_mask_wr
 );
 
-    localparam SUB_DEPTH = n / 2;
+    // Safe sizing logic to prevent Vivado crashes on FFT-2 and FFT-4
+    localparam SUB_DEPTH = (n <= 2) ? 1 : n / 2;
+    localparam MEM_AW    = (n <= 2) ? 1 : $clog2(n/2);
 
-    (* ram_style = "block" *) reg [23:0] b0_sub0 [0:SUB_DEPTH-1];
-    (* ram_style = "block" *) reg [23:0] b0_sub1 [0:SUB_DEPTH-1]; 
-    (* ram_style = "block" *) reg [23:0] b1_sub0 [0:SUB_DEPTH-1];
-    (* ram_style = "block" *) reg [23:0] b1_sub1 [0:SUB_DEPTH-1]; 
+    // Removed (* ram_style = "block" *) to allow Vivado to smartly infer 
+    // LUTRAMs/Registers for small N, avoiding Dual-Port BRAM mapping errors
+    reg [23:0] b0_sub0 [0:SUB_DEPTH-1];
+    reg [23:0] b0_sub1 [0:SUB_DEPTH-1]; 
+    reg [23:0] b1_sub0 [0:SUB_DEPTH-1];
+    reg [23:0] b1_sub1 [0:SUB_DEPTH-1]; 
 
     // -------------------------------------------------------------------------
     // Fallback Resolution Logic Matrix 
@@ -64,7 +68,7 @@ module mixed_dual_bank_memory_concurrent #(
     wire [ADDR_WIDTH-2:0] c_wr_addr_b = (wr_addr_b & wr_lower_mask) | ((wr_addr_b & (wr_upper_mask << 1)) >> 1);
 
     // =========================================================================
-    // PERFECT TRUE DUAL-PORT (TDP) BRAM INFERENCE
+    // PERFECT TRUE DUAL-PORT (TDP) MEMORY INFERENCE
     // =========================================================================
 
     reg [23:0] r_b0_sub0_a, r_b0_sub1_a, r_b1_sub0_a, r_b1_sub1_a;
@@ -76,13 +80,17 @@ module mixed_dual_bank_memory_concurrent #(
     wire [ADDR_WIDTH-2:0] b0_sub0_addr_b = (actual_wr_bank == 1'b1) ? c_wr_addr_b : c_rd_addr_b;
     wire                  b0_sub0_we_b   = wr_en & (actual_wr_bank == 1'b1) & (!write_sub_sel_b);
 
+    // Safe index slicing to prevent Vivado from panicking over out-of-bounds array access on small FFTs
+    wire [MEM_AW-1:0] safe_b0_sub0_addr_a = (n <= 2) ? 1'b0 : b0_sub0_addr_a[MEM_AW-1:0];
+    wire [MEM_AW-1:0] safe_b0_sub0_addr_b = (n <= 2) ? 1'b0 : b0_sub0_addr_b[MEM_AW-1:0];
+
     always @(posedge clk) begin // Port A
-        if (b0_sub0_we_a) b0_sub0[b0_sub0_addr_a] <= wr_data_a;
-        r_b0_sub0_a <= b0_sub0[b0_sub0_addr_a];
+        if (b0_sub0_we_a) b0_sub0[safe_b0_sub0_addr_a] <= wr_data_a;
+        r_b0_sub0_a <= b0_sub0[safe_b0_sub0_addr_a];
     end
     always @(posedge clk) begin // Port B
-        if (b0_sub0_we_b) b0_sub0[b0_sub0_addr_b] <= wr_data_b;
-        r_b0_sub0_b <= b0_sub0[b0_sub0_addr_b];
+        if (b0_sub0_we_b) b0_sub0[safe_b0_sub0_addr_b] <= wr_data_b;
+        r_b0_sub0_b <= b0_sub0[safe_b0_sub0_addr_b];
     end
 
     // Bank 0, Sub-Bank 1
@@ -91,13 +99,16 @@ module mixed_dual_bank_memory_concurrent #(
     wire [ADDR_WIDTH-2:0] b0_sub1_addr_b = (actual_wr_bank == 1'b1) ? c_wr_addr_b : c_rd_addr_b;
     wire                  b0_sub1_we_b   = wr_en & (actual_wr_bank == 1'b1) & (write_sub_sel_b);
 
+    wire [MEM_AW-1:0] safe_b0_sub1_addr_a = (n <= 2) ? 1'b0 : b0_sub1_addr_a[MEM_AW-1:0];
+    wire [MEM_AW-1:0] safe_b0_sub1_addr_b = (n <= 2) ? 1'b0 : b0_sub1_addr_b[MEM_AW-1:0];
+
     always @(posedge clk) begin // Port A
-        if (b0_sub1_we_a) b0_sub1[b0_sub1_addr_a] <= wr_data_a;
-        r_b0_sub1_a <= b0_sub1[b0_sub1_addr_a];
+        if (b0_sub1_we_a) b0_sub1[safe_b0_sub1_addr_a] <= wr_data_a;
+        r_b0_sub1_a <= b0_sub1[safe_b0_sub1_addr_a];
     end
     always @(posedge clk) begin // Port B
-        if (b0_sub1_we_b) b0_sub1[b0_sub1_addr_b] <= wr_data_b;
-        r_b0_sub1_b <= b0_sub1[b0_sub1_addr_b];
+        if (b0_sub1_we_b) b0_sub1[safe_b0_sub1_addr_b] <= wr_data_b;
+        r_b0_sub1_b <= b0_sub1[safe_b0_sub1_addr_b];
     end
 
     // Bank 1, Sub-Bank 0 
@@ -106,13 +117,16 @@ module mixed_dual_bank_memory_concurrent #(
     wire [ADDR_WIDTH-2:0] b1_sub0_addr_b = (actual_wr_bank == 1'b0) ? c_wr_addr_b : c_rd_addr_b;
     wire                  b1_sub0_we_b   = wr_en & (actual_wr_bank == 1'b0) & (!write_sub_sel_b);
 
+    wire [MEM_AW-1:0] safe_b1_sub0_addr_a = (n <= 2) ? 1'b0 : b1_sub0_addr_a[MEM_AW-1:0];
+    wire [MEM_AW-1:0] safe_b1_sub0_addr_b = (n <= 2) ? 1'b0 : b1_sub0_addr_b[MEM_AW-1:0];
+
     always @(posedge clk) begin // Port A
-        if (b1_sub0_we_a) b1_sub0[b1_sub0_addr_a] <= wr_data_a;
-        r_b1_sub0_a <= b1_sub0[b1_sub0_addr_a];
+        if (b1_sub0_we_a) b1_sub0[safe_b1_sub0_addr_a] <= wr_data_a;
+        r_b1_sub0_a <= b1_sub0[safe_b1_sub0_addr_a];
     end
     always @(posedge clk) begin // Port B
-        if (b1_sub0_we_b) b1_sub0[b1_sub0_addr_b] <= wr_data_b;
-        r_b1_sub0_b <= b1_sub0[b1_sub0_addr_b];
+        if (b1_sub0_we_b) b1_sub0[safe_b1_sub0_addr_b] <= wr_data_b;
+        r_b1_sub0_b <= b1_sub0[safe_b1_sub0_addr_b];
     end
 
     // Bank 1, Sub-Bank 1
@@ -121,13 +135,16 @@ module mixed_dual_bank_memory_concurrent #(
     wire [ADDR_WIDTH-2:0] b1_sub1_addr_b = (actual_wr_bank == 1'b0) ? c_wr_addr_b : c_rd_addr_b;
     wire                  b1_sub1_we_b   = wr_en & (actual_wr_bank == 1'b0) & (write_sub_sel_b);
 
+    wire [MEM_AW-1:0] safe_b1_sub1_addr_a = (n <= 2) ? 1'b0 : b1_sub1_addr_a[MEM_AW-1:0];
+    wire [MEM_AW-1:0] safe_b1_sub1_addr_b = (n <= 2) ? 1'b0 : b1_sub1_addr_b[MEM_AW-1:0];
+
     always @(posedge clk) begin // Port A
-        if (b1_sub1_we_a) b1_sub1[b1_sub1_addr_a] <= wr_data_a;
-        r_b1_sub1_a <= b1_sub1[b1_sub1_addr_a];
+        if (b1_sub1_we_a) b1_sub1[safe_b1_sub1_addr_a] <= wr_data_a;
+        r_b1_sub1_a <= b1_sub1[safe_b1_sub1_addr_a];
     end
     always @(posedge clk) begin // Port B
-        if (b1_sub1_we_b) b1_sub1[b1_sub1_addr_b] <= wr_data_b;
-        r_b1_sub1_b <= b1_sub1[b1_sub1_addr_b];
+        if (b1_sub1_we_b) b1_sub1[safe_b1_sub1_addr_b] <= wr_data_b;
+        r_b1_sub1_b <= b1_sub1[safe_b1_sub1_addr_b];
     end
 
     // =========================================================================

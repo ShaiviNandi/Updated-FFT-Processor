@@ -51,16 +51,28 @@ set util_rpt_file "/tmp/${design_name}_util.rpt"
 report_utilization -file $util_rpt_file
 
 set lut_count 0
+set lutram_count 0
 if {[file exists $util_rpt_file]} {
     set fp [open $util_rpt_file r]
     set content [read $fp]
     close $fp
+    
+    # Logic LUTs
     foreach line [split $content "\n"] {
         if {[regexp {^\|\s*(CLB LUTs|Slice LUTs|Slice LUTs\*)\s*\|\s*(\d+)\s*\|} $line -> _lbl val]} {
             set lut_count [string trim $val]
             break
         }
     }
+    # Memory LUTs (LUTRAMs)
+    foreach line [split $content "\n"] {
+        if {[regexp {^\|\s*LUT as Memory\s*\|\s*(\d+)\s*\|} $line -> val]} {
+            set lutram_count [string trim $val]
+            break
+        }
+    }
+    
+    # Fallback for older Vivado versions
     if {$lut_count == 0} {
         set lut_logic 0; set lut_mem 0
         foreach line [split $content "\n"] {
@@ -68,6 +80,49 @@ if {[file exists $util_rpt_file]} {
             if {[regexp {^\|\s*LUT as Memory\s*\|\s*(\d+)\s*\|} $line -> val]} { set lut_mem [string trim $val] }
         }
         set lut_count [expr {$lut_logic + $lut_mem}]
+        set lutram_count $lut_mem
+    }
+}
+
+# DSP blocks
+set dsp_count 0
+foreach line [split $content "\n"] {
+    if {[regexp {^\|\s*(DSPs|DSP48E\w*)\s*\|\s*(\d+)\s*\|} $line -> _lbl val]} {
+        set dsp_count [string trim $val]
+        break
+    }
+}
+
+# Block RAMs (36Kb primitives; also check 18Kb half-BRAMs)
+set bram_count 0
+foreach line [split $content "\n"] {
+    if {[regexp {^\|\s*Block RAM Tile\s*\|\s*(\d+)\s*\|} $line -> val]} {
+        set bram_count [string trim $val]; break
+    }
+}
+# Fall back to summing 36Kb + 0.5 * 18Kb if Tile row isn't present
+if {$bram_count == 0} {
+    set bram36 0; set bram18 0
+    foreach line [split $content "\n"] {
+        if {[regexp {^\|\s*RAMB36/FIFO\s*\|\s*(\d+)\s*\|} $line -> val]} { set bram36 [string trim $val] }
+        if {[regexp {^\|\s*RAMB18\s*\|\s*(\d+)\s*\|} $line -> val]}       { set bram18 [string trim $val] }
+    }
+    set bram_count [expr {$bram36 + int(ceil($bram18 / 2.0))}]
+}
+
+# Flip-Flops / Registers
+set ff_count 0
+foreach line [split $content "\n"] {
+    if {[regexp {^\|\s*(CLB Registers|Slice Registers|Register as Flip Flop)\s*\|\s*(\d+)\s*\|} $line -> _lbl val]} {
+        set ff_count [string trim $val]; break
+    }
+}
+
+# I/O (just count for completeness, not meaningful in OOC mode)
+set io_count 0
+foreach line [split $content "\n"] {
+    if {[regexp {^\|\s*Bonded IOB\s*\|\s*(\d+)\s*\|} $line -> val]} {
+        set io_count [string trim $val]; break
     }
 }
 
@@ -121,14 +176,24 @@ puts $fp "Metric,Value"
 puts $fp "design_name,$design_name"
 puts $fp "top_module,$top_module"
 puts $fp "lut_count,$lut_count"
+puts $fp "lutram_count,$lutram_count"
+puts $fp "dsp_count,$dsp_count"
+puts $fp "bram_count,$bram_count"
+puts $fp "ff_count,$ff_count"
+puts $fp "io_count,$io_count"
 puts $fp "total_power_w,$total_power"
 puts $fp "wns_ns,$wns"
 puts $fp "critical_path_delay_ns,$critical_path_delay"
 puts $fp "clock_period_ns,$clock_period"
+
 close $fp
 
 puts stdout "INFO: Synthesis complete  : $design_name"
 puts stdout "INFO:   LUTs             = $lut_count"
+puts stdout "INFO:   LUTRAMs          = $lutram_count"
+puts stdout "INFO:   DSPs             = $dsp_count"
+puts stdout "INFO:   BRAMs            = $bram_count"
+puts stdout "INFO:   FFs              = $ff_count"
 puts stdout "INFO:   Power            = $total_power W"
 puts stdout "INFO:   WNS              = $wns ns"
 puts stdout "INFO:   Crit Path Delay  = $critical_path_delay ns"

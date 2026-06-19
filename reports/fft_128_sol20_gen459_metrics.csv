@@ -1,0 +1,13 @@
+Metric,Value
+design_name,fft_128_sol20_gen459
+top_module,fft_128_sol20_gen459_top
+lut_count,1358
+lutram_count,57
+dsp_count,9
+bram_count,4
+ff_count,609
+io_count,0
+total_power_w,0.075
+wns_ns,51.011
+critical_path_delay_ns,28.664
+clock_period_ns,80.0

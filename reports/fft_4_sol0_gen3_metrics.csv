@@ -1,0 +1,13 @@
+Metric,Value
+design_name,fft_4_sol0_gen3
+top_module,fft_4_sol0_gen3_top
+lut_count,1430
+lutram_count,43
+dsp_count,13
+bram_count,4
+ff_count,580
+io_count,0
+total_power_w,0.073
+wns_ns,46.322
+critical_path_delay_ns,33.353
+clock_period_ns,80.0

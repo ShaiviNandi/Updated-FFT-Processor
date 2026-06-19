@@ -1,0 +1,13 @@
+Metric,Value
+design_name,fft_32_sol5_gen219
+top_module,fft_32_sol5_gen219_top
+lut_count,1429
+lutram_count,52
+dsp_count,13
+bram_count,4
+ff_count,599
+io_count,0
+total_power_w,0.074
+wns_ns,47.037
+critical_path_delay_ns,32.638
+clock_period_ns,80.0

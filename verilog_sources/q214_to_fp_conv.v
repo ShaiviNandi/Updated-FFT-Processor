@@ -16,11 +16,11 @@ module q2_14_to_fp4_e2m1 (
     reg       mant;
 
     always @(*) begin
-        if      (abs_val < 16'h0400) begin exp = 2'd0; mant = 1'b0; end // val < 0.25 -> 0.0
-        else if (abs_val < 16'h0800) begin exp = 2'd0; mant = 1'b1; end // val < 0.50 -> 0.5
-        else if (abs_val < 16'h1000) begin exp = 2'd1; mant = 1'b0; end // val < 1.00 -> 1.0
-        else if (abs_val < 16'h1800) begin exp = 2'd1; mant = 1'b1; end // val < 1.50 -> 1.5
-        else                         begin exp = 2'd2; mant = 1'b0; end // val >=1.50 -> 2.0
+        if      (abs_val < 16'h1000) begin exp = 2'd0; mant = 1'b0; end // val < 0.25 -> 0.0
+        else if (abs_val < 16'h3000) begin exp = 2'd0; mant = 1'b1; end // val < 0.75 -> 0.5
+        else if (abs_val < 16'h5000) begin exp = 2'd1; mant = 1'b0; end // val < 1.25 -> 1.0
+        else if (abs_val < 16'h7000) begin exp = 2'd1; mant = 1'b1; end // val < 1.75 -> 1.5
+        else                         begin exp = 2'd2; mant = 1'b0; end // val >=1.75 -> 2.0
     end
 
     // 3. Pack into 4-bit E2M1 format

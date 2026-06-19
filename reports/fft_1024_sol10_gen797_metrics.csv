@@ -1,0 +1,13 @@
+Metric,Value
+design_name,fft_1024_sol10_gen797
+top_module,fft_1024_sol10_gen797_top
+lut_count,1503
+lutram_count,66
+dsp_count,13
+bram_count,4
+ff_count,626
+io_count,0
+total_power_w,0.074
+wns_ns,46.138
+critical_path_delay_ns,33.537
+clock_period_ns,80.0

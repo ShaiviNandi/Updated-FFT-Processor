@@ -1,0 +1,13 @@
+Metric,Value
+design_name,fft_256_sol0_gen547
+top_module,fft_256_sol0_gen547_top
+lut_count,1966
+lutram_count,75
+dsp_count,13
+bram_count,4
+ff_count,620
+io_count,0
+total_power_w,0.076
+wns_ns,36.568
+critical_path_delay_ns,43.107
+clock_period_ns,80.0

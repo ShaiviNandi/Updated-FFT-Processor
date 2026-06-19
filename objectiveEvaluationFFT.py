@@ -77,7 +77,7 @@ class MixedPrecisionFFTProblem(Problem):
         core_file = os.path.join(GENERATED_DESIGNS_DIR, f"{design_name}.v")
         core_file, top_file = self.template_gen.generate_verilog(chromosome, core_file)
 
-        power, area, crit_delay = self._run_vivado_synthesis(design_name, core_file, top_file)
+        power, area, crit_delay, dsp, bram, ff, lutram = self._run_vivado_synthesis(design_name, core_file, top_file)
         perf = self._run_performance_evaluation(core_file, design_name, chromosome)
         sqnr           = perf['sqnr']
         avg_exec_cycles = perf['avg_exec_cycles']
@@ -93,16 +93,23 @@ class MixedPrecisionFFTProblem(Problem):
             'crit_delay_ns':    crit_delay,
             'avg_exec_cycles':  avg_exec_cycles,
             'tot_sim_cycles':   tot_sim_cycles,
+            'dsp':              dsp,
+            'bram':             bram,
+            'ff':               ff,
+            'lutram':           lutram,
         }
 
         RESULT_CACHE[chrom_hash] = results
         self._save_solution_result(sol_id, chromosome, results)
 
         stats = self.template_gen.analyze_chromosome_statistics(chromosome)
+        
+        # FIXED: Now includes the secondary hardware metrics in the console output
         log_message(
-            f"Solution {sol_id}: P={power:.4f}W, A={area} LUTs, SQNR={sqnr:.2f}dB, "
-            f"CritDelay={crit_delay:.3f}ns -> NormLat={norm_latency:.3f}x, "
-            f"ExecCycles={avg_exec_cycles}, TotSimCycles={tot_sim_cycles}"
+            f"Solution {sol_id}: P={power:.4f}W, A={area} LUTs, "
+            f"LUTRAM={lutram}, DSP={dsp}, BRAM={bram}, FF={ff}, "
+            f"SQNR={sqnr:.2f}dB, CritDelay={crit_delay:.3f}ns -> "
+            f"NormLat={norm_latency:.3f}x, ExecCycles={avg_exec_cycles}, TotSimCycles={tot_sim_cycles}"
         )
 
         return self._compute_objectives_and_constraints(results)
@@ -130,16 +137,16 @@ class MixedPrecisionFFTProblem(Problem):
             if result.returncode != 0:
                 log_message(f"Vivado failed for {design_name} with exit code {result.returncode}", level='ERROR')
                 self._extract_and_log_vivado_errors(design_name)
-                return MAX_POWER_W*2, MAX_AREA_LUTS*2, 200.0
+                return MAX_POWER_W*2, MAX_AREA_LUTS*2, 200.0, 0, 0, 0, 0
                 
             return self._parse_vivado_metrics(csv_output)
             
         except subprocess.TimeoutExpired:
             log_message(f"Vivado synthesis TIMEOUT (900s limit exceeded) for {design_name}", level='ERROR')
-            return MAX_POWER_W*2, MAX_AREA_LUTS*2, 200.0
+            return MAX_POWER_W*2, MAX_AREA_LUTS*2, 200.0, 0, 0, 0, 0
         except Exception as e:
             log_message(f"Subprocess invocation error for {design_name}: {e}", level='ERROR')
-            return MAX_POWER_W*2, MAX_AREA_LUTS*2, 200.0
+            return MAX_POWER_W*2, MAX_AREA_LUTS*2, 200.0, 0, 0, 0, 0
 
     def _extract_and_log_vivado_errors(self, design_name):
         log_candidates = ['vivado.log', f'./vivado_projects/{design_name}/vivado.log']
@@ -172,6 +179,10 @@ class MixedPrecisionFFTProblem(Problem):
         power = MAX_POWER_W * 2
         area = MAX_AREA_LUTS * 2
         crit_delay = 200.0
+        dsp = 0
+        bram = 0
+        ff = 0
+        lutram = 0
 
         try:
             with open(csv_file, 'r') as f:
@@ -183,10 +194,18 @@ class MixedPrecisionFFTProblem(Problem):
                         area = int(row['Value'])
                     elif row['Metric'] == 'critical_path_delay_ns':
                         crit_delay = float(row['Value'])
+                    elif row['Metric'] == 'dsp_count':
+                        dsp = int(row['Value'])
+                    elif row['Metric'] == 'bram_count':
+                        bram = int(row['Value'])
+                    elif row['Metric'] == 'ff_count':
+                        ff = int(row['Value'])
+                    elif row['Metric'] == 'lutram_count':
+                        lutram = int(row['Value'])
         except Exception as e:
             log_message(f"Error parsing metrics from {csv_file}: {e}", level='ERROR')
 
-        return power, area, crit_delay
+        return power, area, crit_delay, dsp, bram, ff, lutram
 
     def _compute_actual_normalized_latency(self, crit_delay_ns):
         if crit_delay_ns <= 0 or math.isnan(crit_delay_ns) or math.isinf(crit_delay_ns):
@@ -211,7 +230,6 @@ class MixedPrecisionFFTProblem(Problem):
         sqnr = results['sqnr']
         norm_latency = results.get('norm_latency', 10.0)
 
-        # Fix 1 & 3: Linear inversion & Scale Normalization
         perf_obj = (SQNR_OFFSET - sqnr) / REF_SQNR_RANGE
 
         objectives = [
@@ -243,6 +261,10 @@ class MixedPrecisionFFTProblem(Problem):
             f.write(f"Results:\n")
             f.write(f"  Power             : {results['power']:.6f} W\n")
             f.write(f"  Area              : {results['area']} LUTs\n")
+            f.write(f"  LUTRAMs           : {results.get('lutram', 0)}\n")
+            f.write(f"  DSPs              : {results.get('dsp', 0)}\n")
+            f.write(f"  BRAMs             : {results.get('bram', 0)}\n")
+            f.write(f"  FFs               : {results.get('ff', 0)}\n")
             f.write(f"  SQNR              : {results['sqnr']:.2f} dB\n")
             f.write(f"  Crit Path Delay   : {results.get('crit_delay_ns', 0):.3f} ns\n")
             f.write(f"  Norm Latency      : {results.get('norm_latency', 0):.4f}x\n")
@@ -252,11 +274,3 @@ class MixedPrecisionFFTProblem(Problem):
             for k, v in stats.items():
                 if not isinstance(v, list):
                     f.write(f"  {k}: {v}\n")
-
-# Quick test
-if __name__ == "__main__":
-    problem = MixedPrecisionFFTProblem(fft_size=8)
-    test_chrom = np.array([0,0,1,0,1,1,0,0])
-    objectives, constraints = problem.evaluate_solution(test_chrom, 0)
-    print(f"4 Objectives: {objectives}")
-    print(f"Constraints : {constraints}")

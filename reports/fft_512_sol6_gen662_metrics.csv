@@ -1,0 +1,13 @@
+Metric,Value
+design_name,fft_512_sol6_gen662
+top_module,fft_512_sol6_gen662_top
+lut_count,1501
+lutram_count,64
+dsp_count,13
+bram_count,4
+ff_count,623
+io_count,0
+total_power_w,0.074
+wns_ns,44.745
+critical_path_delay_ns,34.930
+clock_period_ns,80.0

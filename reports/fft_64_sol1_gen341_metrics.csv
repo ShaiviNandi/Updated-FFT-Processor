@@ -1,0 +1,8 @@
+Metric,Value
+design_name,fft_64_sol1_gen341
+top_module,fft_64_sol1_gen341_top
+lut_count,1485
+total_power_w,0.074
+wns_ns,43.314
+critical_path_delay_ns,36.361
+clock_period_ns,80.0

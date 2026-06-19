@@ -1,0 +1,81 @@
+Mixed-Precision FFT Optimization Results
+========================================================================
+
+FFT Size              : 2
+Population            : 30
+Generations           : 100
+Objectives            : 4  (Power, Area, SQNR, Critical-Path Delay)
+Clock target          : 80.0 ns
+FPGA device           : xc7a35tcpg236-1
+
+Pareto Front Solutions: 1
+
+Timing pass rate      : 1/1 (100%)
+
+ID    Power(W)   Area(LUTs)  LUTRAM   DSP   BRAM   FF      SQNR(dB)   NormLat   CritDelay(ns)  MeetsTiming  ExecCycles  TotSimCycles
+------------------------------------------------------------------------------------------------------------------------------------
+0     0.071000   1010        21       9     0      753     100.00     0.2302    18.414         YES          16          275         
+
+
+Best Solutions by Objective:
+------------------------------------------------------------
+
+Best Power (min):
+  Solution ID       : 0
+  Power             : 0.071000 W
+  Area              : 1010 LUTs
+  LUTRAMs           : 21
+  DSPs              : 9
+  BRAMs             : 0
+  FFs               : 753
+  SQNR              : 100.00 dB
+  Norm Latency      : 0.2302x (clock = 80.0 ns)
+  Crit Path Delay   : 18.414 ns    <- MEETS TIMING
+  Avg Exec Cycles   : 16
+  Tot Sim Cycles    : 275
+  Chromosome        : [0, 0]
+
+Best Area (min):
+  Solution ID       : 0
+  Power             : 0.071000 W
+  Area              : 1010 LUTs
+  LUTRAMs           : 21
+  DSPs              : 9
+  BRAMs             : 0
+  FFs               : 753
+  SQNR              : 100.00 dB
+  Norm Latency      : 0.2302x (clock = 80.0 ns)
+  Crit Path Delay   : 18.414 ns    <- MEETS TIMING
+  Avg Exec Cycles   : 16
+  Tot Sim Cycles    : 275
+  Chromosome        : [0, 0]
+
+Best SQNR (max perf):
+  Solution ID       : 0
+  Power             : 0.071000 W
+  Area              : 1010 LUTs
+  LUTRAMs           : 21
+  DSPs              : 9
+  BRAMs             : 0
+  FFs               : 753
+  SQNR              : 100.00 dB
+  Norm Latency      : 0.2302x (clock = 80.0 ns)
+  Crit Path Delay   : 18.414 ns    <- MEETS TIMING
+  Avg Exec Cycles   : 16
+  Tot Sim Cycles    : 275
+  Chromosome        : [0, 0]
+
+Best Crit-Path (min):
+  Solution ID       : 0
+  Power             : 0.071000 W
+  Area              : 1010 LUTs
+  LUTRAMs           : 21
+  DSPs              : 9
+  BRAMs             : 0
+  FFs               : 753
+  SQNR              : 100.00 dB
+  Norm Latency      : 0.2302x (clock = 80.0 ns)
+  Crit Path Delay   : 18.414 ns    <- MEETS TIMING
+  Avg Exec Cycles   : 16
+  Tot Sim Cycles    : 275
+  Chromosome        : [0, 0]

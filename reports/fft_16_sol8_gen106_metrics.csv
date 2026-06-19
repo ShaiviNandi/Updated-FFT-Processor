@@ -1,0 +1,13 @@
+Metric,Value
+design_name,fft_16_sol8_gen106
+top_module,fft_16_sol8_gen106_top
+lut_count,1860
+lutram_count,62
+dsp_count,13
+bram_count,4
+ff_count,585
+io_count,0
+total_power_w,0.075
+wns_ns,37.603
+critical_path_delay_ns,42.072
+clock_period_ns,80.0

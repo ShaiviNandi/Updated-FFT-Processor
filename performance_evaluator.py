@@ -218,13 +218,18 @@ class PerformanceEvaluator:
     def float_to_fp4(self, val):
         if val == 0.0: return 0
         sign = 0x8 if val < 0 else 0x0
-        val  = abs(val)
-        if val < 0.5: exp = 0; mant = 1 if val >= 0.25 else 0
-        elif val < 1.0: exp = 1; mant = 0
-        elif val < 1.5: exp = 1; mant = 1
-        elif val < 2.0: exp = 2; mant = 0
-        elif val < 3.0: exp = 2; mant = 1
-        else:           exp = 3; mant = 1
+        val = abs(val)
+        # Round-to-nearest to closest FP4 E2M1 representable value
+        # Representable positives: 0.0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0
+        # RNE midpoints:        0.25, 0.75, 1.25, 1.75, 2.5, 3.5, 5.0
+        if   val < 0.25:  exp = 0; mant = 0  # -> 0.0  (flush to zero)
+        elif val < 0.75:  exp = 0; mant = 1  # -> 0.5
+        elif val < 1.25:  exp = 1; mant = 0  # -> 1.0
+        elif val < 1.75:  exp = 1; mant = 1  # -> 1.5
+        elif val < 2.5:   exp = 2; mant = 0  # -> 2.0
+        elif val < 3.5:   exp = 2; mant = 1  # -> 3.0
+        elif val < 5.0:   exp = 3; mant = 0  # -> 4.0
+        else:             exp = 3; mant = 1  # -> 6.0 (saturate)
         return (sign & 0x8) | ((exp & 0x3) << 1) | (mant & 0x1)
 
     def fp4_to_float(self, fp4_val):

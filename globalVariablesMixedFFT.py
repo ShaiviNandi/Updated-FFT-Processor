@@ -77,7 +77,7 @@ REF_LATENCY      = MAX_LATENCY_NORM     # 10.0
 # Applied AFTER normalization to bias crowding distance
 WEIGHT_POWER = 1.0
 WEIGHT_AREA = 1.0
-WEIGHT_PERFORMANCE = 10.0
+WEIGHT_PERFORMANCE = 20.0
 WEIGHT_LATENCY = 8.0          
 
 # Model parameters kept only as fallback
