@@ -1,8 +1,0 @@
-Metric,Value
-design_name,fft_16_sol11_gen112
-top_module,fft_16_sol11_gen112_top
-lut_count,1328
-total_power_w,0.074
-wns_ns,51.956
-critical_path_delay_ns,27.719
-clock_period_ns,80.0

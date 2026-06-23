@@ -1,8 +1,0 @@
-Metric,Value
-design_name,fft_16_sol0_gen194
-top_module,fft_16_sol0_gen194_top
-lut_count,1325
-total_power_w,0.075
-wns_ns,51.956
-critical_path_delay_ns,27.719
-clock_period_ns,80.0

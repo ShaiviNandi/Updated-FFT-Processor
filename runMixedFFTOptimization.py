@@ -38,7 +38,8 @@ from optimizationUtils import (
 
 def _sqnr_from_perf_obj(perf_obj_scaled):
     perf_obj = perf_obj_scaled / WEIGHT_PERFORMANCE
-    sqnr = SQNR_OFFSET - (perf_obj * REF_SQNR_RANGE)
+    # math.sqrt(max(0.0,...)) protects the interpreter from floating-point noise (-1e-16)
+    sqnr = SQNR_OFFSET - (math.sqrt(max(0.0, perf_obj)) * REF_SQNR_RANGE)
     return sqnr
 
 
@@ -390,7 +391,8 @@ def plot_pareto_front(pareto_objectives, fft_size, results_subdir, feasible=True
     norm_latency = (obj[:, 3] / WEIGHT_LATENCY) * REF_LATENCY
 
     perf_objs    = obj[:, 2] / WEIGHT_PERFORMANCE
-    sqnr         = np.array([SQNR_OFFSET - (po * REF_SQNR_RANGE) for po in perf_objs])
+    # Fixed the hardcoded linear plot trap to match the new quadratic objective space
+    sqnr         = np.array([SQNR_OFFSET - (math.sqrt(max(0.0, po)) * REF_SQNR_RANGE) for po in perf_objs])
     sqnr         = np.where(np.isinf(sqnr), np.nan, sqnr)
 
     crit_delay    = np.array([_crit_delay_ns_from_norm_latency(nl, fft_size) for nl in norm_latency])

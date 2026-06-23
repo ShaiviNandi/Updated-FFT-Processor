@@ -1,6 +1,7 @@
 """
 Objective Evaluation for Mixed-Precision FFT Optimization
 Uses ACTUAL Vivado synthesis critical path delay as 4th objective (on-chip latency).
+Incorporates quadratic SQNR scaling to heavily penalize severe quantization noise.
 """
 
 import numpy as np
@@ -104,7 +105,6 @@ class MixedPrecisionFFTProblem(Problem):
 
         stats = self.template_gen.analyze_chromosome_statistics(chromosome)
         
-        # FIXED: Now includes the secondary hardware metrics in the console output
         log_message(
             f"Solution {sol_id}: P={power:.4f}W, A={area} LUTs, "
             f"LUTRAM={lutram}, DSP={dsp}, BRAM={bram}, FF={ff}, "
@@ -226,16 +226,17 @@ class MixedPrecisionFFTProblem(Problem):
 
     def _compute_objectives_and_constraints(self, results):
         power = results['power']
-        area = results['area']
-        sqnr = results['sqnr']
+        area  = results['area']
+        sqnr  = results['sqnr']
         norm_latency = results.get('norm_latency', 10.0)
 
-        perf_obj = (SQNR_OFFSET - sqnr) / REF_SQNR_RANGE
+        # Non-linear quadratic mapping
+        perf_obj = ((SQNR_OFFSET - sqnr) / REF_SQNR_RANGE) ** 2
 
         objectives = [
             (power / REF_POWER_W)        * WEIGHT_POWER,
             (area / REF_AREA_LUTS)       * WEIGHT_AREA,
-            perf_obj                     * WEIGHT_PERFORMANCE,
+            perf_obj                     * WEIGHT_PERFORMANCE, 
             (norm_latency / REF_LATENCY) * WEIGHT_LATENCY
         ]
 

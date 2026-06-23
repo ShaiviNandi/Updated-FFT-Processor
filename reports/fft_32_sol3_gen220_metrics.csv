@@ -1,8 +1,0 @@
-Metric,Value
-design_name,fft_32_sol3_gen220
-top_module,fft_32_sol3_gen220_top
-lut_count,1828
-total_power_w,0.075
-wns_ns,36.054
-critical_path_delay_ns,43.621
-clock_period_ns,80.0

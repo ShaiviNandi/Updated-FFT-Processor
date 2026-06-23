@@ -57,8 +57,8 @@ RESULTS_DIR = './results'
 
 # ======================= Constraint Thresholds =======================
 MAX_POWER_W = 3.0
-MAX_AREA_LUTS = 100000
-MIN_SQNR_DB = 5.0              # Tightened to reject poor signal quality early
+MAX_AREA_LUTS = 5000
+MIN_SQNR_DB = 10.0              # Tightened to reject poor signal quality early
 MAX_LATENCY_NORM = 10.0        # Max acceptable normalized latency
 MIN_FREQ_MHZ = 80.0
 
@@ -77,7 +77,7 @@ REF_LATENCY      = MAX_LATENCY_NORM     # 10.0
 # Applied AFTER normalization to bias crowding distance
 WEIGHT_POWER = 1.0
 WEIGHT_AREA = 1.0
-WEIGHT_PERFORMANCE = 20.0
+WEIGHT_PERFORMANCE = 30.0
 WEIGHT_LATENCY = 8.0          
 
 # Model parameters kept only as fallback
