@@ -1,0 +1,13 @@
+Metric,Value
+design_name,fft_32_sol10_gen204
+top_module,fft_32_sol10_gen204_top
+lut_count,1419
+lutram_count,50
+dsp_count,13
+bram_count,4
+ff_count,595
+io_count,0
+total_power_w,0.074
+wns_ns,47.042
+critical_path_delay_ns,32.633
+clock_period_ns,80.0
