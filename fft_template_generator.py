@@ -19,9 +19,9 @@ class FFTTemplateGenerator:
         self.MAX_N_HW          = 1024
 
         self.MEM_RD_LATENCY    = 1
-        self.CORDIC_LATENCY    = 10
+        self.TWIDDLE_LATENCY   = 10
         self.BUTTERFLY_LATENCY = 0
-        self.TOTAL_PIPE_LATENCY = self.CORDIC_LATENCY + self.BUTTERFLY_LATENCY + 1
+        self.TOTAL_PIPE_LATENCY = self.TWIDDLE_LATENCY + self.BUTTERFLY_LATENCY + 1
 
     def get_chromosome_length(self):
         return self.chromosome_length
@@ -335,22 +335,46 @@ module {core_module_name} #(
         .curr_stage   (curr_stage)
     );
 
-    wire [15:0] twiddle;
-    localparam CORDIC_LATENCY = {self.CORDIC_LATENCY};
+    wire [15:0] twiddle_comb;
+    localparam TWIDDLE_LATENCY = {self.TWIDDLE_LATENCY};
 
-    cordic_twiddle_generator #(
-        .LATENCY(CORDIC_LATENCY),
+    // Instantiate your Static Unified ROM (Combinational execution)
+    twiddle_factor_unified #(
         .MAX_N(MAX_N),
         .ADDR_WIDTH(ADDR_WIDTH)
     ) twiddle_gen (
-        .clk        (clk),
-        .rst        (rst),
         .k          (k),
         .n          ({aw}'d{n}),
-        .valid_in   (streaming_enable),
         .PRECISION  (cur_mult_prec),
-        .twiddle_out(twiddle)
+        .twiddle_out(twiddle_comb)
     );
+
+    // CRITICAL FIX: The old CORDIC declared LATENCY=10, but internally cascaded x_pipe[0] to x_pipe[10], 
+    // generating an 11-cycle delay. We must EXACTLY match this 11-cycle depth to align 
+    // the twiddles with A_24_pipe and B_24_pipe!
+    (* srl_style = "srl" *) reg [15:0] twiddle_pipe [0:TWIDDLE_LATENCY]; // Length 11 array
+    (* srl_style = "srl" *) reg        v_pipe       [0:TWIDDLE_LATENCY]; // Length 11 valid gating array
+    integer t_idx;
+    
+    always @(posedge clk or negedge rst) begin
+        if (!rst) begin
+            for (t_idx = 0; t_idx <= TWIDDLE_LATENCY; t_idx = t_idx + 1) begin
+                twiddle_pipe[t_idx] <= 16'd0;
+                v_pipe[t_idx]       <= 1'b0;
+            end
+        end else begin
+            twiddle_pipe[0] <= twiddle_comb;
+            v_pipe[0]       <= streaming_enable;
+            
+            for (t_idx = 1; t_idx <= TWIDDLE_LATENCY; t_idx = t_idx + 1) begin
+                twiddle_pipe[t_idx] <= twiddle_pipe[t_idx-1];
+                v_pipe[t_idx]       <= v_pipe[t_idx-1];
+            end
+        end
+    end
+    
+    // Tap off the END of the 11-stage pipeline, gating with valid_in (mimicking the old CORDIC logic)
+    wire [15:0] twiddle = v_pipe[TWIDDLE_LATENCY] ? twiddle_pipe[TWIDDLE_LATENCY] : 16'h0000;
 
     localparam TOTAL_LATENCY = {self.TOTAL_PIPE_LATENCY};
 

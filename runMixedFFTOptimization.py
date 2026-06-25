@@ -907,8 +907,8 @@ def quick_test():
 # ---------------------------------------------------------------------------
 
 def main():
-    #quick_test()
-    run_full_optimization_sweep()
+    quick_test()
+    #run_full_optimization_sweep()
 
 
 if __name__ == "__main__":

@@ -1,0 +1,360 @@
+// =============================================================================
+// Mixed-Precision FFT Core - 8-point FULLY PIPELINED II=1 ARCHITECTURE
+// Active-low asynchronous reset (negedge rst).
+// =============================================================================
+`timescale 1ns/1ps
+
+module pipelined_fft_8_sweep_2_core #(
+    parameter MAX_N      = 1024,
+    parameter ADDR_WIDTH = 11
+)(
+    input  wire        clk,
+    input  wire        rst,
+
+    input  wire        start,
+    output reg         done,
+
+    input  wire                  ext_wr_en,
+    input  wire [ADDR_WIDTH-1:0] ext_wr_addr,
+    input  wire [23:0]           ext_wr_data,
+
+    input  wire                  ext_reading,
+    input  wire [ADDR_WIDTH-1:0] ext_rd_addr,
+    output wire [15:0]           ext_rd_data,
+
+    input  wire                  ext_bank_sel
+);
+
+    localparam STAGE0_MULT_PREC = 1;
+    localparam STAGE0_ADD_PREC  = 1;
+    localparam STAGE0_OUT_PREC  = 1;
+    localparam STAGE1_MULT_PREC = 1;
+    localparam STAGE1_ADD_PREC  = 0;
+    localparam STAGE1_OUT_PREC  = 0;
+    localparam STAGE2_MULT_PREC = 0;
+    localparam STAGE2_ADD_PREC  = 0;
+    localparam STAGE2_OUT_PREC  = 0;
+
+    reg cur_mult_prec;
+    reg cur_rd_prec;
+    reg cur_wr_prec;
+
+    reg  start_agu_reg;
+    wire streaming_enable;
+    wire [ADDR_WIDTH-1:0] idx_a, idx_b, k;
+    wire done_stage, done_fft;
+    wire [ADDR_WIDTH-1:0] curr_stage;
+
+    reg [5:0] pipeline_stall_cnt;
+    wire agu_stall = (pipeline_stall_cnt > 0);
+    
+    // GHOST STALL FIX: Prevents the AGU from double-triggering after a flush
+    reg just_unstalled;
+    always @(posedge clk or negedge rst) begin
+        if (!rst) just_unstalled <= 1'b0;
+        else if (agu_stall) just_unstalled <= 1'b1;
+        else just_unstalled <= 1'b0;
+    end
+
+    wire safe_done_stage = done_stage && !just_unstalled;
+    wire safe_done_fft   = done_fft && !just_unstalled;
+    
+    always @(posedge clk or negedge rst) begin
+        if (!rst) begin
+            pipeline_stall_cnt <= 0;
+        end else if (safe_done_stage && !safe_done_fft) begin
+            pipeline_stall_cnt <= 12;
+        end else if (pipeline_stall_cnt > 0) begin
+            pipeline_stall_cnt <= pipeline_stall_cnt - 1;
+        end
+    end
+
+    // STALL-ALIGNED STAGE TRACKER
+    reg [3:0] current_stage_stable;
+    always @(posedge clk or negedge rst) begin
+        if (!rst) begin
+            current_stage_stable <= 0;
+        end else if (start) begin
+            current_stage_stable <= 0;
+        end else if (pipeline_stall_cnt == 1) begin
+            current_stage_stable <= current_stage_stable + 1;
+        end
+    end
+
+    dit_fft_agu_streaming #(
+        .MAX_N     (MAX_N),
+        .ADDR_WIDTH(ADDR_WIDTH)
+    ) agu (
+        .clk          (clk),
+        .reset        (rst),
+        .stall        (agu_stall),
+        .start        (start_agu_reg),
+        .N            (11'd8),
+        .stream_en    (streaming_enable),
+        .idx_a        (idx_a),
+        .idx_b        (idx_b),
+        .k            (k),
+        .done_stage   (done_stage),
+        .done_fft     (done_fft),
+        .curr_stage   (curr_stage)
+    );
+
+    wire [15:0] twiddle;
+    localparam CORDIC_LATENCY = 10;
+
+    cordic_twiddle_generator #(
+        .LATENCY(CORDIC_LATENCY),
+        .MAX_N(MAX_N),
+        .ADDR_WIDTH(ADDR_WIDTH)
+    ) twiddle_gen (
+        .clk        (clk),
+        .rst        (rst),
+        .k          (k),
+        .n          (11'd8),
+        .valid_in   (streaming_enable),
+        .PRECISION  (cur_mult_prec),
+        .twiddle_out(twiddle)
+    );
+
+    localparam TOTAL_LATENCY = 11;
+
+    (* srl_style = "srl" *) reg [TOTAL_LATENCY-1:0]  wr_en_pipe;
+    (* srl_style = "srl" *) reg [ADDR_WIDTH-1:0]     wr_addr_a_pipe    [0:TOTAL_LATENCY-1];
+    (* srl_style = "srl" *) reg [ADDR_WIDTH-1:0]     wr_addr_b_pipe    [0:TOTAL_LATENCY-1];
+    (* srl_style = "srl" *) reg [3:0]                stable_stage_pipe [0:TOTAL_LATENCY-1];
+
+    reg                      fft_bank_sel;
+
+    integer i;
+    always @(posedge clk or negedge rst) begin
+        if (!rst) begin
+            wr_en_pipe <= 0;
+            for (i = 0; i < TOTAL_LATENCY; i = i + 1) begin
+                wr_addr_a_pipe[i]  <= 0;  
+                wr_addr_b_pipe[i]  <= 0;
+                stable_stage_pipe[i] <= 0;
+            end
+        end else begin
+            wr_en_pipe <= {wr_en_pipe[TOTAL_LATENCY-2:0], streaming_enable};
+            
+            wr_addr_a_pipe[0]  <= idx_a;
+            wr_addr_b_pipe[0]  <= idx_b;
+            stable_stage_pipe[0] <= current_stage_stable;
+
+            for (i = 1; i < TOTAL_LATENCY; i = i + 1) begin
+                wr_addr_a_pipe[i]  <= wr_addr_a_pipe[i-1];
+                wr_addr_b_pipe[i]  <= wr_addr_b_pipe[i-1];
+                stable_stage_pipe[i] <= stable_stage_pipe[i-1];
+            end
+        end
+    end
+
+    wire                  mem_wr_en       = wr_en_pipe[TOTAL_LATENCY-1];
+    wire [ADDR_WIDTH-1:0] mem_wr_addr_a   = wr_addr_a_pipe[TOTAL_LATENCY-1];
+    wire [ADDR_WIDTH-1:0] mem_wr_addr_b   = wr_addr_b_pipe[TOTAL_LATENCY-1];
+    
+    // CRITICAL FIX: Eliminate the 11-cycle delay on the write bank!
+    // Stalls guarantee writes finish before the next stage starts.
+    wire                  mem_wr_bank     = fft_bank_sel;
+    wire [3:0]            current_stage_stable_delayed = stable_stage_pipe[TOTAL_LATENCY-1];
+
+    always @(*) begin
+        if (ext_reading) begin
+            cur_mult_prec = 1'b0;
+            cur_rd_prec   = 1'b0;
+        end else begin
+            case (current_stage_stable)
+            4'd0: begin
+                cur_mult_prec = STAGE0_MULT_PREC;
+                cur_rd_prec   = STAGE0_ADD_PREC;
+            end
+            4'd1: begin
+                cur_mult_prec = STAGE1_MULT_PREC;
+                cur_rd_prec   = STAGE0_OUT_PREC;
+            end
+            4'd2: begin
+                cur_mult_prec = STAGE2_MULT_PREC;
+                cur_rd_prec   = STAGE1_OUT_PREC;
+            end
+                default: begin
+                    cur_mult_prec = 1'b0; cur_rd_prec = 1'b1;
+                end
+            endcase
+        end
+    end
+
+    always @(*) begin
+        case (current_stage_stable_delayed)
+            4'd0: begin
+                cur_wr_prec   = STAGE0_OUT_PREC;
+            end
+            4'd1: begin
+                cur_wr_prec   = STAGE1_OUT_PREC;
+            end
+            4'd2: begin
+                cur_wr_prec   = STAGE2_OUT_PREC;
+            end
+            default: cur_wr_prec = 1'b0;
+        endcase
+    end
+
+    wire                  active_rd_bank = ext_reading ? ext_bank_sel : fft_bank_sel;
+    wire [ADDR_WIDTH-1:0] mem_rd_addr_a  = ext_reading ? ext_rd_addr  : idx_a;
+    wire [ADDR_WIDTH-1:0] mem_rd_addr_b  = ext_reading ? ext_rd_addr  : idx_b;
+
+    wire [15:0] rd_data_a_16, rd_data_b_16;
+    wire [23:0] X_wr_24, Y_wr_24;
+    assign ext_rd_data = rd_data_a_16;
+
+    // DYNAMIC BANK ROUTING FIX
+    // Calculate the stride mask dynamically to correctly separate paired addresses 
+    // across the two memory banks to avoid conflict. Default to 1 for sequential I/O.
+    wire [ADDR_WIDTH-1:0] current_stage_mask    = ext_reading ? 11'd1 : ((11'd8 >> 1) >> current_stage_stable);
+    wire [ADDR_WIDTH-1:0] current_stage_mask_wr = ext_wr_en   ? 11'd1 : ((11'd8 >> 1) >> current_stage_stable_delayed);
+
+    mixed_dual_bank_memory_concurrent #(
+        .n         (8),
+        .ADDR_WIDTH(ADDR_WIDTH)
+    ) mem (
+        .clk          (clk),
+        .rst          (rst),
+        
+        .bank_pingpong (active_rd_bank),
+        .stage_mask    (current_stage_mask),
+        .rd_addr_a     (mem_rd_addr_a),
+        .rd_addr_b     (mem_rd_addr_b),
+        .rd_precision  (cur_rd_prec),
+        .rd_data_a     (rd_data_a_16),
+        .rd_data_b     (rd_data_b_16),
+        
+        .wr_en         (ext_wr_en ? 1'b1 : mem_wr_en),
+        .wr_addr_a     (ext_wr_en ? ext_wr_addr : mem_wr_addr_a),
+        .wr_addr_b     (ext_wr_en ? ext_wr_addr : mem_wr_addr_b),
+        .wr_data_a     (ext_wr_en ? ext_wr_data : X_wr_24),
+        .wr_data_b     (ext_wr_en ? ext_wr_data : Y_wr_24),
+
+        .bank_pingpong_wr (ext_wr_en ? 1'b0 : mem_wr_bank),
+        .stage_mask_wr    (current_stage_mask_wr)
+    );
+
+    wire [7:0]  rd_a_fp8_as_fp4, rd_b_fp8_as_fp4;
+    complex_fp8_to_fp4 dec_a (.complex_fp8(rd_data_a_16), .complex_fp4(rd_a_fp8_as_fp4));
+    complex_fp8_to_fp4 dec_b (.complex_fp8(rd_data_b_16), .complex_fp4(rd_b_fp8_as_fp4));
+
+    wire [15:0] rd_a_fp4_as_fp8, rd_b_fp4_as_fp8;
+    complex_fp4_to_fp8 enc_a (.complex_fp4(rd_data_a_16[7:0]), .complex_fp8(rd_a_fp4_as_fp8));
+    complex_fp4_to_fp8 enc_b (.complex_fp4(rd_data_b_16[7:0]), .complex_fp8(rd_b_fp4_as_fp8));
+
+    wire [23:0] mem_rd_a_24 = cur_rd_prec ? {rd_data_a_16, rd_a_fp8_as_fp4} : {rd_a_fp4_as_fp8, rd_data_a_16[7:0]};
+    wire [23:0] mem_rd_b_24 = cur_rd_prec ? {rd_data_b_16, rd_b_fp8_as_fp4} : {rd_b_fp4_as_fp8, rd_data_b_16[7:0]};
+
+    (* srl_style = "srl" *) reg [23:0] A_24_pipe [0:9];
+    (* srl_style = "srl" *) reg [23:0] B_24_pipe [0:9];
+    integer j;
+    always @(posedge clk) begin
+        A_24_pipe[0] <= mem_rd_a_24;
+        B_24_pipe[0] <= mem_rd_b_24;
+        for (j = 1; j < 10; j = j + 1) begin
+            A_24_pipe[j] <= A_24_pipe[j-1];
+            B_24_pipe[j] <= B_24_pipe[j-1];
+        end
+    end
+    wire [23:0] A_24_aligned = A_24_pipe[9];
+    wire [23:0] B_24_aligned = B_24_pipe[9];
+    // SINGLE SHARED BUTTERFLY UNIT
+    reg bf_mult_prec, bf_add_prec;
+    always @(*) begin
+        case (current_stage_stable_delayed)
+            4'd0: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
+            4'd1: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b0; end
+            4'd2: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b0; end
+            default: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b0; end
+        endcase
+    end
+
+    wire [15:0] X_bf, Y_bf;
+    wire        bf_is_fp8;
+    butterfly_wrapper shared_bf (
+        .A            (A_24_aligned),
+        .B            (B_24_aligned),
+        .W            (twiddle),
+        .mult_prec    (bf_mult_prec),
+        .add_prec     (bf_add_prec),
+        .X            (X_bf),
+        .Y            (Y_bf),
+        .output_is_fp8(bf_is_fp8)
+    );
+    wire [7:0]  X_fp4_packed, Y_fp4_packed;
+    wire [15:0] X_fp8_packed, Y_fp8_packed;
+
+    fp8_to_fp4_converter conv_xr (.fp8_in(X_bf[15:8]), .fp4_out(X_fp4_packed[7:4]));
+    fp8_to_fp4_converter conv_xi (.fp8_in(X_bf[7:0]),  .fp4_out(X_fp4_packed[3:0]));
+    fp8_to_fp4_converter conv_yr (.fp8_in(Y_bf[15:8]), .fp4_out(Y_fp4_packed[7:4]));
+    fp8_to_fp4_converter conv_yi (.fp8_in(Y_bf[7:0]),  .fp4_out(Y_fp4_packed[3:0]));
+
+    fp4_to_fp8_converter conv_xr8 (.fp4_in(X_bf[7:4]), .fp8_out(X_fp8_packed[15:8]));
+    fp4_to_fp8_converter conv_xi8 (.fp4_in(X_bf[3:0]), .fp8_out(X_fp8_packed[7:0]));
+    fp4_to_fp8_converter conv_yr8 (.fp4_in(Y_bf[7:4]), .fp8_out(Y_fp8_packed[15:8]));
+    fp4_to_fp8_converter conv_yi8 (.fp4_in(Y_bf[3:0]), .fp8_out(Y_fp8_packed[7:0]));
+
+    assign X_wr_24 = bf_is_fp8 ? {X_bf, X_fp4_packed} : {X_fp8_packed, X_bf[7:0]};
+    assign Y_wr_24 = bf_is_fp8 ? {Y_bf, Y_fp4_packed} : {Y_fp8_packed, Y_bf[7:0]};
+
+    localparam IDLE_ST   = 2'd0,
+               RUN_ST    = 2'd1,
+               FLUSH_ST  = 2'd2,
+               DONE_ST   = 2'd3;
+
+    reg [1:0]  state;
+    reg [5:0]  flush_counter;
+
+    always @(posedge clk or negedge rst) begin
+        if (!rst) begin
+            state         <= IDLE_ST;
+            start_agu_reg <= 1'b0;
+            fft_bank_sel  <= 1'b0;
+            done          <= 1'b0;
+            flush_counter <= 0;
+        end else begin
+            case (state)
+                IDLE_ST: begin
+                    done <= 1'b0;
+                    if (start) begin
+                        fft_bank_sel  <= 1'b1;
+                        start_agu_reg <= 1'b1;
+                        state         <= RUN_ST;
+                    end
+                end
+
+                RUN_ST: begin
+                    start_agu_reg <= 1'b0;
+                    if (pipeline_stall_cnt == 1) begin
+                        fft_bank_sel <= ~fft_bank_sel;
+                    end
+                    if (safe_done_fft) begin
+                        state         <= FLUSH_ST;
+                        flush_counter <= TOTAL_LATENCY;
+                    end
+                end
+
+                FLUSH_ST: begin
+                    if (flush_counter == 0) begin
+                        fft_bank_sel <= 1'b0;
+                        done         <= 1'b1;
+                        state        <= DONE_ST;
+                    end else begin
+                        flush_counter <= flush_counter - 1;
+                    end
+                end
+
+                DONE_ST: begin
+                    if (!start) begin
+                        done  <= 1'b0;
+                        state <= IDLE_ST;
+                    end
+                end
+                default: state <= IDLE_ST;
+            endcase
+        end
+    end
+endmodule
