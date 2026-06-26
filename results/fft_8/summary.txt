@@ -8,16 +8,17 @@ Objectives            : 4  (Power, Area, SQNR, Critical-Path Delay)
 Clock target          : 80.0 ns
 FPGA device           : xc7a35tcpg236-1
 
-Pareto Front Solutions: 4
+Pareto Front Solutions: 5
 
-Timing pass rate      : 4/4 (100%)
+Timing pass rate      : 5/5 (100%)
 
 ID    Power(W)   Area(LUTs)  LUTRAM   DSP   BRAM   FF      SQNR(dB)   NormLat   CritDelay(ns)  MeetsTiming  ExecCycles  TotSimCycles
 ------------------------------------------------------------------------------------------------------------------------------------
-0     0.073000   963         27       9     4      573     12.27      0.2395    19.160         YES          51          924         
-1     0.075000   1886        60       13    4      582     43.83      0.5256    42.049         YES          51          924         
-2     0.074000   1273        45       9     4      580     15.03      0.3522    28.173         YES          51          924         
-3     0.074000   1311        45       9     4      585     25.79      0.3522    28.173         YES          51          924         
+0     0.071000   404         28       6     4      107     12.20      0.1864    14.910         YES          51          924         
+1     0.073000   1075        65       10    4      124     42.81      0.4440    35.518         YES          51          924         
+2     0.072000   754         46       6     4      114     14.86      0.3037    24.299         YES          51          924         
+3     0.073000   792         46       6     4      119     25.91      0.3037    24.299         YES          51          924         
+4     0.073000   1133        65       10    4      133     41.28      0.4401    35.206         YES          51          924         
 
 
 Best Solutions by Objective:
@@ -25,60 +26,60 @@ Best Solutions by Objective:
 
 Best Power (min):
   Solution ID       : 0
-  Power             : 0.073000 W
-  Area              : 963 LUTs
-  LUTRAMs           : 27
-  DSPs              : 9
+  Power             : 0.071000 W
+  Area              : 404 LUTs
+  LUTRAMs           : 28
+  DSPs              : 6
   BRAMs             : 4
-  FFs               : 573
-  SQNR              : 12.27 dB
-  Norm Latency      : 0.2395x (clock = 80.0 ns)
-  Crit Path Delay   : 19.160 ns    <- MEETS TIMING
+  FFs               : 107
+  SQNR              : 12.20 dB
+  Norm Latency      : 0.1864x (clock = 80.0 ns)
+  Crit Path Delay   : 14.910 ns    <- MEETS TIMING
   Avg Exec Cycles   : 51
   Tot Sim Cycles    : 924
   Chromosome        : [0, 0, 0, 0, 0, 0]
 
 Best Area (min):
   Solution ID       : 0
-  Power             : 0.073000 W
-  Area              : 963 LUTs
-  LUTRAMs           : 27
-  DSPs              : 9
+  Power             : 0.071000 W
+  Area              : 404 LUTs
+  LUTRAMs           : 28
+  DSPs              : 6
   BRAMs             : 4
-  FFs               : 573
-  SQNR              : 12.27 dB
-  Norm Latency      : 0.2395x (clock = 80.0 ns)
-  Crit Path Delay   : 19.160 ns    <- MEETS TIMING
+  FFs               : 107
+  SQNR              : 12.20 dB
+  Norm Latency      : 0.1864x (clock = 80.0 ns)
+  Crit Path Delay   : 14.910 ns    <- MEETS TIMING
   Avg Exec Cycles   : 51
   Tot Sim Cycles    : 924
   Chromosome        : [0, 0, 0, 0, 0, 0]
 
 Best SQNR (max perf):
   Solution ID       : 1
-  Power             : 0.075000 W
-  Area              : 1886 LUTs
-  LUTRAMs           : 60
-  DSPs              : 13
+  Power             : 0.073000 W
+  Area              : 1075 LUTs
+  LUTRAMs           : 65
+  DSPs              : 10
   BRAMs             : 4
-  FFs               : 582
-  SQNR              : 43.83 dB
-  Norm Latency      : 0.5256x (clock = 80.0 ns)
-  Crit Path Delay   : 42.049 ns    <- MEETS TIMING
+  FFs               : 124
+  SQNR              : 42.81 dB
+  Norm Latency      : 0.4440x (clock = 80.0 ns)
+  Crit Path Delay   : 35.518 ns    <- MEETS TIMING
   Avg Exec Cycles   : 51
   Tot Sim Cycles    : 924
   Chromosome        : [1, 1, 1, 1, 1, 1]
 
 Best Crit-Path (min):
   Solution ID       : 0
-  Power             : 0.073000 W
-  Area              : 963 LUTs
-  LUTRAMs           : 27
-  DSPs              : 9
+  Power             : 0.071000 W
+  Area              : 404 LUTs
+  LUTRAMs           : 28
+  DSPs              : 6
   BRAMs             : 4
-  FFs               : 573
-  SQNR              : 12.27 dB
-  Norm Latency      : 0.2395x (clock = 80.0 ns)
-  Crit Path Delay   : 19.160 ns    <- MEETS TIMING
+  FFs               : 107
+  SQNR              : 12.20 dB
+  Norm Latency      : 0.1864x (clock = 80.0 ns)
+  Crit Path Delay   : 14.910 ns    <- MEETS TIMING
   Avg Exec Cycles   : 51
   Tot Sim Cycles    : 924
   Chromosome        : [0, 0, 0, 0, 0, 0]

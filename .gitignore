@@ -1,1 +1,3 @@
-.Xil*.zip
+.Xil
+*.zip
+__pycache__

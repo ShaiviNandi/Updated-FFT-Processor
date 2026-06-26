@@ -7,129 +7,129 @@ Clock target: 80.0 ns  |  FPGA: xc7a35tcpg236-1
 FFT Size: 2
 ------------------------------------------------------------------------
   Pareto front size  : 2
-  Power range        : 0.071000 – 0.072000 W
-  Area range         : 1010 – 1254 LUTs
+  Power range        : 0.069000 – 0.070000 W
+  Area range         : 394 – 681 LUTs
   LUTRAM range       : 21 – 39
-  DSP range          : 9 – 9
+  DSP range          : 4 – 4
   BRAM range         : 0 – 0
-  FF range           : 696 – 753
+  FF range           : 228 – 285
   SQNR range         : 0.00 – 41.48 dB
-  Crit-path range    : 18.414 – 26.845 ns
+  Crit-path range    : 12.335 – 20.734 ns
   Timing pass rate   : 2/2 (100%)
 
 FFT Size: 4
 ------------------------------------------------------------------------
-  Pareto front size  : 3
-  Power range        : 0.073000 – 0.074000 W
-  Area range         : 951 – 1862 LUTs
-  LUTRAM range       : 24 – 57
-  DSP range          : 9 – 13
+  Pareto front size  : 4
+  Power range        : 0.071000 – 0.072000 W
+  Area range         : 394 – 1097 LUTs
+  LUTRAM range       : 25 – 60
+  DSP range          : 6 – 10
   BRAM range         : 4 – 4
-  FF range           : 566 – 575
-  SQNR range         : 17.47 – 33.07 dB
-  Crit-path range    : 18.614 – 42.065 ns
-  Timing pass rate   : 3/3 (100%)
+  FF range           : 100 – 122
+  SQNR range         : 17.47 – 34.19 dB
+  Crit-path range    : 15.482 – 35.901 ns
+  Timing pass rate   : 4/4 (100%)
 
 FFT Size: 8
 ------------------------------------------------------------------------
-  Pareto front size  : 4
-  Power range        : 0.073000 – 0.075000 W
-  Area range         : 963 – 1886 LUTs
-  LUTRAM range       : 27 – 60
-  DSP range          : 9 – 13
+  Pareto front size  : 5
+  Power range        : 0.071000 – 0.073000 W
+  Area range         : 404 – 1133 LUTs
+  LUTRAM range       : 28 – 65
+  DSP range          : 6 – 10
   BRAM range         : 4 – 4
-  FF range           : 573 – 585
-  SQNR range         : 12.27 – 43.83 dB
-  Crit-path range    : 19.160 – 42.049 ns
-  Timing pass rate   : 4/4 (100%)
+  FF range           : 107 – 133
+  SQNR range         : 12.20 – 42.81 dB
+  Crit-path range    : 14.910 – 35.518 ns
+  Timing pass rate   : 5/5 (100%)
 
 FFT Size: 16
 ------------------------------------------------------------------------
-  Pareto front size  : 10
-  Power range        : 0.073000 – 0.075000 W
-  Area range         : 982 – 1909 LUTs
-  LUTRAM range       : 30 – 63
-  DSP range          : 9 – 13
+  Pareto front size  : 11
+  Power range        : 0.071000 – 0.073000 W
+  Area range         : 422 – 1156 LUTs
+  LUTRAM range       : 31 – 69
+  DSP range          : 6 – 10
   BRAM range         : 4 – 4
-  FF range           : 578 – 596
-  SQNR range         : 10.96 – 39.41 dB
-  Crit-path range    : 18.819 – 42.959 ns
-  Timing pass rate   : 10/10 (100%)
+  FF range           : 112 – 140
+  SQNR range         : 10.77 – 39.00 dB
+  Crit-path range    : 14.876 – 35.567 ns
+  Timing pass rate   : 11/11 (100%)
 
 FFT Size: 32
 ------------------------------------------------------------------------
-  Pareto front size  : 11
-  Power range        : 0.074000 – 0.075000 W
-  Area range         : 1284 – 1902 LUTs
-  LUTRAM range       : 51 – 66
-  DSP range          : 9 – 13
+  Pareto front size  : 9
+  Power range        : 0.073000 – 0.073000 W
+  Area range         : 743 – 1184 LUTs
+  LUTRAM range       : 51 – 73
+  DSP range          : 6 – 10
   BRAM range         : 4 – 4
-  FF range           : 592 – 603
-  SQNR range         : 10.20 – 37.25 dB
-  Crit-path range    : 28.453 – 42.802 ns
-  Timing pass rate   : 11/11 (100%)
+  FF range           : 124 – 149
+  SQNR range         : 11.97 – 37.29 dB
+  Crit-path range    : 24.252 – 36.493 ns
+  Timing pass rate   : 9/9 (100%)
 
 FFT Size: 64
 ------------------------------------------------------------------------
-  Pareto front size  : 6
-  Power range        : 0.075000 – 0.075000 W
-  Area range         : 1307 – 1925 LUTs
-  LUTRAM range       : 53 – 69
-  DSP range          : 9 – 13
+  Pareto front size  : 7
+  Power range        : 0.073000 – 0.073000 W
+  Area range         : 772 – 1229 LUTs
+  LUTRAM range       : 52 – 75
+  DSP range          : 6 – 10
   BRAM range         : 4 – 4
-  FF range           : 595 – 602
-  SQNR range         : 10.16 – 36.84 dB
-  Crit-path range    : 28.458 – 43.109 ns
-  Timing pass rate   : 6/6 (100%)
+  FF range           : 125 – 152
+  SQNR range         : 10.89 – 36.82 dB
+  Crit-path range    : 24.226 – 36.493 ns
+  Timing pass rate   : 7/7 (100%)
 
 FFT Size: 128
 ------------------------------------------------------------------------
-  Pareto front size  : 9
-  Power range        : 0.075000 – 0.075000 W
-  Area range         : 1323 – 1938 LUTs
-  LUTRAM range       : 57 – 72
-  DSP range          : 9 – 13
+  Pareto front size  : 14
+  Power range        : 0.073000 – 0.073000 W
+  Area range         : 783 – 1244 LUTs
+  LUTRAM range       : 55 – 77
+  DSP range          : 6 – 10
   BRAM range         : 4 – 4
-  FF range           : 604 – 615
-  SQNR range         : 10.47 – 36.64 dB
-  Crit-path range    : 28.638 – 43.459 ns
-  Timing pass rate   : 9/9 (100%)
+  FF range           : 132 – 157
+  SQNR range         : 10.46 – 36.07 dB
+  Crit-path range    : 24.252 – 36.493 ns
+  Timing pass rate   : 14/14 (100%)
 
 FFT Size: 256
 ------------------------------------------------------------------------
-  Pareto front size  : 8
-  Power range        : 0.075000 – 0.076000 W
-  Area range         : 1349 – 1969 LUTs
-  LUTRAM range       : 57 – 75
-  DSP range          : 9 – 13
+  Pareto front size  : 11
+  Power range        : 0.073000 – 0.073000 W
+  Area range         : 793 – 1265 LUTs
+  LUTRAM range       : 54 – 79
+  DSP range          : 6 – 10
   BRAM range         : 4 – 4
-  FF range           : 603 – 620
-  SQNR range         : 10.14 – 36.50 dB
-  Crit-path range    : 29.467 – 43.299 ns
-  Timing pass rate   : 8/8 (100%)
+  FF range           : 129 – 160
+  SQNR range         : 10.13 – 35.80 dB
+  Crit-path range    : 24.052 – 36.122 ns
+  Timing pass rate   : 11/11 (100%)
 
 FFT Size: 512
 ------------------------------------------------------------------------
-  Pareto front size  : 3
-  Power range        : 0.076000 – 0.076000 W
-  Area range         : 1938 – 1944 LUTs
-  LUTRAM range       : 78 – 78
-  DSP range          : 13 – 13
+  Pareto front size  : 8
+  Power range        : 0.073000 – 0.074000 W
+  Area range         : 1229 – 1295 LUTs
+  LUTRAM range       : 81 – 81
+  DSP range          : 10 – 10
   BRAM range         : 4 – 4
-  FF range           : 618 – 618
-  SQNR range         : 12.62 – 26.37 dB
-  Crit-path range    : 42.729 – 44.401 ns
-  Timing pass rate   : 3/3 (100%)
+  FF range           : 156 – 165
+  SQNR range         : 10.59 – 35.43 dB
+  Crit-path range    : 35.013 – 36.493 ns
+  Timing pass rate   : 8/8 (100%)
 
 FFT Size: 1024
 ------------------------------------------------------------------------
-  Pareto front size  : 3
-  Power range        : 0.076000 – 0.076000 W
-  Area range         : 1898 – 1917 LUTs
-  LUTRAM range       : 80 – 81
-  DSP range          : 13 – 13
+  Pareto front size  : 9
+  Power range        : 0.073000 – 0.074000 W
+  Area range         : 1258 – 1307 LUTs
+  LUTRAM range       : 82 – 83
+  DSP range          : 10 – 10
   BRAM range         : 4 – 4
-  FF range           : 621 – 623
-  SQNR range         : 14.63 – 18.55 dB
-  Crit-path range    : 43.081 – 43.154 ns
-  Timing pass rate   : 3/3 (100%)
+  FF range           : 157 – 168
+  SQNR range         : 13.80 – 22.49 dB
+  Crit-path range    : 35.487 – 36.493 ns
+  Timing pass rate   : 9/9 (100%)

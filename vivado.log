@@ -3,10 +3,10 @@
 # SW Build 6299465 on Fri Nov 14 12:34:56 MST 2025
 # IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
 # SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
-# Start of session at: Thu Jun 25 15:28:09 2026
-# Process ID         : 52214
+# Start of session at: Fri Jun 26 01:28:21 2026
+# Process ID         : 1652519
 # Current directory  : /home/digital-1/SRIP2026/Updated-FFT-Processor
-# Command line       : vivado -mode batch -source ./vivado_synthesis.tcl -tclargs fft_1024_sol0_gen3 ./reports/fft_1024_sol0_gen3_metrics.csv 80.0 /home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol0_gen3.v /home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol0_gen3_top.v /home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources xc7a35tcpg236-1
+# Command line       : vivado -mode batch -source ./vivado_synthesis.tcl -tclargs fft_1024_sol15_gen803 ./reports/fft_1024_sol15_gen803_metrics.csv 80.0 /home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol15_gen803.v /home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol15_gen803_top.v /home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources xc7a35tcpg236-1
 # Log file           : /home/digital-1/SRIP2026/Updated-FFT-Processor/vivado.log
 # Journal file       : /home/digital-1/SRIP2026/Updated-FFT-Processor/vivado.jou
 # Running On         : localhost.localdomain
@@ -19,7 +19,7 @@
 # Host memory        : 67013 MB
 # Swap memory        : 33709 MB
 # Total Virtual      : 100723 MB
-# Available Virtual  : 93343 MB
+# Available Virtual  : 96659 MB
 #-----------------------------------------------------------
 Sourcing tcl script '/home/digital-1/.Xilinx/Vivado/Vivado_init.tcl'
 source ./vivado_synthesis.tcl
@@ -35,9 +35,9 @@ source ./vivado_synthesis.tcl
 # }
 # set top_module "${design_name}_top"
 # puts "INFO: design_name  = $design_name"
-INFO: design_name  = fft_1024_sol0_gen3
+INFO: design_name  = fft_1024_sol15_gen803
 # puts "INFO: top_module   = $top_module"
-INFO: top_module   = fft_1024_sol0_gen3_top
+INFO: top_module   = fft_1024_sol15_gen803_top
 # puts "INFO: clock_period = $clock_period ns"
 INFO: clock_period = 80.0 ns
 # puts "INFO: target_part  = $fpga_part"
@@ -56,17 +56,17 @@ WARNING: [Board 49-91] Board repository path '<extracted path>/vivado-boards/new
 # set_property top $top_module [current_fileset]
 # update_compile_order -fileset sources_1
 # synth_design -top $top_module -part $fpga_part -mode out_of_context
-Command: synth_design -top fft_1024_sol0_gen3_top -part xc7a35tcpg236-1 -mode out_of_context
+Command: synth_design -top fft_1024_sol15_gen803_top -part xc7a35tcpg236-1 -mode out_of_context
 Starting synth_design
 Attempting to get a license for feature 'Synthesis' and/or device 'xc7a35t'
 INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7a35t'
 INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 7 processes.
 INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
-INFO: [Synth 8-7075] Helper process launched with PID 52911
+INFO: [Synth 8-7075] Helper process launched with PID 1652690
 ---------------------------------------------------------------------------------
-Starting Synthesize : Time (s): cpu = 00:00:03 ; elapsed = 00:00:03 . Memory (MB): peak = 2265.309 ; gain = 412.672 ; free physical = 45326 ; free virtual = 82442
+Starting Synthesize : Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 2264.762 ; gain = 410.672 ; free physical = 48368 ; free virtual = 89070
 ---------------------------------------------------------------------------------
-INFO: [Synth 8-6157] synthesizing module 'fft_1024_sol0_gen3_top' [/home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol0_gen3_top.v:6]
+INFO: [Synth 8-6157] synthesizing module 'fft_1024_sol15_gen803_top' [/home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol15_gen803_top.v:6]
 INFO: [Synth 8-6157] synthesizing module 'bit_reverse' [/home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources/bit_reversal.v:1]
 	Parameter MAX_N bound to: 1024 - type: integer 
 	Parameter WIDTH bound to: 11 - type: integer 
@@ -75,7 +75,7 @@ INFO: [Synth 8-6157] synthesizing module 'complex_fp8_to_fp4' [/home/digital-1/S
 INFO: [Synth 8-6157] synthesizing module 'fp8_to_fp4_converter' [/home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources/precision_converter.v:55]
 INFO: [Synth 8-6155] done synthesizing module 'fp8_to_fp4_converter' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources/precision_converter.v:55]
 INFO: [Synth 8-6155] done synthesizing module 'complex_fp8_to_fp4' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources/precision_converter.v:133]
-INFO: [Synth 8-6157] synthesizing module 'fft_1024_sol0_gen3_core' [/home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol0_gen3.v:8]
+INFO: [Synth 8-6157] synthesizing module 'fft_1024_sol15_gen803_core' [/home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol15_gen803.v:7]
 	Parameter MAX_N bound to: 1024 - type: integer 
 	Parameter ADDR_WIDTH bound to: 11 - type: integer 
 INFO: [Synth 8-6157] synthesizing module 'dit_fft_agu_streaming' [/home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources/agu.v:7]
@@ -113,15 +113,15 @@ INFO: [Synth 8-6155] done synthesizing module 'fp4_complex_add_sub' (0#1) [/home
 INFO: [Synth 8-6157] synthesizing module 'fp8_complex_add_sub' [/home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources/adder.v:236]
 INFO: [Synth 8-6155] done synthesizing module 'fp8_complex_add_sub' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources/adder.v:236]
 INFO: [Synth 8-6155] done synthesizing module 'butterfly_wrapper' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources/mixed_precision_wrappers.v:1]
-INFO: [Synth 8-226] default block is never used [/home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol0_gen3.v:411]
-INFO: [Synth 8-6155] done synthesizing module 'fft_1024_sol0_gen3_core' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol0_gen3.v:8]
-INFO: [Synth 8-6155] done synthesizing module 'fft_1024_sol0_gen3_top' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol0_gen3_top.v:6]
+INFO: [Synth 8-226] default block is never used [/home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol15_gen803.v:414]
+INFO: [Synth 8-6155] done synthesizing module 'fft_1024_sol15_gen803_core' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol15_gen803.v:7]
+INFO: [Synth 8-6155] done synthesizing module 'fft_1024_sol15_gen803_top' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/fft_1024_sol15_gen803_top.v:6]
 WARNING: [Synth 8-7129] Port rst in module mixed_dual_bank_memory_concurrent is either unconnected or has no load
 ---------------------------------------------------------------------------------
-Finished Synthesize : Time (s): cpu = 00:00:04 ; elapsed = 00:00:04 . Memory (MB): peak = 2359.277 ; gain = 506.641 ; free physical = 44944 ; free virtual = 82069
+Finished Synthesize : Time (s): cpu = 00:00:03 ; elapsed = 00:00:03 . Memory (MB): peak = 2358.699 ; gain = 504.609 ; free physical = 48036 ; free virtual = 88744
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
-Finished Constraint Validation : Time (s): cpu = 00:00:04 ; elapsed = 00:00:04 . Memory (MB): peak = 2374.121 ; gain = 521.484 ; free physical = 44874 ; free virtual = 82000
+Finished Constraint Validation : Time (s): cpu = 00:00:03 ; elapsed = 00:00:04 . Memory (MB): peak = 2373.543 ; gain = 519.453 ; free physical = 48023 ; free virtual = 88729
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
 Start Loading Part and Timing Information
@@ -129,9 +129,9 @@ Start Loading Part and Timing Information
 Loading part: xc7a35tcpg236-1
 INFO: [Device 21-403] Loading part xc7a35tcpg236-1
 ---------------------------------------------------------------------------------
-Finished Loading Part and Timing Information : Time (s): cpu = 00:00:04 ; elapsed = 00:00:04 . Memory (MB): peak = 2374.121 ; gain = 521.484 ; free physical = 44873 ; free virtual = 82000
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:03 ; elapsed = 00:00:04 . Memory (MB): peak = 2373.543 ; gain = 519.453 ; free physical = 48017 ; free virtual = 88726
 ---------------------------------------------------------------------------------
-INFO: [Synth 8-802] inferred FSM for state register 'state_reg' in module 'fft_1024_sol0_gen3_core'
+INFO: [Synth 8-802] inferred FSM for state register 'state_reg' in module 'fft_1024_sol15_gen803_core'
 INFO: [Synth 8-3971] The signal "mixed_dual_bank_memory_concurrent:/b1_sub0_reg" was recognized as a true dual port RAM template.
 INFO: [Synth 8-3971] The signal "mixed_dual_bank_memory_concurrent:/b1_sub1_reg" was recognized as a true dual port RAM template.
 INFO: [Synth 8-3971] The signal "mixed_dual_bank_memory_concurrent:/b0_sub0_reg" was recognized as a true dual port RAM template.
@@ -144,9 +144,9 @@ INFO: [Synth 8-3971] The signal "mixed_dual_bank_memory_concurrent:/b0_sub1_reg"
                 FLUSH_ST |                               10 |                               10
                  DONE_ST |                               11 |                               11
 ---------------------------------------------------------------------------------------------------
-INFO: [Synth 8-3354] encoded FSM with state register 'state_reg' using encoding 'sequential' in module 'fft_1024_sol0_gen3_core'
+INFO: [Synth 8-3354] encoded FSM with state register 'state_reg' using encoding 'sequential' in module 'fft_1024_sol15_gen803_core'
 ---------------------------------------------------------------------------------
-Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:05 ; elapsed = 00:00:05 . Memory (MB): peak = 2404.082 ; gain = 551.445 ; free physical = 44869 ; free virtual = 81998
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:04 ; elapsed = 00:00:04 . Memory (MB): peak = 2406.473 ; gain = 552.383 ; free physical = 47913 ; free virtual = 88622
 ---------------------------------------------------------------------------------
 No constraint files found.
 ---------------------------------------------------------------------------------
@@ -240,7 +240,7 @@ INFO: [Synth 8-3971] The signal "core/mem/b1_sub1_reg" was recognized as a true 
 INFO: [Synth 8-3971] The signal "core/mem/b0_sub0_reg" was recognized as a true dual port RAM template.
 INFO: [Synth 8-3971] The signal "core/mem/b0_sub1_reg" was recognized as a true dual port RAM template.
 ---------------------------------------------------------------------------------
-Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:30 ; elapsed = 00:00:30 . Memory (MB): peak = 2709.199 ; gain = 856.562 ; free physical = 42924 ; free virtual = 80045
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:24 ; elapsed = 00:00:24 . Memory (MB): peak = 2708.590 ; gain = 854.500 ; free physical = 46987 ; free virtual = 87695
 ---------------------------------------------------------------------------------
  Sort Area is  m1/prod_9 : 0 0 : 145 145 : Used 1 time 100
  Sort Area is  m2/prod_b : 0 0 : 145 145 : Used 1 time 100
@@ -302,7 +302,7 @@ No constraint files found.
 Start Timing Optimization
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
-Finished Timing Optimization : Time (s): cpu = 00:00:30 ; elapsed = 00:00:30 . Memory (MB): peak = 2709.199 ; gain = 856.562 ; free physical = 42923 ; free virtual = 80044
+Finished Timing Optimization : Time (s): cpu = 00:00:24 ; elapsed = 00:00:24 . Memory (MB): peak = 2708.590 ; gain = 854.500 ; free physical = 46980 ; free virtual = 87688
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
 Start ROM, RAM, DSP, Shift Register and Retiming Reporting
@@ -333,7 +333,7 @@ INFO: [Synth 8-7052] The timing for the instance core/mem/b0_sub0_reg (implement
 INFO: [Synth 8-7052] The timing for the instance core/mem/b0_sub1_reg (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
 INFO: [Synth 8-7052] The timing for the instance core/mem/b0_sub1_reg (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
 ---------------------------------------------------------------------------------
-Finished Technology Mapping : Time (s): cpu = 00:00:31 ; elapsed = 00:00:31 . Memory (MB): peak = 2709.199 ; gain = 856.562 ; free physical = 43295 ; free virtual = 80413
+Finished Technology Mapping : Time (s): cpu = 00:00:25 ; elapsed = 00:00:25 . Memory (MB): peak = 2708.590 ; gain = 854.500 ; free physical = 46980 ; free virtual = 87688
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
 Start IO Insertion
@@ -351,56 +351,56 @@ Start Final Netlist Cleanup
 Finished Final Netlist Cleanup
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
-Finished IO Insertion : Time (s): cpu = 00:00:32 ; elapsed = 00:00:32 . Memory (MB): peak = 2709.199 ; gain = 856.562 ; free physical = 44919 ; free virtual = 82041
+Finished IO Insertion : Time (s): cpu = 00:00:26 ; elapsed = 00:00:26 . Memory (MB): peak = 2708.590 ; gain = 854.500 ; free physical = 46976 ; free virtual = 87684
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
 Start Renaming Generated Instances
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
-Finished Renaming Generated Instances : Time (s): cpu = 00:00:32 ; elapsed = 00:00:32 . Memory (MB): peak = 2709.199 ; gain = 856.562 ; free physical = 44909 ; free virtual = 82030
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:26 ; elapsed = 00:00:26 . Memory (MB): peak = 2708.590 ; gain = 854.500 ; free physical = 46976 ; free virtual = 87684
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
 Start Rebuilding User Hierarchy
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
-Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:33 ; elapsed = 00:00:32 . Memory (MB): peak = 2709.199 ; gain = 856.562 ; free physical = 44902 ; free virtual = 82024
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:26 ; elapsed = 00:00:26 . Memory (MB): peak = 2708.590 ; gain = 854.500 ; free physical = 46976 ; free virtual = 87684
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
 Start Renaming Generated Ports
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
-Finished Renaming Generated Ports : Time (s): cpu = 00:00:33 ; elapsed = 00:00:32 . Memory (MB): peak = 2709.199 ; gain = 856.562 ; free physical = 44900 ; free virtual = 82022
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:26 ; elapsed = 00:00:26 . Memory (MB): peak = 2708.590 ; gain = 854.500 ; free physical = 46976 ; free virtual = 87684
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
 Start Handling Custom Attributes
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
-Finished Handling Custom Attributes : Time (s): cpu = 00:00:33 ; elapsed = 00:00:33 . Memory (MB): peak = 2709.199 ; gain = 856.562 ; free physical = 44898 ; free virtual = 82020
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:26 ; elapsed = 00:00:26 . Memory (MB): peak = 2708.590 ; gain = 854.500 ; free physical = 46976 ; free virtual = 87684
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
 Start Renaming Generated Nets
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
-Finished Renaming Generated Nets : Time (s): cpu = 00:00:33 ; elapsed = 00:00:33 . Memory (MB): peak = 2709.199 ; gain = 856.562 ; free physical = 44893 ; free virtual = 82015
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:26 ; elapsed = 00:00:26 . Memory (MB): peak = 2708.590 ; gain = 854.500 ; free physical = 46976 ; free virtual = 87684
 ---------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------
 Start ROM, RAM, DSP, Shift Register and Retiming Reporting
 ---------------------------------------------------------------------------------
 
 Static Shift Register Report:
-+-----------------------+-----------------------------------+--------+-------+--------------+--------------------+-------------------+--------+---------+
-|Module Name            | RTL Name                          | Length | Width | Reset Signal | Pull out first Reg | Pull out last Reg | SRL16E | SRLC32E | 
-+-----------------------+-----------------------------------+--------+-------+--------------+--------------------+-------------------+--------+---------+
-|fft_1024_sol0_gen3_top | core/A_24_pipe_reg[9][22]         | 10     | 18    | NO           | NO                 | NO                | 18     | 0       | 
-|fft_1024_sol0_gen3_top | core/A_24_pipe_reg[9][17]         | 9      | 4     | NO           | NO                 | NO                | 4      | 0       | 
-|fft_1024_sol0_gen3_top | core/B_24_pipe_reg[9][22]         | 10     | 18    | NO           | NO                 | NO                | 18     | 0       | 
-|fft_1024_sol0_gen3_top | core/B_24_pipe_reg[9][17]         | 9      | 4     | NO           | NO                 | NO                | 4      | 0       | 
-|fft_1024_sol0_gen3_top | core/wr_addr_a_pipe_reg[10][9]    | 11     | 10    | YES          | NO                 | YES               | 10     | 0       | 
-|fft_1024_sol0_gen3_top | core/wr_addr_b_pipe_reg[10][9]    | 11     | 10    | YES          | NO                 | YES               | 10     | 0       | 
-|fft_1024_sol0_gen3_top | core/twiddle_pipe_reg[10][15]     | 11     | 14    | YES          | NO                 | YES               | 14     | 0       | 
-|fft_1024_sol0_gen3_top | core/stable_stage_pipe_reg[10][3] | 11     | 4     | YES          | NO                 | YES               | 4      | 0       | 
-|fft_1024_sol0_gen3_top | core/v_pipe_reg[10]               | 11     | 1     | YES          | NO                 | YES               | 1      | 0       | 
-+-----------------------+-----------------------------------+--------+-------+--------------+--------------------+-------------------+--------+---------+
++--------------------------+-----------------------------------+--------+-------+--------------+--------------------+-------------------+--------+---------+
+|Module Name               | RTL Name                          | Length | Width | Reset Signal | Pull out first Reg | Pull out last Reg | SRL16E | SRLC32E | 
++--------------------------+-----------------------------------+--------+-------+--------------+--------------------+-------------------+--------+---------+
+|fft_1024_sol15_gen803_top | core/A_24_pipe_reg[9][22]         | 10     | 18    | NO           | NO                 | NO                | 18     | 0       | 
+|fft_1024_sol15_gen803_top | core/A_24_pipe_reg[9][17]         | 9      | 4     | NO           | NO                 | NO                | 4      | 0       | 
+|fft_1024_sol15_gen803_top | core/B_24_pipe_reg[9][22]         | 10     | 18    | NO           | NO                 | NO                | 18     | 0       | 
+|fft_1024_sol15_gen803_top | core/B_24_pipe_reg[9][17]         | 9      | 4     | NO           | NO                 | NO                | 4      | 0       | 
+|fft_1024_sol15_gen803_top | core/wr_addr_a_pipe_reg[10][9]    | 11     | 10    | YES          | NO                 | YES               | 10     | 0       | 
+|fft_1024_sol15_gen803_top | core/wr_addr_b_pipe_reg[10][9]    | 11     | 10    | YES          | NO                 | YES               | 10     | 0       | 
+|fft_1024_sol15_gen803_top | core/twiddle_pipe_reg[10][15]     | 11     | 14    | YES          | NO                 | YES               | 14     | 0       | 
+|fft_1024_sol15_gen803_top | core/stable_stage_pipe_reg[10][3] | 11     | 4     | YES          | NO                 | YES               | 4      | 0       | 
+|fft_1024_sol15_gen803_top | core/v_pipe_reg[10]               | 11     | 1     | YES          | NO                 | YES               | 1      | 0       | 
++--------------------------+-----------------------------------+--------+-------+--------------+--------------------+-------------------+--------+---------+
 
 ---------------------------------------------------------------------------------
 Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
@@ -439,11 +439,11 @@ Report Cell Usage:
 |1     |CARRY4   |    22|
 |2     |DSP48E1  |    10|
 |3     |LUT1     |     1|
-|4     |LUT2     |   212|
-|5     |LUT3     |   174|
+|4     |LUT2     |   211|
+|5     |LUT3     |   179|
 |6     |LUT4     |   164|
-|7     |LUT5     |   267|
-|8     |LUT6     |   667|
+|7     |LUT5     |   263|
+|8     |LUT6     |   666|
 |9     |MUXF7    |    19|
 |10    |RAMB36E1 |     4|
 |11    |SRL16E   |    83|
@@ -456,10 +456,10 @@ Report Instance Areas:
 +------+-------------------+----------------------------------+------+
 |      |Instance           |Module                            |Cells |
 +------+-------------------+----------------------------------+------+
-|1     |top                |                                  |  1791|
-|2     |  core             |fft_1024_sol0_gen3_core           |  1790|
-|3     |    agu            |dit_fft_agu_streaming             |   278|
-|4     |    mem            |mixed_dual_bank_memory_concurrent |   222|
+|1     |top                |                                  |  1790|
+|2     |  core             |fft_1024_sol15_gen803_core        |  1789|
+|3     |    agu            |dit_fft_agu_streaming             |   277|
+|4     |    mem            |mixed_dual_bank_memory_concurrent |   220|
 |5     |    shared_bf      |butterfly_wrapper                 |   976|
 |6     |      add_fp8      |fp8_complex_add_sub               |     2|
 |7     |        adder_imag |fp8_add_sub_10                    |     1|
@@ -471,39 +471,39 @@ Report Instance Areas:
 |13    |        m4         |fp4_mul_9                         |    39|
 |14    |      cmul_fp8     |fp8_cmul                          |   862|
 |15    |        a1         |fp8_add_sub_2                     |     3|
-|16    |        m1         |fp8_mul                           |   397|
-|17    |        m2         |fp8_mul_3                         |    36|
-|18    |        m3         |fp8_mul_4                         |   391|
-|19    |        m4         |fp8_mul_5                         |    32|
+|16    |        m1         |fp8_mul                           |   411|
+|17    |        m2         |fp8_mul_3                         |    37|
+|18    |        m3         |fp8_mul_4                         |   379|
+|19    |        m4         |fp8_mul_5                         |    29|
 |20    |        s1         |fp8_add_sub_6                     |     3|
 |21    |      sub_fp8      |fp8_complex_add_sub_0             |     2|
 |22    |        adder_imag |fp8_add_sub                       |     1|
 |23    |        adder_real |fp8_add_sub_1                     |     1|
-|24    |    twiddle_gen    |twiddle_factor_unified            |    53|
+|24    |    twiddle_gen    |twiddle_factor_unified            |    54|
 +------+-------------------+----------------------------------+------+
 ---------------------------------------------------------------------------------
-Finished Writing Synthesis Report : Time (s): cpu = 00:00:33 ; elapsed = 00:00:33 . Memory (MB): peak = 2709.199 ; gain = 856.562 ; free physical = 44862 ; free virtual = 81984
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:26 ; elapsed = 00:00:26 . Memory (MB): peak = 2708.590 ; gain = 854.500 ; free physical = 46984 ; free virtual = 87692
 ---------------------------------------------------------------------------------
 Synthesis finished with 0 errors, 0 critical warnings and 2 warnings.
-Synthesis Optimization Runtime : Time (s): cpu = 00:00:33 ; elapsed = 00:00:33 . Memory (MB): peak = 2709.199 ; gain = 856.562 ; free physical = 44858 ; free virtual = 81980
-Synthesis Optimization Complete : Time (s): cpu = 00:00:33 ; elapsed = 00:00:33 . Memory (MB): peak = 2709.207 ; gain = 856.562 ; free physical = 44857 ; free virtual = 81979
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:26 ; elapsed = 00:00:26 . Memory (MB): peak = 2708.590 ; gain = 854.500 ; free physical = 46982 ; free virtual = 87690
+Synthesis Optimization Complete : Time (s): cpu = 00:00:26 ; elapsed = 00:00:26 . Memory (MB): peak = 2708.598 ; gain = 854.500 ; free physical = 46982 ; free virtual = 87690
 INFO: [Project 1-571] Translating synthesized netlist
-Netlist sorting complete. Time (s): cpu = 00:00:00.01 ; elapsed = 00:00:00.01 . Memory (MB): peak = 2719.105 ; gain = 0.000 ; free physical = 44944 ; free virtual = 82066
+Netlist sorting complete. Time (s): cpu = 00:00:00.01 ; elapsed = 00:00:00.01 . Memory (MB): peak = 2718.496 ; gain = 0.000 ; free physical = 47297 ; free virtual = 88006
 INFO: [Netlist 29-17] Analyzing 55 Unisim elements for replacement
 INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
 INFO: [Project 1-570] Preparing netlist for logic optimization
 INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
-Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 2853.750 ; gain = 0.000 ; free physical = 44681 ; free virtual = 81803
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 2854.109 ; gain = 0.000 ; free physical = 47241 ; free virtual = 87949
 INFO: [Project 1-111] Unisim Transformation Summary:
 No Unisim elements were transformed.
 
-Synth Design complete | Checksum: c8787251
+Synth Design complete | Checksum: 37c35390
 INFO: [Common 17-83] Releasing license: Synthesis
 70 Infos, 2 Warnings, 0 Critical Warnings and 0 Errors encountered.
 synth_design completed successfully
-synth_design: Time (s): cpu = 00:00:36 ; elapsed = 00:00:34 . Memory (MB): peak = 2853.785 ; gain = 1001.148 ; free physical = 44671 ; free virtual = 81793
-INFO: [Common 17-2834] synth_design peak Physical Memory [PSS] (MB): overall = 1661.713; main = 1611.328; forked = 203.226
-INFO: [Common 17-2834] synth_design peak Virtual Memory [VSS] (MB): overall = 4350.320; main = 2853.754; forked = 1641.117
+synth_design: Time (s): cpu = 00:00:29 ; elapsed = 00:00:27 . Memory (MB): peak = 2854.145 ; gain = 1000.055 ; free physical = 47202 ; free virtual = 87910
+INFO: [Common 17-2834] synth_design peak Physical Memory [PSS] (MB): overall = 1736.681; main = 1690.278; forked = 231.828
+INFO: [Common 17-2834] synth_design peak Virtual Memory [VSS] (MB): overall = 4331.703; main = 2854.113; forked = 1641.117
 # create_clock -period $clock_period -name clk [get_ports clk]
 # set util_rpt_file "/tmp/${design_name}_util.rpt"
 # report_utilization -file $util_rpt_file
@@ -575,7 +575,7 @@ INFO: [Common 17-2834] synth_design peak Virtual Memory [VSS] (MB): overall = 43
 # }
 # set power_rpt_file "/tmp/${design_name}_power.rpt"
 # report_power -file $power_rpt_file
-Command: report_power -file /tmp/fft_1024_sol0_gen3_power.rpt
+Command: report_power -file /tmp/fft_1024_sol15_gen803_power.rpt
 INFO: [Timing 38-35] Done setting XDC timing constraints.
 Running Vector-less Activity Propagation...
 WARNING: [Timing 38-242] The property HD.CLK_SRC of clock port "clk" is not set. In out-of-context mode, this prevents timing estimation for clock delay/skew
@@ -637,9 +637,9 @@ INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum o
 # puts $fp "clock_period_ns,$clock_period"
 # close $fp
 # puts stdout "INFO: Synthesis complete  : $design_name"
-INFO: Synthesis complete  : fft_1024_sol0_gen3
+INFO: Synthesis complete  : fft_1024_sol15_gen803
 # puts stdout "INFO:   LUTs             = $lut_count"
-INFO:   LUTs             = 1304
+INFO:   LUTs             = 1303
 # puts stdout "INFO:   LUTRAMs          = $lutram_count"
 INFO:   LUTRAMs          = 83
 # puts stdout "INFO:   DSPs             = $dsp_count"
@@ -655,5 +655,5 @@ INFO:   WNS              = 44.185 ns
 # puts stdout "INFO:   Crit Path Delay  = $critical_path_delay ns"
 INFO:   Crit Path Delay  = 35.490 ns
 # puts stdout "INFO:   CSV              = $csv_output"
-INFO:   CSV              = ./reports/fft_1024_sol0_gen3_metrics.csv
-INFO: [Common 17-206] Exiting Vivado at Thu Jun 25 15:28:50 2026...
+INFO:   CSV              = ./reports/fft_1024_sol15_gen803_metrics.csv
+INFO: [Common 17-206] Exiting Vivado at Fri Jun 26 01:28:54 2026...
