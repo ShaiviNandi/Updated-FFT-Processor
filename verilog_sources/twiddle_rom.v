@@ -18,7 +18,7 @@ module twiddle_factor_unified#(
 
     initial begin
         // Read the binary file containing unified 24-bit format
-        $readmemb("twiddles_1024.txt", rom);
+        $readmemb("/home/digital-1/SRIP2026/Updated-FFT-Processor/sim/twiddles_1024.txt", rom);
     end
 
     // --------------------------------------------------------
