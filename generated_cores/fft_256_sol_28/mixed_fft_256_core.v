@@ -34,9 +34,9 @@ module mixed_fft_256_core #(
     localparam STAGE2_MULT_PREC = 1;
     localparam STAGE2_ADD_PREC  = 1;
     localparam STAGE2_OUT_PREC  = 1;
-    localparam STAGE3_MULT_PREC = 1;
-    localparam STAGE3_ADD_PREC  = 0;
-    localparam STAGE3_OUT_PREC  = 0;
+    localparam STAGE3_MULT_PREC = 0;
+    localparam STAGE3_ADD_PREC  = 1;
+    localparam STAGE3_OUT_PREC  = 1;
     localparam STAGE4_MULT_PREC = 1;
     localparam STAGE4_ADD_PREC  = 1;
     localparam STAGE4_OUT_PREC  = 1;
@@ -336,7 +336,7 @@ module mixed_fft_256_core #(
             4'd0: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
             4'd1: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
             4'd2: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
-            4'd3: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b0; end
+            4'd3: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b1; end
             4'd4: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
             4'd5: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
             4'd6: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end

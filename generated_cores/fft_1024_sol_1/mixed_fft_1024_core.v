@@ -52,9 +52,9 @@ module mixed_fft_1024_core #(
     localparam STAGE8_MULT_PREC = 1;
     localparam STAGE8_ADD_PREC  = 1;
     localparam STAGE8_OUT_PREC  = 1;
-    localparam STAGE9_MULT_PREC = 0;
-    localparam STAGE9_ADD_PREC  = 1;
-    localparam STAGE9_OUT_PREC  = 1;
+    localparam STAGE9_MULT_PREC = 1;
+    localparam STAGE9_ADD_PREC  = 0;
+    localparam STAGE9_OUT_PREC  = 0;
 
     reg cur_mult_prec;
     reg cur_rd_prec;
@@ -206,7 +206,7 @@ module mixed_fft_1024_core #(
     always @(*) begin
         if (ext_reading) begin
             cur_mult_prec = 1'b0;
-            cur_rd_prec   = 1'b1;
+            cur_rd_prec   = 1'b0;
         end else begin
             case (current_stage_stable)
             4'd0: begin
@@ -362,7 +362,7 @@ module mixed_fft_1024_core #(
             4'd6: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
             4'd7: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
             4'd8: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
-            4'd9: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b1; end
+            4'd9: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b0; end
             default: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b0; end
         endcase
     end

@@ -25,9 +25,9 @@ module mixed_fft_4_core #(
     input  wire                  ext_bank_sel
 );
 
-    localparam STAGE0_MULT_PREC = 1;
-    localparam STAGE0_ADD_PREC  = 0;
-    localparam STAGE0_OUT_PREC  = 0;
+    localparam STAGE0_MULT_PREC = 0;
+    localparam STAGE0_ADD_PREC  = 1;
+    localparam STAGE0_OUT_PREC  = 1;
     localparam STAGE1_MULT_PREC = 0;
     localparam STAGE1_ADD_PREC  = 0;
     localparam STAGE1_OUT_PREC  = 0;
@@ -273,7 +273,7 @@ module mixed_fft_4_core #(
     reg bf_mult_prec, bf_add_prec;
     always @(*) begin
         case (current_stage_stable_delayed)
-            4'd0: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b0; end
+            4'd0: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b1; end
             4'd1: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b0; end
             default: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b0; end
         endcase

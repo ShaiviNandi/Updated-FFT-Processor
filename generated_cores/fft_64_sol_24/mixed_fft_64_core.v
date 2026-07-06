@@ -28,9 +28,9 @@ module mixed_fft_64_core #(
     localparam STAGE0_MULT_PREC = 1;
     localparam STAGE0_ADD_PREC  = 1;
     localparam STAGE0_OUT_PREC  = 1;
-    localparam STAGE1_MULT_PREC = 1;
-    localparam STAGE1_ADD_PREC  = 0;
-    localparam STAGE1_OUT_PREC  = 0;
+    localparam STAGE1_MULT_PREC = 0;
+    localparam STAGE1_ADD_PREC  = 1;
+    localparam STAGE1_OUT_PREC  = 1;
     localparam STAGE2_MULT_PREC = 1;
     localparam STAGE2_ADD_PREC  = 1;
     localparam STAGE2_OUT_PREC  = 1;
@@ -314,7 +314,7 @@ module mixed_fft_64_core #(
     always @(*) begin
         case (current_stage_stable_delayed)
             4'd0: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
-            4'd1: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b0; end
+            4'd1: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b1; end
             4'd2: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
             4'd3: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
             4'd4: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
