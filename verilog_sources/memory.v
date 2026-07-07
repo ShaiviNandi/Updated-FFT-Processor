@@ -34,8 +34,7 @@ module mixed_dual_bank_memory_concurrent #(
     localparam SUB_DEPTH = (n <= 2) ? 1 : n / 2;
     localparam MEM_AW    = (n <= 2) ? 1 : $clog2(n/2);
 
-    // Removed (* ram_style = "block" *) to allow Vivado to smartly infer 
-    // LUTRAMs/Registers for small N, avoiding Dual-Port BRAM mapping errors
+    // Avoiding Dual-Port BRAM mapping errors
     reg [23:0] b0_sub0 [0:SUB_DEPTH-1];
     reg [23:0] b0_sub1 [0:SUB_DEPTH-1]; 
     reg [23:0] b1_sub0 [0:SUB_DEPTH-1];
@@ -80,7 +79,7 @@ module mixed_dual_bank_memory_concurrent #(
     wire [ADDR_WIDTH-2:0] b0_sub0_addr_b = (actual_wr_bank == 1'b1) ? c_wr_addr_b : c_rd_addr_b;
     wire                  b0_sub0_we_b   = wr_en & (actual_wr_bank == 1'b1) & (!write_sub_sel_b);
 
-    // Safe index slicing to prevent Vivado from panicking over out-of-bounds array access on small FFTs
+    // Safe index slicing
     wire [MEM_AW-1:0] safe_b0_sub0_addr_a = (n <= 2) ? 1'b0 : b0_sub0_addr_a[MEM_AW-1:0];
     wire [MEM_AW-1:0] safe_b0_sub0_addr_b = (n <= 2) ? 1'b0 : b0_sub0_addr_b[MEM_AW-1:0];
 

@@ -349,9 +349,6 @@ module {core_module_name} #(
         .twiddle_out(twiddle_comb)
     );
 
-    // CRITICAL FIX: The old CORDIC declared LATENCY=10, but internally cascaded x_pipe[0] to x_pipe[10], 
-    // generating an 11-cycle delay. We must EXACTLY match this 11-cycle depth to align 
-    // the twiddles with A_24_pipe and B_24_pipe!
     (* srl_style = "srl" *) reg [15:0] twiddle_pipe [0:TWIDDLE_LATENCY]; // Length 11 array
     (* srl_style = "srl" *) reg        v_pipe       [0:TWIDDLE_LATENCY]; // Length 11 valid gating array
     integer t_idx;
@@ -373,7 +370,6 @@ module {core_module_name} #(
         end
     end
     
-    // Tap off the END of the 11-stage pipeline, gating with valid_in (mimicking the old CORDIC logic)
     wire [15:0] twiddle = v_pipe[TWIDDLE_LATENCY] ? twiddle_pipe[TWIDDLE_LATENCY] : 16'h0000;
 
     localparam TOTAL_LATENCY = {self.TOTAL_PIPE_LATENCY};
@@ -413,7 +409,6 @@ module {core_module_name} #(
     wire [ADDR_WIDTH-1:0] mem_wr_addr_a   = wr_addr_a_pipe[TOTAL_LATENCY-1];
     wire [ADDR_WIDTH-1:0] mem_wr_addr_b   = wr_addr_b_pipe[TOTAL_LATENCY-1];
     
-    // CRITICAL FIX: Eliminate the 11-cycle delay on the write bank!
     // Stalls guarantee writes finish before the next stage starts.
     wire                  mem_wr_bank     = fft_bank_sel;
     wire [3:0]            current_stage_stable_delayed = stable_stage_pipe[TOTAL_LATENCY-1];

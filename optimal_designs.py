@@ -54,15 +54,6 @@ for f in files:
 
     # -------------------------------------------------------------------------
     # Identify chromosome columns
-    #
-    # FIX: The secondary sort key used to be the raw string "mult"/"add",
-    # which sorts alphabetically ("add" < "mult") and silently transposed
-    # every stage's two bits when they differed (e.g. stage bits (1,0)
-    # got written out as "01" instead of "10"). This is invisible whenever
-    # mult == add for a stage, which is why it went unnoticed until a
-    # stage with distinct bits showed up. We now force "mult" to always
-    # sort before "add", matching the convention fft_template_generator.py
-    # uses when it decodes the chromosome (mult bit first, add bit second).
     # -------------------------------------------------------------------------
 
     chrom_cols = sorted(

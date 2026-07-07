@@ -1,6 +1,5 @@
 """
 Optimization Utilities for Mixed-Precision FFT
-CORRECTED VERSION: Handles large chromosomes efficiently
 """
 
 import numpy as np

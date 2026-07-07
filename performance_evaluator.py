@@ -3,11 +3,6 @@ Performance Evaluation Module (Pipelined II=1 FP32 Edition)
 ===========================================================
 Calculates SQNR (Signal-to-Quantisation-Noise Ratio) by running
 iverilog/vvp simulation of generated mixed-precision pipelined FFT designs.
-
-Updates:
-  - FIXED: Restored output-bound quantization check to accurately reflect algorithmic
-           error and match previous 26dB readings.
-  - Generates twiddles hex file automatically for the ROM.
 """
 
 import numpy as np

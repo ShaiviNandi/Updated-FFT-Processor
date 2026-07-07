@@ -1,6 +1,5 @@
 // =============================================================================
 // Pipelined Streaming Address Generation Unit (AGU)
-// WITH STALL SUPPORT FOR PIPELINE FLUSHING
 // =============================================================================
 `timescale 1ns/1ps
 
@@ -10,7 +9,7 @@ module dit_fft_agu_streaming #(
 )(
     input  wire                  clk,
     input  wire                  reset,
-    input  wire                  stall,       // <--- NEW: Stall to allow pipeline to flush
+    input  wire                  stall,       // Stall to allow pipeline to flush
     input  wire                  start,       // 1-cycle pulse starts the streaming engine
     input  wire [ADDR_WIDTH-1:0] N,           // Runtime N value
 
@@ -79,7 +78,7 @@ module dit_fft_agu_streaming #(
             butterfly  <= 0;
             stride     <= 1; 
         end
-        else if (active && !stall) begin  // <--- STALL APPLIED HERE
+        else if (active && !stall) begin  
             if (last_butterfly) begin
                 butterfly <= 0;
                 if (last_group) begin

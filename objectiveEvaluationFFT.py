@@ -1,6 +1,6 @@
 """
 Objective Evaluation for Mixed-Precision FFT Optimization
-Uses ACTUAL Vivado synthesis critical path delay as 4th objective (on-chip latency).
+Uses Vivado synthesis critical path delay as 4th objective (on-chip latency).
 Incorporates quadratic SQNR scaling to heavily penalize severe quantization noise.
 """
 

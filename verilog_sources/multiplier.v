@@ -6,33 +6,6 @@
 //   FP8  E4M3 : [sign:1][exp:4][mant:3]  bias = 7
 //
 // Rounding: Round-to-Nearest-Even (RNE) in both multipliers.
-//
-// Changes vs original
-// -------------------
-// fp8_mul
-//   The 5x5-bit significand product is 8 bits wide (stored in 11-bit wire).
-//   After optional normalisation shift, 3 mantissa bits are kept from
-//   prod_norm[5:3].  The original code discarded prod_norm[2:0] without
-//   rounding (pure truncation).
-//   Fix: extract guard = prod_norm[2], sticky = |prod_norm[1:0], apply RNE.
-//
-// fp4_mul
-//   The 2x2-bit significand product is 4 bits wide (stored in 5-bit wire).
-//   After optional normalisation shift, 1 mantissa bit is kept from
-//   prod_norm[1].  The original code discarded prod_norm[0] without
-//   rounding.
-//   Fix: guard = prod_norm[0].  With only one discarded bit there are no
-//   further sticky bits, so the RNE tie-break reduces to:
-//     round_up = guard AND kept_bit   (round up on tie only if kept bit is 1)
-//
-// Saturation logic
-//   The original saturation condition mixed signed exp_norm with an unsigned
-//   literal in the overflow comparison, which was safe only because the
-//   underflow check (exp_norm < 0) runs first in the if-else chain.
-//   For clarity, exp_norm comparisons now use explicit signed literals
-//   ($signed) and the overflow and saturation checks are written in terms of
-//   a full-width signed compare so tool-specific elaboration warnings are
-//   avoided.
 // =============================================================================
 
 
@@ -169,20 +142,6 @@ module fp8_mul (
     wire signed [5:0] exp_norm = need_norm ? (exp_temp + 6'sd1) : exp_temp;
 
     // RNE rounding
-    //   After normalisation, the 11-bit prod_norm has the layout:
-    //     [10:8] = zero-padding (never set for 5-bit inputs)
-    //     [7]    = hidden 1 (normalisation ensures this)
-    //     [6:4]  = would-be bit 6..4 (not used)
-    //     [5:3]  = 3 mantissa bits to keep  <-- WAIT, let's be precise.
-    //
-    //   For need_norm=0: prod in [0,127].  sig values go up to 15*15=225, so
-    //     if need_norm=0 then prod < 128 (bit 7 = 0).  Bits [6:0] are the product.
-    //     The hidden 1 is at bit 6.  Mantissa bits: [5:3]. Guard: [2]. Sticky: |[1:0].
-    //
-    //   For need_norm=1: prod in [128,225].  prod_norm = prod>>1, so prod_norm in [64,112].
-    //     Bit 6 of prod_norm is the hidden 1.  Mantissa bits: [5:3]. Guard: [2]. Sticky: |[1:0].
-    //
-    //   In both cases after normalisation the mantissa is at prod_norm[5:3].
     wire [2:0] raw_mant = prod_norm[5:3];
     wire       guard    = prod_norm[2];
     wire       sticky   = |prod_norm[1:0];
