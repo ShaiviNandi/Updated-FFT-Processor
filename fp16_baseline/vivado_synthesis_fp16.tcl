@@ -1,0 +1,250 @@
+# vivado_synthesis_fp16.tcl
+# FP16 baseline synthesis script.
+#
+# Deliberately a byte-for-byte behavioural clone of ../vivado_synthesis.tcl:
+# same in-memory project, same out-of-context synth_design, same report
+# parsing, same CSV schema.  Keeping the extraction identical is what makes
+# the FP16 numbers comparable to the mixed-precision numbers.
+#
+# Two additions, both needed because the FP16 sources live in their own tree:
+#   argv[7] shared_dir   - directory holding the format-agnostic modules that
+#                          the FP16 cores reuse unchanged (agu.v, bit_reversal.v).
+#                          Only those two files are pulled in, so nothing else
+#                          from the mixed-precision tree leaks into the build.
+#   argv[8] twiddle_file - absolute path to twiddles_fp16_1024.txt.  It is
+#                          copied into the CWD so the ROM's relative $readmemb
+#                          resolves deterministically regardless of where
+#                          Vivado was launched from.
+#
+# Usage (matches the existing script's argument order):
+#   vivado -mode batch -source vivado_synthesis_fp16.tcl -tclargs \
+#       <design_name> <csv_output> <clock_period> <core_file> <top_file> \
+#       <verilog_dir> <fpga_part> <shared_dir> <twiddle_file>
+
+set design_name  [lindex $argv 0]
+set csv_output   [lindex $argv 1]
+set clock_period [lindex $argv 2]
+set core_file    [lindex $argv 3]
+set top_file     [lindex $argv 4]
+set verilog_dir  [lindex $argv 5]
+
+set fpga_part "xc7a35tcpg236-1"
+if { [llength $argv] >= 7 } {
+    set fpga_part [lindex $argv 6]
+}
+
+set shared_dir ""
+if { [llength $argv] >= 8 } {
+    set shared_dir [lindex $argv 7]
+}
+
+set twiddle_file ""
+if { [llength $argv] >= 9 } {
+    set twiddle_file [lindex $argv 8]
+}
+
+set top_module "${design_name}_top"
+
+puts "INFO: design_name  = $design_name"
+puts "INFO: top_module   = $top_module"
+puts "INFO: clock_period = $clock_period ns"
+puts "INFO: target_part  = $fpga_part"
+puts "INFO: verilog_dir  = $verilog_dir"
+puts "INFO: shared_dir   = $shared_dir"
+
+# 0. Put the twiddle ROM contents where the relative $readmemb will find it
+if { $twiddle_file ne "" && [file exists $twiddle_file] } {
+    set dest [file join [pwd] [file tail $twiddle_file]]
+    if { [file normalize $twiddle_file] ne [file normalize $dest] } {
+        file copy -force $twiddle_file $dest
+    }
+    puts "INFO: twiddle ROM staged at $dest"
+} else {
+    puts "WARNING: twiddle file not supplied or missing; \$readmemb may fail"
+}
+
+# 1. Create in-memory project matching the structural device target
+create_project -in_memory -part $fpga_part
+
+# 2. Safely clear and add HDL source paths
+foreach f [glob -nocomplain ${verilog_dir}/*.v] {
+    if { [string match "*tb_*" [file tail $f]] == 0 } {
+        add_files -norecurse $f
+    }
+}
+
+# 2b. Format-agnostic modules reused unchanged from the mixed-precision tree
+if { $shared_dir ne "" } {
+    foreach leaf {agu.v bit_reversal.v} {
+        set p [file join $shared_dir $leaf]
+        if { [file exists $p] } {
+            add_files -norecurse $p
+            puts "INFO: added shared source $p"
+        } else {
+            puts "ERROR: required shared source not found: $p"
+        }
+    }
+}
+
+add_files -norecurse $core_file
+add_files -norecurse $top_file
+
+set_property include_dirs $verilog_dir [current_fileset]
+set_property top $top_module [current_fileset]
+update_compile_order -fileset sources_1
+
+# 3. Out-Of-Context Synthesis (Removes I/O buffer insertion overhead)
+synth_design -top $top_module -part $fpga_part -mode out_of_context
+create_clock -period $clock_period -name clk [get_ports clk]
+
+# 4. Extract Utilization Area (LUTs)
+set util_rpt_file "/tmp/${design_name}_util.rpt"
+report_utilization -file $util_rpt_file
+
+set lut_count 0
+set lutram_count 0
+set content ""
+if {[file exists $util_rpt_file]} {
+    set fp [open $util_rpt_file r]
+    set content [read $fp]
+    close $fp
+
+    # Logic LUTs
+    foreach line [split $content "\n"] {
+        if {[regexp {^\|\s*(CLB LUTs|Slice LUTs|Slice LUTs\*)\s*\|\s*(\d+)\s*\|} $line -> _lbl val]} {
+            set lut_count [string trim $val]
+            break
+        }
+    }
+    # Memory LUTs (LUTRAMs)
+    foreach line [split $content "\n"] {
+        if {[regexp {^\|\s*LUT as Memory\s*\|\s*(\d+)\s*\|} $line -> val]} {
+            set lutram_count [string trim $val]
+            break
+        }
+    }
+
+    # Fallback for older Vivado versions
+    if {$lut_count == 0} {
+        set lut_logic 0; set lut_mem 0
+        foreach line [split $content "\n"] {
+            if {[regexp {^\|\s*LUT as Logic\s*\|\s*(\d+)\s*\|} $line -> val]} { set lut_logic [string trim $val] }
+            if {[regexp {^\|\s*LUT as Memory\s*\|\s*(\d+)\s*\|} $line -> val]} { set lut_mem [string trim $val] }
+        }
+        set lut_count [expr {$lut_logic + $lut_mem}]
+        set lutram_count $lut_mem
+    }
+}
+
+# DSP blocks
+set dsp_count 0
+foreach line [split $content "\n"] {
+    if {[regexp {^\|\s*(DSPs|DSP48E\w*)\s*\|\s*(\d+)\s*\|} $line -> _lbl val]} {
+        set dsp_count [string trim $val]
+        break
+    }
+}
+
+# Block RAMs (36Kb primitives; also check 18Kb half-BRAMs)
+set bram_count 0
+foreach line [split $content "\n"] {
+    if {[regexp {^\|\s*Block RAM Tile\s*\|\s*(\d+)\s*\|} $line -> val]} {
+        set bram_count [string trim $val]; break
+    }
+}
+if {$bram_count == 0} {
+    set bram36 0; set bram18 0
+    foreach line [split $content "\n"] {
+        if {[regexp {^\|\s*RAMB36/FIFO\s*\|\s*(\d+)\s*\|} $line -> val]} { set bram36 [string trim $val] }
+        if {[regexp {^\|\s*RAMB18\s*\|\s*(\d+)\s*\|} $line -> val]}       { set bram18 [string trim $val] }
+    }
+    set bram_count [expr {$bram36 + int(ceil($bram18 / 2.0))}]
+}
+
+# Flip-Flops / Registers
+set ff_count 0
+foreach line [split $content "\n"] {
+    if {[regexp {^\|\s*(CLB Registers|Slice Registers|Register as Flip Flop)\s*\|\s*(\d+)\s*\|} $line -> _lbl val]} {
+        set ff_count [string trim $val]; break
+    }
+}
+
+# I/O (just count for completeness, not meaningful in OOC mode)
+set io_count 0
+foreach line [split $content "\n"] {
+    if {[regexp {^\|\s*Bonded IOB\s*\|\s*(\d+)\s*\|} $line -> val]} {
+        set io_count [string trim $val]; break
+    }
+}
+
+# 5. Extract Power Metrics
+set power_rpt_file "/tmp/${design_name}_power.rpt"
+report_power -file $power_rpt_file
+set total_power 0.0
+if {[file exists $power_rpt_file]} {
+    set fp [open $power_rpt_file r]
+    set content [read $fp]
+    close $fp
+    foreach line [split $content "\n"] {
+        if {[regexp {Total On-Chip Power \(W\)\s*\|\s*([0-9.]+)} $line -> val]} {
+            set total_power [string trim $val]
+            break
+        }
+    }
+}
+
+# 6. Timing Closure - Path Delays
+set timing_rpt_file "/tmp/${design_name}_timing.rpt"
+report_timing_summary -file $timing_rpt_file -delay_type max -max_paths 10
+
+set wns "N/A"
+set critical_path_delay 100.0   ;# Default heavy penalty constraint
+
+if {[file exists $timing_rpt_file]} {
+    set fp [open $timing_rpt_file r]
+    set content [read $fp]
+    close $fp
+
+    if {[regexp {WNS\(ns\)[^\n]*\n[^\n]*\n\s*([-0-9.]+)} $content -> val]} {
+        set wns [string trim $val]
+    }
+
+    if {[regexp {Data Path Delay:\s+([0-9.]+)ns} $content -> path_delay]} {
+        set critical_path_delay [string trim $path_delay]
+    } elseif {$wns != "N/A"} {
+        set wns_val [expr {double($wns)}]
+        set critical_path_delay [expr {$clock_period - $wns_val}]
+    }
+}
+
+# 7. Dump Results to Evaluation CSV
+set csv_dir [file dirname $csv_output]
+file mkdir $csv_dir
+
+set fp [open $csv_output w]
+puts $fp "Metric,Value"
+puts $fp "design_name,$design_name"
+puts $fp "top_module,$top_module"
+puts $fp "lut_count,$lut_count"
+puts $fp "lutram_count,$lutram_count"
+puts $fp "dsp_count,$dsp_count"
+puts $fp "bram_count,$bram_count"
+puts $fp "ff_count,$ff_count"
+puts $fp "io_count,$io_count"
+puts $fp "total_power_w,$total_power"
+puts $fp "wns_ns,$wns"
+puts $fp "critical_path_delay_ns,$critical_path_delay"
+puts $fp "clock_period_ns,$clock_period"
+
+close $fp
+
+puts stdout "INFO: Synthesis complete  : $design_name"
+puts stdout "INFO:   LUTs             = $lut_count"
+puts stdout "INFO:   LUTRAMs          = $lutram_count"
+puts stdout "INFO:   DSPs             = $dsp_count"
+puts stdout "INFO:   BRAMs            = $bram_count"
+puts stdout "INFO:   FFs              = $ff_count"
+puts stdout "INFO:   Power            = $total_power W"
+puts stdout "INFO:   WNS              = $wns ns"
+puts stdout "INFO:   Crit Path Delay  = $critical_path_delay ns"
+puts stdout "INFO:   CSV              = $csv_output"
