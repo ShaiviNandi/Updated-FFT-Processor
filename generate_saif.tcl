@@ -81,7 +81,11 @@ if { [catch { eval exec xvlog -sv $defs [lrange $srcs 0 end] } emsg] } {
     exit 1
 }
 
-if { [catch { exec xelab -debug typical -top $tb_module -snapshot ${tb_module}_snap } emsg] } {
+# -timescale 1ns/1ps is REQUIRED: xelab raises XSIM 43-4099 as an ERROR for
+# every module without a `timescale once any module in the design has one, and
+# the modules in verilog_sources/ carry none while the generated tops and the
+# testbench do. This supplies the default instead of editing the RTL.
+if { [catch { exec xelab -debug typical -timescale 1ns/1ps -top $tb_module -snapshot ${tb_module}_snap } emsg] } {
     puts "ERROR: xelab failed:\n$emsg"
     cd $here
     exit 1
