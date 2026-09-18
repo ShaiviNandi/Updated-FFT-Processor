@@ -17,7 +17,8 @@
 #        was NOT the source of the LUT noise. Keep the call anyway: it costs
 #        3 s, it makes the numbers post-optimisation by construction, and the
 #        flag proves it for the paper. Do not cite it as a fix for the noise.
-#   [F3] SAIF-driven power. v1 called report_power with no activity data, so
+#   [F3] SAIF-driven power, with a behavioural effectiveness check (read_saif
+#        reports success even when it matches 0 nets - see the F3 block). v1 called report_power with no activity data, so
 #        it reported vectorless (default-toggle) power: 0.072-0.074 W across
 #        722 designs, i.e. the static power of the part. Now, if a SAIF is
 #        supplied, it is read and DYNAMIC power is reported separately.
@@ -52,6 +53,11 @@ if { [llength $argv] >= 8 } { set saif_file [lindex $argv 7] }
 
 set use_dsp 1
 if { [llength $argv] >= 9 } { set use_dsp [lindex $argv 8] }
+
+# Instance path to strip from the SAIF. Must match the SAIF's own (INSTANCE ...)
+# nesting, NOT the module name - see the F3 block below.
+set saif_strip_path "tb_fft_power/uut"
+if { [llength $argv] >= 10 } { set saif_strip_path [lindex $argv 9] }
 
 set top_module "${design_name}_top"
 
@@ -90,7 +96,9 @@ puts $xfp "create_clock -period $clock_period -name clk \[get_ports clk\]"
 # The clock port itself must be excluded - setting an input delay on a clock pin
 # relative to the clock defined on that same pin is not supported and Vivado
 # emits Constraints 18-6211 and ignores the whole constraint.
-puts $xfp "set_input_delay  -clock clk 0.500 \[remove_from_collection \[all_inputs\] \[get_ports clk\]\]"
+# get_ports -filter IS legal in an XDC; remove_from_collection is NOT
+# (Designutils 20-1307), and Vivado discards the whole constraint when it sees it.
+puts $xfp "set_input_delay  -clock clk 0.500 \[get_ports -filter {DIRECTION == IN && NAME != clk}\]"
 puts $xfp "set_output_delay -clock clk 0.500 \[all_outputs\]"
 close $xfp
 read_xdc $xdc_file
@@ -209,13 +217,57 @@ foreach line $lines {
 # -----------------------------------------------------------------------------
 # 7. [F3] POWER. With a SAIF this is a measurement; without one it is a guess.
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Helper: pull the three power numbers out of a report_power text file.
+# -----------------------------------------------------------------------------
+proc parse_power { rpt } {
+    set tot 0.0 ; set dyn 0.0 ; set sta 0.0
+    if {[file exists $rpt]} {
+        set fp [open $rpt r]; set pc [read $fp]; close $fp
+        foreach line [split $pc "\n"] {
+            if {[regexp {Total On-Chip Power \(W\)\s*\|\s*([0-9.]+)} $line -> v]} { set tot [string trim $v] }
+            if {[regexp {Dynamic \(W\)\s*\|\s*([0-9.]+)}             $line -> v]} { set dyn [string trim $v] }
+            if {[regexp {Device Static \(W\)\s*\|\s*([0-9.]+)}       $line -> v]} { set sta [string trim $v] }
+        }
+    }
+    return [list $tot $dyn $sta]
+}
+
+# -----------------------------------------------------------------------------
+# [F3] POWER, with a BEHAVIOURAL check that the SAIF actually annotated.
+#
+# Why not just trust read_saif: it returns success even when it matches nothing.
+# Measured 2026-09-18 with -strip_path <top_module>:
+#     WARNING [Power 33-395] Could not find -strip_path argument "..." in net(s)
+#     INFO    [Power 33-26]  Design nets matched = 1 of 1972
+#     0% of nets annotated
+# yet read_saif threw no error, so the old saif_used flag read 1 while the power
+# numbers were still vectorless and byte-identical to a no-SAIF run. That would
+# have mislabelled an entire sweep.
+#
+# So: measure vectorless power FIRST, then apply the SAIF and measure again. If
+# dynamic power did not move, the annotation did nothing - report saif_used = 0
+# no matter what read_saif said. This tests the quantity we care about instead
+# of a log string whose wording changes between Vivado versions.
+#
+# strip_path must be the INSTANCE path inside the SAIF, not the module name.
+# The SAIF that generate_saif.tcl writes is rooted at:
+#     (DIVIDER /) (INSTANCE tb_fft_power (INSTANCE uut ...
+# hence the default below. Override with argv 9 if the testbench changes.
+# -----------------------------------------------------------------------------
+set power_rpt_vl "/tmp/${design_name}_power_vectorless.rpt"
+report_power -file $power_rpt_vl
+lassign [parse_power $power_rpt_vl] tot_vl dyn_vl sta_vl
+puts "INFO: vectorless baseline: dynamic = $dyn_vl W  static = $sta_vl W"
+
 set saif_used 0
+set saif_read 0
 if { $saif_file ne "" && [file exists $saif_file] } {
-    if { [catch { read_saif -strip_path $top_module $saif_file } emsg] } {
-        puts "WARNING: read_saif failed ($emsg) - falling back to vectorless"
+    if { [catch { read_saif -strip_path $saif_strip_path $saif_file } emsg] } {
+        puts "WARNING: read_saif failed ($emsg) - power stays VECTORLESS"
     } else {
-        set saif_used 1
-        puts "INFO: SAIF applied from $saif_file (fix F3)"
+        set saif_read 1
+        puts "INFO: read_saif returned OK (strip_path = $saif_strip_path)"
     }
 } else {
     puts "WARNING: no SAIF - power is VECTORLESS and will NOT vary with the"
@@ -225,19 +277,21 @@ if { $saif_file ne "" && [file exists $saif_file] } {
 set power_rpt_file "/tmp/${design_name}_power.rpt"
 report_power -file $power_rpt_file
 
-set total_power 0.0 ; set dynamic_power 0.0 ; set static_power 0.0
-if {[file exists $power_rpt_file]} {
-    set fp [open $power_rpt_file r]; set pc [read $fp]; close $fp
-    foreach line [split $pc "\n"] {
-        if {[regexp {Total On-Chip Power \(W\)\s*\|\s*([0-9.]+)} $line -> v]} {
-            set total_power [string trim $v]
-        }
-        if {[regexp {Dynamic \(W\)\s*\|\s*([0-9.]+)} $line -> v]} {
-            set dynamic_power [string trim $v]
-        }
-        if {[regexp {Device Static \(W\)\s*\|\s*([0-9.]+)} $line -> v]} {
-            set static_power [string trim $v]
-        }
+lassign [parse_power $power_rpt_file] total_power dynamic_power static_power
+
+# The behavioural test: did applying the SAIF change anything?
+if { $saif_read } {
+    if { [expr {abs(double($dynamic_power) - double($dyn_vl))}] < 1e-9 } {
+        set saif_used 0
+        puts "CRITICAL: SAIF annotated NOTHING - dynamic power is identical to the"
+        puts "CRITICAL: vectorless baseline ($dyn_vl W). saif_used = 0. Check the"
+        puts "CRITICAL: -strip_path (currently '$saif_strip_path') against the"
+        puts "CRITICAL: (INSTANCE ...) hierarchy at the top of the SAIF file, and"
+        puts "CRITICAL: remember an RTL SAIF cannot match a post-synthesis netlist"
+        puts "CRITICAL: for renamed/absorbed nets. DO NOT use this power number."
+    } else {
+        set saif_used 1
+        puts "INFO: SAIF is EFFECTIVE - dynamic power moved $dyn_vl W -> $dynamic_power W (fix F3)"
     }
 }
 
@@ -304,6 +358,9 @@ puts $fp "clock_period_ns,$clock_period"
 puts $fp "dynamic_power_w,$dynamic_power"
 puts $fp "static_power_w,$static_power"
 puts $fp "saif_used,$saif_used"
+puts $fp "saif_read,$saif_read"
+puts $fp "saif_strip_path,$saif_strip_path"
+puts $fp "dynamic_power_vectorless_w,$dyn_vl"
 puts $fp "opt_design_ran,$opt_ran"
 puts $fp "fmax_mhz,$fmax_mhz"
 puts $fp "dsp48_primitives,$n_dsp_prim"
@@ -316,7 +373,8 @@ puts stdout "INFO:   LUTs            = $lut_count   (opt_design ran = $opt_ran)"
 puts stdout "INFO:   DSPs            = $dsp_count"
 puts stdout "INFO:   FFs             = $ff_count"
 puts stdout "INFO:   Power total     = $total_power W   (SAIF used = $saif_used)"
-puts stdout "INFO:   Power dynamic   = $dynamic_power W  <-- the objective"
+puts stdout "INFO:   Power dynamic   = $dynamic_power W  <-- the objective (saif_used = $saif_used)"
+puts stdout "INFO:   Power dyn (vecless) = $dyn_vl W  <-- must DIFFER if the SAIF worked"
 puts stdout "INFO:   Power static    = $static_power W"
 puts stdout "INFO:   WNS             = $wns ns"
 puts stdout "INFO:   Crit path       = $critical_path_delay ns  ($fmax_mhz MHz)"
