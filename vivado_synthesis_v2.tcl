@@ -8,10 +8,15 @@
 #   [F1] create_clock now runs BEFORE synth_design. In v1 it ran after, so
 #        every published result came from an UNCONSTRAINED synthesis with no
 #        timing-driven optimisation.
-#   [F2] opt_design restored. v1 removed it to dodge OOC fatals; the correct
-#        fix is -directive Explore with the problematic passes disabled, not
-#        skipping optimisation. Without it, LUT counts are pre-opt estimates
-#        and carry a ~3% run-to-run noise band.
+#   [F2] opt_design restored, with an opt_design_ran flag in the CSV.
+#        MEASURED RESULT (2026-09-18, Vivado 2025.2, xc7a35t): opt_design runs
+#        clean but changes NOTHING - every phase reports "created 0 cells and
+#        removed 0 cells", constant propagation included. So the FP8-cone
+#        pruning happens inside synth_design's Cross Boundary and Area
+#        Optimization phase, not in opt_design, and skipping opt_design in v1
+#        was NOT the source of the LUT noise. Keep the call anyway: it costs
+#        3 s, it makes the numbers post-optimisation by construction, and the
+#        flag proves it for the paper. Do not cite it as a fix for the noise.
 #   [F3] SAIF-driven power. v1 called report_power with no activity data, so
 #        it reported vectorless (default-toggle) power: 0.072-0.074 W across
 #        722 designs, i.e. the static power of the part. Now, if a SAIF is
@@ -20,6 +25,10 @@
 #        into the netlist, which is the direct proof of preservation vs pruning.
 #   [F5] Timing is taken from report_timing on the true worst path, and the CSV
 #        now records fmax_mhz explicitly so nobody has to re-derive it.
+#        NOTE: constraining before synthesis barely moves the delay (35.479 ns
+#        constrained vs 35.013-35.490 ns unconstrained). That is itself a
+#        finding: the butterfly path is combinational-limited, so no constraint
+#        can close it - only pipelining can.
 #   [F6] Optional -no_dsp switch: set USE_DSP 0 to add -max_dsp 0, which stops
 #        the (* use_dsp *) attributes in multiplier.v from burning DSP48E1s on
 #        2x2-bit and 4x4-bit significand products.
@@ -77,8 +86,11 @@ update_compile_order -fileset sources_1
 set xdc_file "/tmp/${design_name}_constr.xdc"
 set xfp [open $xdc_file w]
 puts $xfp "create_clock -period $clock_period -name clk \[get_ports clk\]"
-# OOC: tell the tool what the outside world looks like, else input delays are 0
-puts $xfp "set_input_delay  -clock clk 0.500 \[all_inputs\]"
+# OOC: tell the tool what the outside world looks like, else input delays are 0.
+# The clock port itself must be excluded - setting an input delay on a clock pin
+# relative to the clock defined on that same pin is not supported and Vivado
+# emits Constraints 18-6211 and ignores the whole constraint.
+puts $xfp "set_input_delay  -clock clk 0.500 \[remove_from_collection \[all_inputs\] \[get_ports clk\]\]"
 puts $xfp "set_output_delay -clock clk 0.500 \[all_outputs\]"
 close $xfp
 read_xdc $xdc_file
@@ -123,12 +135,20 @@ foreach m {fp4_mul fp8_mul fp4_cmul fp8_cmul fp4_add_sub fp8_add_sub \
 set n_dsp_prim [llength [get_cells -hier -filter {PRIMITIVE_TYPE =~ MULT.*} -quiet]]
 puts "FORENSIC: DSP48 primitives = $n_dsp_prim"
 
-# is the precision select collapsed to a constant?
+# Is the precision select collapsed to a constant?
+# MEASURED: this returns 0 on every probe - synthesis renames/absorbs the net,
+# so absence here proves nothing either way. The fp8_mul instance count above
+# is the reliable signal (DSP48E1 macros anchor those cells against
+# flattening). Kept only because a non-zero result would still be informative.
 set bf_nets [get_nets -hier -quiet *bf_mult_prec*]
-puts "FORENSIC: bf_mult_prec nets present = [llength $bf_nets]"
+puts "FORENSIC: bf_mult_prec nets present = [llength $bf_nets] (0 is expected - net is absorbed)"
 foreach n $bf_nets {
     puts "FORENSIC:   $n type=[get_property -quiet TYPE $n]"
 }
+# Hierarchy is partly flattened before IO insertion, so REF_NAME matching
+# under-reports modules that were absorbed (fp4_add_sub, the complex add/subs
+# and the converters all read 0 even when present). Trust fp4_mul / fp8_mul /
+# fp4_cmul / fp8_cmul and the DSP48 count; treat the rest as advisory.
 
 report_utilization -hierarchical -hierarchical_depth 6 \
     -file /tmp/${design_name}_util_hier.rpt

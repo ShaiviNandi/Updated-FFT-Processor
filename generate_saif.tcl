@@ -23,12 +23,16 @@
 # end up in the paper's table - note in the paper which one you used.
 #
 # argv: 0 design_name  1 core_file  2 top_file  3 verilog_dir  4 tb_file
-#       5 saif_out     [6 sim_time_ns]
+#       5 saif_out     6 fft_n       [7 frames]
+#
+# The testbench is parameterised by compile-time defines because the DUT module
+# name and the transform size change per chromosome:
+#     -d DUT_TOP=<design>_top  -d FFT_N=<n>  -d FRAMES=<k>
 #
 # Invoke:
 #   vivado -mode batch -source generate_saif.tcl -tclargs \
-#          fft_256_sol3_gen42 <core.v> <top.v> ./verilog_sources \
-#          ./tb/tb_fft_power.v /tmp/fft_256_sol3_gen42.saif 200000
+#          probe_fp8x4 <core.v> <top.v> ./verilog_sources \
+#          ./tb/tb_fft_power.v /tmp/probe_fp8x4.saif 256 4
 # =============================================================================
 
 set design_name [lindex $argv 0]
@@ -38,16 +42,19 @@ set verilog_dir [lindex $argv 3]
 set tb_file     [lindex $argv 4]
 set saif_out    [lindex $argv 5]
 
-set sim_time_ns 200000
-if { [llength $argv] >= 7 } { set sim_time_ns [lindex $argv 6] }
+set fft_n 256
+if { [llength $argv] >= 7 } { set fft_n [lindex $argv 6] }
+set frames 4
+if { [llength $argv] >= 8 } { set frames [lindex $argv 7] }
 
-set tb_module  [file rootname [file tail $tb_file]]
+set tb_module        [file rootname [file tail $tb_file]]
+set top_module_name  "${design_name}_top"
 set work_dir   "/tmp/saif_${design_name}"
 file mkdir $work_dir
 
 puts "INFO: SAIF generation for $design_name"
 puts "INFO:   tb        = $tb_module"
-puts "INFO:   sim_time  = $sim_time_ns ns"
+puts "INFO:   FFT_N     = $fft_n   frames = $frames"
 puts "INFO:   saif_out  = $saif_out"
 
 # -----------------------------------------------------------------------------
@@ -66,7 +73,9 @@ lappend srcs $core_file $top_file $tb_file
 set here [pwd]
 cd $work_dir
 
-if { [catch { eval exec xvlog -sv [lrange $srcs 0 end] } emsg] } {
+# DUT_TOP / FFT_N / FRAMES reach the testbench as defines
+set defs [list -d DUT_TOP=${top_module_name} -d FFT_N=${fft_n} -d FRAMES=${frames}]
+if { [catch { eval exec xvlog -sv $defs [lrange $srcs 0 end] } emsg] } {
     puts "ERROR: xvlog failed:\n$emsg"
     cd $here
     exit 1
@@ -81,11 +90,21 @@ if { [catch { exec xelab -debug typical -top $tb_module -snapshot ${tb_module}_s
 # xsim command script: open a SAIF over the DUT only, run, write it out
 set do_file "${work_dir}/run_saif.tcl"
 set dfp [open $do_file w]
+# Skip the warm-up frame: the testbench raises saif_window once frame 0 is
+# done, so reset and first-load transients stay out of the recorded activity.
+puts $dfp "set _guard 0"
+puts $dfp "run 2 us"
+puts $dfp "while { \[get_value /${tb_module}/saif_window\] == 0 && \$_guard < 200 } {"
+puts $dfp "    run 2 us"
+puts $dfp "    incr _guard"
+puts $dfp "}"
+puts $dfp "if { \$_guard >= 200 } { puts \"ERROR: saif_window never asserted\"; quit }"
+puts $dfp "puts \"INFO: warm-up complete, opening SAIF\""
 puts $dfp "open_saif {$saif_out}"
 # log activity for the whole DUT subtree; adjust the scope name if your
 # testbench instantiates the DUT under a different label than 'uut'
 puts $dfp "log_saif \[get_objects -r /${tb_module}/uut/*\]"
-puts $dfp "run ${sim_time_ns} ns"
+puts $dfp "run all"
 puts $dfp "close_saif"
 puts $dfp "quit"
 close $dfp
