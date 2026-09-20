@@ -15,7 +15,12 @@ GENERATIONS = 100
 SEED = 42
 MUTATION_RATE = 0.05
 CROSSOVER_RATE = 0.9
-OBJECTIVES = 4               # Power, Area, Performance, Latency (from Vivado)
+OBJECTIVES = 3               # Energy/transform, SQNR error^2, Latency
+#   Area left the objective vector: the shared butterfly is a fixed union of
+#   both datapaths, so area takes only three values over the whole chromosome
+#   space and carried no search signal (r = +0.034, p = 0.36 within tier).
+#   It is now a hard constraint instead. Power became dynamic-energy-per-
+#   transform, measured from a post-synthesis funcsim SAIF.
 
 CURRENT_GEN = 0
 SOLUTION_THREADS = 8
@@ -54,6 +59,22 @@ VIVADO_PROJECTS_DIR = './vivado_projects'
 REPORTS_DIR = './reports'
 SIMULATION_DIR = './sim'
 RESULTS_DIR = './results'
+
+# ======================= SAIF / activity measurement =================
+# Activity testbench used to generate per-design switching activity. Without
+# a SAIF, report_power returns a vectorless guess that is IDENTICAL for every
+# chromosome - which is how power came to take only three values across 722
+# designs. The evaluator now refuses to run if this file is missing.
+POWER_TB_FILE    = './tb/tb_fft_power.v'
+SAIF_FRAMES      = 4                 # frame 0 is warm-up, 1..3 are measured
+SAIF_STRIP_PATH  = 'tb_fft_power/uut'
+USE_DSP          = 1                 # 0 forces LUT-only multipliers
+VIVADO_TIMEOUT_S = 1800              # per pass; two passes per design
+# Each SAIF pass leaves a funcsim netlist and an xsim snapshot in
+# /tmp/fsaif_<design>/. Tens of MB each; over a full sweep that fills /tmp and
+# the run dies partway through. Reclaimed once both passes have succeeded.
+# Set False when debugging a single design and you want the netlist kept.
+CLEAN_SAIF_WORKDIRS = True
 
 # ======================= Constraint Thresholds =======================
 MAX_POWER_W = 3.0
