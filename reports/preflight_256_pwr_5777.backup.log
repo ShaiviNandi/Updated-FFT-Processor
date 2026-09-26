@@ -1,0 +1,73 @@
+#-----------------------------------------------------------
+# Vivado v2025.2 (64-bit)
+# SW Build 6299465 on Fri Nov 14 12:34:56 MST 2025
+# IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+# SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+# Start of session at: Wed Sep 23 11:42:35 2026
+# Process ID         : 5777
+# Current directory  : /home/digital-1/SRIP2026/Updated-FFT-Processor
+# Command line       : vivado -mode batch -source ./vivado_synthesis_v2.tcl -nojournal -log reports/preflight_256_pwr.log -tclargs preflight_256 reports/preflight_256_metrics.csv Chromosome sizes for different FFT sizes:
+  FFT-8   :  3 stages x 2 =   6 genes
+  FFT-16  :  4 stages x 2 =   8 genes
+  FFT-32  :  5 stages x 2 =  10 genes
+  FFT-64  :  6 stages x 2 =  12 genes
+  FFT-128 :  7 stages x 2 =  14 genes
+  FFT-256 :  8 stages x 2 =  16 genes
+  FFT-512 :  9 stages x 2 =  18 genes
+  FFT-1024: 10 stages x 2 =  20 genes
+[2026-09-23 11:42:32] [INFO] Initialized directory structure
+80.0 /home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/preflight_256.v /home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/preflight_256_top.v /home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources Chromosome sizes for different FFT sizes:
+  FFT-8   :  3 stages x 2 =   6 genes
+  FFT-16  :  4 stages x 2 =   8 genes
+  FFT-32  :  5 stages x 2 =  10 genes
+  FFT-64  :  6 stages x 2 =  12 genes
+  FFT-128 :  7 stages x 2 =  14 genes
+  FFT-256 :  8 stages x 2 =  16 genes
+  FFT-512 :  9 stages x 2 =  18 genes
+  FFT-1024: 10 stages x 2 =  20 genes
+[2026-09-23 11:42:32] [INFO] Initialized directory structure
+xc7a35tcpg236-1 /home/digital-1/SRIP2026/Updated-FFT-Processor/sim/preflight_256.saif 1 tb_fft_power/uut
+# Log file           : /home/digital-1/SRIP2026/Updated-FFT-Processor/reports/preflight_256_pwr.log
+# Journal file       : 
+# Running On         : localhost.localdomain
+# Platform           : RedHatEnterprise
+# Operating System   : Red Hat Enterprise Linux release 8.10 (Ootpa)
+# Processor Detail   : 12th Gen Intel(R) Core(TM) i9-12900K
+# CPU Frequency      : 3200.000 MHz
+# CPU Physical cores : 16
+# CPU Logical cores  : 24
+# Host memory        : 67013 MB
+# Swap memory        : 33709 MB
+# Total Virtual      : 100723 MB
+# Available Virtual  : 96015 MB
+#-----------------------------------------------------------
+Sourcing tcl script '/home/digital-1/.Xilinx/Vivado/Vivado_init.tcl'
+source ./vivado_synthesis_v2.tcl
+# set design_name  [lindex $argv 0]
+# set csv_output   [lindex $argv 1]
+# set clock_period [lindex $argv 2]
+# set core_file    [lindex $argv 3]
+# set top_file     [lindex $argv 4]
+# set verilog_dir  [lindex $argv 5]
+# set fpga_part "xc7a35tcpg236-1"
+# if { [llength $argv] >= 7 } { set fpga_part [lindex $argv 6] }
+# set saif_file ""
+# if { [llength $argv] >= 8 } { set saif_file [lindex $argv 7] }
+# set use_dsp 1
+# if { [llength $argv] >= 9 } { set use_dsp [lindex $argv 8] }
+# set saif_strip_path "tb_fft_power/uut"
+# if { [llength $argv] >= 10 } { set saif_strip_path [lindex $argv 9] }
+# set top_module "${design_name}_top"
+# puts "INFO: design_name  = $design_name"
+INFO: design_name  = preflight_256
+# puts "INFO: top_module   = $top_module"
+INFO: top_module   = preflight_256_top
+can't use non-numeric string as operand of "/"
+    while executing
+"expr {1000.0/$clock_period}"
+    invoked from within
+"format %.2f [expr {1000.0/$clock_period}]"
+    invoked from within
+"puts "INFO: clock_period = $clock_period ns  ([format %.2f [expr {1000.0/$clock_period}]] MHz)""
+    (file "./vivado_synthesis_v2.tcl" line 66)
+INFO: [Common 17-206] Exiting Vivado at Wed Sep 23 11:42:36 2026...

@@ -183,14 +183,15 @@ if { [catch { eval exec xelab $xelab_args [lrange $tops 0 end] } emsg] } {
 # -----------------------------------------------------------------------------
 set do_file "${work_dir}/run_saif.tcl"
 set dfp [open $do_file w]
-puts $dfp "set _guard 0"
-puts $dfp "run 2 us"
-puts $dfp "while { \[get_value /${tb_module}/saif_window\] == 0 && \$_guard < 400 } {"
-puts $dfp "    run 2 us"
-puts $dfp "    incr _guard"
-puts $dfp "}"
-puts $dfp "if { \$_guard >= 400 } { puts \"ERROR: saif_window never asserted - netlist sim stuck (X?)\"; quit }"
-puts $dfp "puts \"INFO: warm-up complete, opening SAIF\""
+# The old warm-up polled saif_window after a fixed "run 2 us". For N <= 16 the
+# whole simulation is shorter than 2 us, so the first poll happened after
+# $finish: saif_window never read 1, the guard expired, and no SAIF was written.
+# A short settle past reset (the TB holds rst low for 12 negedges = 120 ns) and
+# then logging the entire run works at every transform size. Frame 0 is now
+# included, but the stimulus and warm-up are identical for every chromosome, so
+# it cannot bias one design against another - which is all the objective needs.
+puts $dfp "run 200 ns"
+puts $dfp "puts \"INFO: reset cleared, logging SAIF over the whole run\""
 puts $dfp "open_saif {$saif_out}"
 puts $dfp "log_saif \[get_objects -r /${tb_module}/uut/*\]"
 puts $dfp "run all"

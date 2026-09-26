@@ -1,0 +1,128 @@
+Chromosome sizes for different FFT sizes:
+  FFT-8   :  3 stages x 2 =   6 genes
+  FFT-16  :  4 stages x 2 =   8 genes
+  FFT-32  :  5 stages x 2 =  10 genes
+  FFT-64  :  6 stages x 2 =  12 genes
+  FFT-128 :  7 stages x 2 =  14 genes
+  FFT-256 :  8 stages x 2 =  16 genes
+  FFT-512 :  9 stages x 2 =  18 genes
+  FFT-1024: 10 stages x 2 =  20 genes
+[2026-09-26 02:20:06] [INFO] Initialized directory structure
+[2026-09-26 02:20:06] [INFO] Setting up Verilog source files
+[2026-09-26 02:20:06] [INFO] 
+============================================================
+[2026-09-26 02:20:06] [INFO] Starting optimisation for 2-point FFT
+[2026-09-26 02:20:06] [INFO] ============================================================
+
+[2026-09-26 02:20:06] [INFO] Initialized FFT-2 problem: 3 objectives (energy/transform, SQNR error^2, latency); area is a constraint
+[2026-09-26 02:20:06] [INFO] NSGA-II Configuration:
+[2026-09-26 02:20:06] [INFO]   Population size : 30
+[2026-09-26 02:20:06] [INFO]   Generations     : 100
+[2026-09-26 02:20:06] [INFO]   Crossover rate  : 0.9
+[2026-09-26 02:20:06] [INFO]   Mutation rate   : 0.05
+[2026-09-26 02:20:06] [INFO]   Objectives      : 3  (Energy/transform, SQNR, CritDelay); area is a constraint
+[2026-09-26 02:20:06] [INFO]   Parallel threads: 8
+[2026-09-26 02:20:06] [INFO]   Clock target    : 80.0 ns
+[2026-09-26 02:20:06] [GEN] === Generation 0 ===
+[2026-09-26 02:20:06] [INFO] Evaluating solution 0: [0, 0][2026-09-26 02:20:06] [INFO] Evaluating solution 1: [1, 1]
+[2026-09-26 02:20:06] [INFO] Evaluating solution 2: [1, 0]
+
+[2026-09-26 02:20:06] [INFO] Evaluating solution 3: [0, 1]
+[2026-09-26 02:20:06] [INFO] Running Vivado SAIF + power passes for fft_2_sol1_gen1
+[2026-09-26 02:20:06] [INFO] Running Vivado SAIF + power passes for fft_2_sol0_gen1
+[2026-09-26 02:20:06] [INFO] Running Vivado SAIF + power passes for fft_2_sol2_gen1[2026-09-26 02:20:06] [INFO] Running Vivado SAIF + power passes for fft_2_sol3_gen1
+
+
+-------------------------------------------------------
+  Pipelined Metrics Breakdown - fft_2_sol0_gen1
+  > Avg FFT Execution Time : 16 clock cycles
+  > Total Simulation Time  : 275 clock cycles
+  > Golden reference       : FP4 input quantisation
+-------------------------------------------------------
+  Impulse                     inf dB (Exact)
+  Single Tone                 inf dB (Exact)
+  Multi-Tone                  inf dB (Exact)
+  Chirp (LFM)                 inf dB (Exact)
+  Sinusoid (complex)          inf dB (Exact)
+  Step Function               inf dB (Exact)
+  Gaussian Pulse              inf dB (Exact)
+  Radar Pulsed Sinusoid       inf dB (Exact)
+  Radar Clutter + Target      inf dB (Exact)
+  Radar Barker-13 Pulse       inf dB (Exact)
+  Radar Doppler Burst         inf dB (Exact)
+-------------------------------------------------------
+[2026-09-26 02:21:09] [INFO] Solution 0: E=640.0 pJ/xfrm (dyn=0.0040W saif=1 chksum=1), A=399 LUTs, LUTRAM=21, DSP=4, BRAM=0, FF=285, SQNR=100.00dB, CritDelay=12.389ns -> NormLat=0.155x, ExecCycles=16, TotSimCycles=275
+
+-------------------------------------------------------
+  Pipelined Metrics Breakdown - fft_2_sol3_gen1
+  > Avg FFT Execution Time : 16 clock cycles
+  > Total Simulation Time  : 275 clock cycles
+  > Golden reference       : FP8 input quantisation
+-------------------------------------------------------
+  Impulse                     inf dB (Exact)
+  Single Tone                     19.91 dB
+  Multi-Tone                  inf dB (Exact)
+  Chirp (LFM)                     19.91 dB
+  Sinusoid (complex)              19.91 dB
+  Step Function                   19.91 dB
+  Gaussian Pulse                  16.90 dB
+  Radar Pulsed Sinusoid       inf dB (Exact)
+  Radar Clutter + Target          19.91 dB
+  Radar Barker-13 Pulse           19.91 dB
+  Radar Doppler Burst             19.91 dB
+-------------------------------------------------------
+[2026-09-26 02:21:19] [INFO] Solution 3: E=960.0 pJ/xfrm (dyn=0.0060W saif=1 chksum=1), A=738 LUTs, LUTRAM=39, DSP=4, BRAM=0, FF=228, SQNR=41.48dB, CritDelay=21.691ns -> NormLat=0.271x, ExecCycles=16, TotSimCycles=275
+
+-------------------------------------------------------
+  Pipelined Metrics Breakdown - fft_2_sol1_gen1
+  > Avg FFT Execution Time : 16 clock cycles
+  > Total Simulation Time  : 275 clock cycles
+  > Golden reference       : FP8 input quantisation
+-------------------------------------------------------
+  Impulse                     inf dB (Exact)
+  Single Tone                 inf dB (Exact)
+  Multi-Tone                  inf dB (Exact)
+  Chirp (LFM)                 inf dB (Exact)
+  Sinusoid (complex)          inf dB (Exact)
+  Step Function               inf dB (Exact)
+  Gaussian Pulse              inf dB (Exact)
+  Radar Pulsed Sinusoid       inf dB (Exact)
+  Radar Clutter + Target      inf dB (Exact)
+  Radar Barker-13 Pulse       inf dB (Exact)
+  Radar Doppler Burst         inf dB (Exact)
+-------------------------------------------------------
+[2026-09-26 02:21:34] [INFO] Solution 1: E=1600.0 pJ/xfrm (dyn=0.0100W saif=1 chksum=1), A=1202 LUTs, LUTRAM=55, DSP=8, BRAM=0, FF=232, SQNR=100.00dB, CritDelay=33.307ns -> NormLat=0.416x, ExecCycles=16, TotSimCycles=275
+
+-------------------------------------------------------
+  Pipelined Metrics Breakdown - fft_2_sol2_gen1
+  > Avg FFT Execution Time : 16 clock cycles
+  > Total Simulation Time  : 275 clock cycles
+  > Golden reference       : FP4 input quantisation
+-------------------------------------------------------
+  Impulse                     inf dB (Exact)
+  Single Tone                 inf dB (Exact)
+  Multi-Tone                  inf dB (Exact)
+  Chirp (LFM)                 inf dB (Exact)
+  Sinusoid (complex)          inf dB (Exact)
+  Step Function               inf dB (Exact)
+  Gaussian Pulse              inf dB (Exact)
+  Radar Pulsed Sinusoid       inf dB (Exact)
+  Radar Clutter + Target      inf dB (Exact)
+  Radar Barker-13 Pulse       inf dB (Exact)
+  Radar Doppler Burst         inf dB (Exact)
+-------------------------------------------------------
+[2026-09-26 02:21:44] [INFO] Solution 2: E=960.0 pJ/xfrm (dyn=0.0060W saif=1 chksum=1), A=819 LUTs, LUTRAM=41, DSP=8, BRAM=0, FF=301, SQNR=100.00dB, CritDelay=26.952ns -> NormLat=0.337x, ExecCycles=16, TotSimCycles=275
+[2026-09-26 02:21:44] [INFO] Generation 0 complete
+==========================================================================================
+n_gen  |  n_eval  | n_nds  |     cv_min    |     cv_avg    |      eps      |   indicator  
+==========================================================================================
+     1 |        4 |      1 |  0.000000E+00 |  0.000000E+00 |             - |             -
+     2 |        4 |      1 |  0.000000E+00 |  0.000000E+00 |  0.000000E+00 |             f
+[2026-09-26 02:21:44] [INFO] Optimisation complete for 2-point FFT
+[2026-09-26 02:21:44] [INFO] Saving optimization results...
+[2026-09-26 02:21:44] [INFO] Summary saved → ./results/fft_2/summary.txt
+[2026-09-26 02:21:44] [INFO] Solution CSV saved → ./results/fft_2/all_solutions_fft2.csv  (4 rows)
+[2026-09-26 02:21:45] [INFO] All-generations CSV saved → ./results/fft_2/all_generations_fft2.csv  (4 solutions)
+[2026-09-26 02:21:45] [INFO] Compressed 4 solution log(s) → ./results/fft_2/solution_logs_fft2.zip
+[2026-09-26 02:21:45] [INFO] RTL zip: 20 file(s) → ./results/fft_2/rtl_fft2.zip
+[2026-09-26 02:21:45] [INFO] Results saved to ./results/fft_2  (Pareto front: 1 solutions)

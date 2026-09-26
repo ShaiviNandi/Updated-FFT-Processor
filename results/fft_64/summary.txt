@@ -4,84 +4,80 @@ Mixed-Precision FFT Optimization Results
 FFT Size              : 64
 Population            : 30
 Generations           : 100
-Objectives            : 4  (Power, Area, SQNR, Critical-Path Delay)
+Objectives            : 3  (Energy/transform, SQNR, Critical-Path Delay)
+Area                  : hard constraint (<= 5000 LUTs), not an objective
 Clock target          : 80.0 ns
 FPGA device           : xc7a35tcpg236-1
 
-Pareto Front Solutions: 7
+Pareto Front Solutions: 17
 
-Timing pass rate      : 7/7 (100%)
+Timing pass rate      : 17/17 (100%)
 
 ID    Power(W)   Area(LUTs)  LUTRAM   DSP   BRAM   FF      SQNR(dB)   NormLat   CritDelay(ns)  MeetsTiming  ExecCycles  TotSimCycles
 ------------------------------------------------------------------------------------------------------------------------------------
-0     0.073000   1211        74       10    4      141     36.82      0.4562    36.493         YES          267         5764        
-1     0.073000   772         52       6     4      125     10.89      0.3028    24.226         YES          267         5764        
-2     0.073000   810         52       6     4      130     11.19      0.3028    24.226         YES          267         5764        
-3     0.073000   1181        75       10    4      143     20.53      0.4436    35.490         YES          267         5764        
-4     0.073000   1178        74       10    4      141     16.67      0.4436    35.487         YES          267         5764        
-5     0.073000   1229        74       10    4      150     23.49      0.4436    35.487         YES          267         5764        
-6     0.073000   1227        75       10    4      152     23.49      0.4436    35.490         YES          267         5764        
+0     0.041000   1312        74       10    4      141     36.82      0.4395    35.161         YES          267         5764        
+1     0.038000   1359        74       10    4      150     23.49      0.4395    35.161         YES          267         5764        
+2     0.040000   1365        75       10    4      152     23.49      0.4394    35.151         YES          267         5764        
+3     0.030000   1455        75       10    4      152     10.87      0.4444    35.554         YES          267         5764        
+4     0.037000   1443        75       10    4      152     23.49      0.4450    35.598         YES          267         5764        
+5     0.035000   1444        75       10    4      152     12.36      0.4450    35.598         YES          267         5764        
+6     0.030000   1447        75       10    4      152     10.87      0.4444    35.554         YES          267         5764        
+7     0.028000   1365        75       10    4      152     10.21      0.4394    35.151         YES          267         5764        
+8     0.035000   1444        75       10    4      152     12.36      0.4450    35.598         YES          267         5764        
+9     0.030000   1450        75       10    4      152     10.87      0.4444    35.554         YES          267         5764        
+10    0.030000   1455        75       10    4      152     10.87      0.4444    35.554         YES          267         5764        
+11    0.037000   1420        75       10    4      152     22.11      0.4448    35.587         YES          267         5764        
+12    0.029000   1450        75       10    4      152     10.46      0.4444    35.554         YES          267         5764        
+13    0.032000   864         52       6     4      130     11.19      0.3150    25.199         YES          267         5764        
+14    0.036000   1411        74       10    4      150     12.74      0.4448    35.585         YES          267         5764        
+15    0.036000   1420        75       10    4      152     13.07      0.4448    35.587         YES          267         5764        
+16    0.029000   1450        75       10    4      152     10.46      0.4444    35.554         YES          267         5764        
 
 
 Best Solutions by Objective:
 ------------------------------------------------------------
 
-Best Power (min):
-  Solution ID       : 0
-  Power             : 0.073000 W
-  Area              : 1211 LUTs
-  LUTRAMs           : 74
+Best Energy/transform (min):
+  Solution ID       : 7
+  Power             : 0.028000 W
+  Area              : 1365 LUTs
+  LUTRAMs           : 75
   DSPs              : 10
   BRAMs             : 4
-  FFs               : 141
-  SQNR              : 36.82 dB
-  Norm Latency      : 0.4562x (clock = 80.0 ns)
-  Crit Path Delay   : 36.493 ns    <- MEETS TIMING
+  FFs               : 152
+  SQNR              : 10.21 dB
+  Norm Latency      : 0.4394x (clock = 80.0 ns)
+  Crit Path Delay   : 35.151 ns    <- MEETS TIMING
   Avg Exec Cycles   : 267
   Tot Sim Cycles    : 5764
-  Chromosome        : [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-
-Best Area (min):
-  Solution ID       : 1
-  Power             : 0.073000 W
-  Area              : 772 LUTs
-  LUTRAMs           : 52
-  DSPs              : 6
-  BRAMs             : 4
-  FFs               : 125
-  SQNR              : 10.89 dB
-  Norm Latency      : 0.3028x (clock = 80.0 ns)
-  Crit Path Delay   : 24.226 ns    <- MEETS TIMING
-  Avg Exec Cycles   : 267
-  Tot Sim Cycles    : 5764
-  Chromosome        : [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+  Chromosome        : [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0]
 
 Best SQNR (max perf):
   Solution ID       : 0
-  Power             : 0.073000 W
-  Area              : 1211 LUTs
+  Power             : 0.041000 W
+  Area              : 1312 LUTs
   LUTRAMs           : 74
   DSPs              : 10
   BRAMs             : 4
   FFs               : 141
   SQNR              : 36.82 dB
-  Norm Latency      : 0.4562x (clock = 80.0 ns)
-  Crit Path Delay   : 36.493 ns    <- MEETS TIMING
+  Norm Latency      : 0.4395x (clock = 80.0 ns)
+  Crit Path Delay   : 35.161 ns    <- MEETS TIMING
   Avg Exec Cycles   : 267
   Tot Sim Cycles    : 5764
   Chromosome        : [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
 Best Crit-Path (min):
-  Solution ID       : 1
-  Power             : 0.073000 W
-  Area              : 772 LUTs
+  Solution ID       : 13
+  Power             : 0.032000 W
+  Area              : 864 LUTs
   LUTRAMs           : 52
   DSPs              : 6
   BRAMs             : 4
-  FFs               : 125
-  SQNR              : 10.89 dB
-  Norm Latency      : 0.3028x (clock = 80.0 ns)
-  Crit Path Delay   : 24.226 ns    <- MEETS TIMING
+  FFs               : 130
+  SQNR              : 11.19 dB
+  Norm Latency      : 0.3150x (clock = 80.0 ns)
+  Crit Path Delay   : 25.199 ns    <- MEETS TIMING
   Avg Exec Cycles   : 267
   Tot Sim Cycles    : 5764
-  Chromosome        : [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+  Chromosome        : [0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1]

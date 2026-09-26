@@ -156,6 +156,7 @@ class MixedPrecisionFFTProblem(Problem):
         return hashlib.md5(''.join(map(str, chromosome)).encode()).hexdigest()
 
     _CHECKSUM_RE = re.compile(r"Synth Design complete \| Checksum:\s*([0-9a-fA-F]+)")
+    _SAIF_NETS_RE = re.compile(r"Design nets matched\s*=\s*(\d+)\s+of\s+(\d+)")
 
     def _run_vivado_synthesis(self, design_name, core_file, top_file):
         """
@@ -199,12 +200,12 @@ class MixedPrecisionFFTProblem(Problem):
             VIVADO_PATH, '-mode', 'batch', '-source', './generate_saif_funcsim.tcl',
             '-nojournal', '-log', saif_log, '-tclargs',
             design_name, core_abs, top_abs, verilog_dir, tb_abs, saif_path,
-            str(self.fft_size), str(SAIF_FRAMES), FPGA_DEVICE, str(CLOCK_PERIOD),
+            str(self.fft_size), str(SAIF_FRAMES), FPGA_DEVICE, str(POWER_CLOCK_NS),
         ]
         pwr_cmd = [
             VIVADO_PATH, '-mode', 'batch', '-source', './vivado_synthesis_v2.tcl',
             '-nojournal', '-log', pwr_log, '-tclargs',
-            design_name, csv_output, str(CLOCK_PERIOD),
+            design_name, csv_output, str(POWER_CLOCK_NS),
             core_abs, top_abs, verilog_dir, FPGA_DEVICE, saif_path,
             str(USE_DSP), SAIF_STRIP_PATH,
         ]
@@ -231,6 +232,20 @@ class MixedPrecisionFFTProblem(Problem):
         metrics = self._parse_vivado_metrics(csv_output)
         metrics["checksum_match"] = self._checksums_match(saif_log, pwr_log,
                                                           design_name)
+
+        # Trust Vivado's net count over the TCL's power-delta heuristic.
+        cov = self._saif_coverage(pwr_log)
+        if cov is not None:
+            matched, total = cov
+            frac = (matched / total) if total else 0.0
+            metrics["saif_nets_matched"] = matched
+            metrics["saif_nets_total"]   = total
+            metrics["saif_coverage"]     = frac
+            metrics["saif_used"]         = 1 if frac >= SAIF_MIN_COVERAGE else 0
+            if frac < SAIF_MIN_COVERAGE:
+                log_message(f"{design_name}: only {matched}/{total} nets "
+                            f"({100*frac:.0f}%) annotated - below "
+                            f"{100*SAIF_MIN_COVERAGE:.0f}% floor", level='WARN')
         # Both passes are done with the scratch now. The SAIF under ./sim stays.
         if CLEAN_SAIF_WORKDIRS:
             self._reclaim_saif_workdir(design_name)
@@ -275,6 +290,18 @@ class MixedPrecisionFFTProblem(Problem):
             return 0
         return 1
 
+    def _saif_coverage(self, pwr_log):
+        """(matched, total) design nets from read_saif, or None if not logged."""
+        try:
+            with open(pwr_log, "r", errors="replace") as f:
+                for line in f:
+                    m = self._SAIF_NETS_RE.search(line)
+                    if m:
+                        return int(m.group(1)), int(m.group(2))
+        except OSError:
+            pass
+        return None
+
     def _failed_metrics(self, reason=""):
         """Metrics for a design whose toolflow failed. Dominated, never rewarded."""
         return {
@@ -284,6 +311,9 @@ class MixedPrecisionFFTProblem(Problem):
             "dynamic_power_vectorless_w":  None,
             "saif_used":                   0,
             "saif_read":                   0,
+            "saif_nets_matched":           0,
+            "saif_nets_total":             0,
+            "saif_coverage":               0.0,
             "lut_count":                   MAX_AREA_LUTS * 2,
             "lutram_count":                0,
             "critical_path_delay_ns":      200.0,

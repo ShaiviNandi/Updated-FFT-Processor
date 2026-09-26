@@ -50,6 +50,14 @@ for size in [8, 16, 32, 64, 128, 256, 512, 1024]:
 VIVADO_PATH = '/home/digital-1/2025.2/Vivado/bin/vivado'
 VIVADO_BATCH_MODE = True
 CLOCK_PERIOD = 80.0
+# Clock for synthesis constraints AND report_power, deliberately separate from
+# CLOCK_PERIOD. At 80 ns dynamic power is 0.006-0.009 W and report_power prints
+# 3 decimals, so the whole chromosome space spans 3 quantisation steps. At 10 ns
+# it spans 27 (measured: 0.029 W all-FP4 vs 0.056 W all-FP8), and 10 ns is also
+# what tb_fft_power.v simulates at, so the SAIF and the power report finally
+# agree on frequency. Energy per transform is frequency-invariant, so this buys
+# resolution, not a different answer.
+POWER_CLOCK_NS = 10.0
 FPGA_DEVICE = 'xc7a35tcpg236-1'
 
 # ======================= File Paths =======================
@@ -68,6 +76,13 @@ RESULTS_DIR = './results'
 POWER_TB_FILE    = './tb/tb_fft_power.v'
 SAIF_FRAMES      = 4                 # frame 0 is warm-up, 1..3 are measured
 SAIF_STRIP_PATH  = 'tb_fft_power/uut'
+# Minimum fraction of design nets read_saif must annotate for the power figure to
+# count as measured rather than guessed. Taken from Vivado's own
+# "Design nets matched = N of M" line, NOT from comparing annotated against
+# vectorless power: report_power prints 3 decimals, so those two frequently
+# round to the same value on a design where annotation worked perfectly
+# (fft_16_sol12_gen1: 844 of 1908 nets annotated, both powers 0.034 W).
+SAIF_MIN_COVERAGE = 0.10
 USE_DSP          = 1                 # 0 forces LUT-only multipliers
 VIVADO_TIMEOUT_S = 1800              # per pass; two passes per design
 # Each SAIF pass leaves a funcsim netlist and an xsim snapshot in

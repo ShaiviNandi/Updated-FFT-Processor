@@ -1,0 +1,60 @@
+#-----------------------------------------------------------
+# Vivado v2025.2 (64-bit)
+# SW Build 6299465 on Fri Nov 14 12:34:56 MST 2025
+# IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+# SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+# Start of session at: Fri Sep 18 22:18:28 2026
+# Process ID         : 10261
+# Current directory  : /home/digital-1/SRIP2026/Updated-FFT-Processor
+# Command line       : vivado -mode batch -source generate_saif.tcl -nojournal -tclargs probe_fp8x4 /home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/probe_fp8x4.v /home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/probe_fp8x4_top.v /home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources /home/digital-1/SRIP2026/Updated-FFT-Processor/tb/tb_fft_power.v /tmp/probe_fp8x4.saif 200000
+# Log file           : /home/digital-1/SRIP2026/Updated-FFT-Processor/vivado.log
+# Journal file       : 
+# Running On         : localhost.localdomain
+# Platform           : RedHatEnterprise
+# Operating System   : Red Hat Enterprise Linux release 8.10 (Ootpa)
+# Processor Detail   : 12th Gen Intel(R) Core(TM) i9-12900K
+# CPU Frequency      : 3200.000 MHz
+# CPU Physical cores : 16
+# CPU Logical cores  : 24
+# Host memory        : 67013 MB
+# Swap memory        : 33709 MB
+# Total Virtual      : 100723 MB
+# Available Virtual  : 94923 MB
+#-----------------------------------------------------------
+Sourcing tcl script '/home/digital-1/.Xilinx/Vivado/Vivado_init.tcl'
+source generate_saif.tcl
+# set design_name [lindex $argv 0]
+# set core_file   [lindex $argv 1]
+# set top_file    [lindex $argv 2]
+# set verilog_dir [lindex $argv 3]
+# set tb_file     [lindex $argv 4]
+# set saif_out    [lindex $argv 5]
+# set sim_time_ns 200000
+# if { [llength $argv] >= 7 } { set sim_time_ns [lindex $argv 6] }
+# set tb_module  [file rootname [file tail $tb_file]]
+# set work_dir   "/tmp/saif_${design_name}"
+# file mkdir $work_dir
+# puts "INFO: SAIF generation for $design_name"
+INFO: SAIF generation for probe_fp8x4
+# puts "INFO:   tb        = $tb_module"
+INFO:   tb        = tb_fft_power
+# puts "INFO:   sim_time  = $sim_time_ns ns"
+INFO:   sim_time  = 200000 ns
+# puts "INFO:   saif_out  = $saif_out"
+INFO:   saif_out  = /tmp/probe_fp8x4.saif
+# set srcs {}
+# foreach f [glob -nocomplain ${verilog_dir}/*.v] {
+#     if { [string match "*tb_*" [file tail $f]] == 0 } { lappend srcs $f }
+# }
+# lappend srcs $core_file $top_file $tb_file
+# set here [pwd]
+# cd $work_dir
+# if { [catch { eval exec xvlog -sv [lrange $srcs 0 end] } emsg] } {
+#     puts "ERROR: xvlog failed:\n$emsg"
+#     cd $here
+#     exit 1
+# }
+ERROR: xvlog failed:
+ERROR: [XSIM 43-4316] Can not find file: /home/digital-1/SRIP2026/Updated-FFT-Processor/tb/tb_fft_power.v
+child process exited abnormally
+INFO: [Common 17-206] Exiting Vivado at Fri Sep 18 22:18:30 2026...

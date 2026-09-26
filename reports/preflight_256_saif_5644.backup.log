@@ -1,0 +1,132 @@
+#-----------------------------------------------------------
+# Vivado v2025.2 (64-bit)
+# SW Build 6299465 on Fri Nov 14 12:34:56 MST 2025
+# IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+# SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+# Start of session at: Wed Sep 23 11:42:33 2026
+# Process ID         : 5644
+# Current directory  : /home/digital-1/SRIP2026/Updated-FFT-Processor
+# Command line       : vivado -mode batch -source ./generate_saif_funcsim.tcl -nojournal -log reports/preflight_256_saif.log -tclargs preflight_256 /home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/preflight_256.v /home/digital-1/SRIP2026/Updated-FFT-Processor/generated_designs/preflight_256_top.v /home/digital-1/SRIP2026/Updated-FFT-Processor/verilog_sources /home/digital-1/SRIP2026/Updated-FFT-Processor/tb/tb_fft_power.v /home/digital-1/SRIP2026/Updated-FFT-Processor/sim/preflight_256.saif 256 Chromosome sizes for different FFT sizes:
+  FFT-8   :  3 stages x 2 =   6 genes
+  FFT-16  :  4 stages x 2 =   8 genes
+  FFT-32  :  5 stages x 2 =  10 genes
+  FFT-64  :  6 stages x 2 =  12 genes
+  FFT-128 :  7 stages x 2 =  14 genes
+  FFT-256 :  8 stages x 2 =  16 genes
+  FFT-512 :  9 stages x 2 =  18 genes
+  FFT-1024: 10 stages x 2 =  20 genes
+[2026-09-23 11:42:32] [INFO] Initialized directory structure
+4 Chromosome sizes for different FFT sizes:
+  FFT-8   :  3 stages x 2 =   6 genes
+  FFT-16  :  4 stages x 2 =   8 genes
+  FFT-32  :  5 stages x 2 =  10 genes
+  FFT-64  :  6 stages x 2 =  12 genes
+  FFT-128 :  7 stages x 2 =  14 genes
+  FFT-256 :  8 stages x 2 =  16 genes
+  FFT-512 :  9 stages x 2 =  18 genes
+  FFT-1024: 10 stages x 2 =  20 genes
+[2026-09-23 11:42:32] [INFO] Initialized directory structure
+xc7a35tcpg236-1 Chromosome sizes for different FFT sizes:
+  FFT-8   :  3 stages x 2 =   6 genes
+  FFT-16  :  4 stages x 2 =   8 genes
+  FFT-32  :  5 stages x 2 =  10 genes
+  FFT-64  :  6 stages x 2 =  12 genes
+  FFT-128 :  7 stages x 2 =  14 genes
+  FFT-256 :  8 stages x 2 =  16 genes
+  FFT-512 :  9 stages x 2 =  18 genes
+  FFT-1024: 10 stages x 2 =  20 genes
+[2026-09-23 11:42:32] [INFO] Initialized directory structure
+80.0
+# Log file           : /home/digital-1/SRIP2026/Updated-FFT-Processor/reports/preflight_256_saif.log
+# Journal file       : 
+# Running On         : localhost.localdomain
+# Platform           : RedHatEnterprise
+# Operating System   : Red Hat Enterprise Linux release 8.10 (Ootpa)
+# Processor Detail   : 12th Gen Intel(R) Core(TM) i9-12900K
+# CPU Frequency      : 3200.000 MHz
+# CPU Physical cores : 16
+# CPU Logical cores  : 24
+# Host memory        : 67013 MB
+# Swap memory        : 33709 MB
+# Total Virtual      : 100723 MB
+# Available Virtual  : 96032 MB
+#-----------------------------------------------------------
+Sourcing tcl script '/home/digital-1/.Xilinx/Vivado/Vivado_init.tcl'
+source ./generate_saif_funcsim.tcl
+# set design_name  [lindex $argv 0]
+# set core_file    [lindex $argv 1]
+# set top_file     [lindex $argv 2]
+# set verilog_dir  [lindex $argv 3]
+# set tb_file      [lindex $argv 4]
+# set saif_out     [lindex $argv 5]
+# set fft_n 256
+# if { [llength $argv] >= 7 } { set fft_n [lindex $argv 6] }
+# set frames 4
+# if { [llength $argv] >= 8 } { set frames [lindex $argv 7] }
+# set fpga_part "xc7a35tcpg236-1"
+# if { [llength $argv] >= 9 } { set fpga_part [lindex $argv 8] }
+# set clock_period 10.0
+# if { [llength $argv] >= 10 } { set clock_period [lindex $argv 9] }
+# set top_module [format "%s_top" $design_name]
+# set tb_module  [file rootname [file tail $tb_file]]
+# set work_dir   "/tmp/fsaif_${design_name}"
+# set netlist_v  "${work_dir}/${design_name}_funcsim.v"
+# file mkdir $work_dir
+# puts "INFO: funcsim SAIF generation for $design_name"
+INFO: funcsim SAIF generation for preflight_256
+# puts "INFO:   top       = $top_module"
+INFO:   top       = preflight_256_top
+# puts "INFO:   tb        = $tb_module"
+INFO:   tb        = tb_fft_power
+# puts "INFO:   FFT_N     = $fft_n   frames = $frames"
+INFO:   FFT_N     = 256   frames = Chromosome sizes for different FFT sizes:
+  FFT-8   :  3 stages x 2 =   6 genes
+  FFT-16  :  4 stages x 2 =   8 genes
+  FFT-32  :  5 stages x 2 =  10 genes
+  FFT-64  :  6 stages x 2 =  12 genes
+  FFT-128 :  7 stages x 2 =  14 genes
+  FFT-256 :  8 stages x 2 =  16 genes
+  FFT-512 :  9 stages x 2 =  18 genes
+  FFT-1024: 10 stages x 2 =  20 genes
+[2026-09-23 11:42:32] [INFO] Initialized directory structure
+4
+# puts "INFO:   part      = $fpga_part   clock = $clock_period ns"
+INFO:   part      = Chromosome sizes for different FFT sizes:
+  FFT-8   :  3 stages x 2 =   6 genes
+  FFT-16  :  4 stages x 2 =   8 genes
+  FFT-32  :  5 stages x 2 =  10 genes
+  FFT-64  :  6 stages x 2 =  12 genes
+  FFT-128 :  7 stages x 2 =  14 genes
+  FFT-256 :  8 stages x 2 =  16 genes
+  FFT-512 :  9 stages x 2 =  18 genes
+  FFT-1024: 10 stages x 2 =  20 genes
+[2026-09-23 11:42:32] [INFO] Initialized directory structure
+xc7a35tcpg236-1   clock = Chromosome sizes for different FFT sizes:
+  FFT-8   :  3 stages x 2 =   6 genes
+  FFT-16  :  4 stages x 2 =   8 genes
+  FFT-32  :  5 stages x 2 =  10 genes
+  FFT-64  :  6 stages x 2 =  12 genes
+  FFT-128 :  7 stages x 2 =  14 genes
+  FFT-256 :  8 stages x 2 =  16 genes
+  FFT-512 :  9 stages x 2 =  18 genes
+  FFT-1024: 10 stages x 2 =  20 genes
+[2026-09-23 11:42:32] [INFO] Initialized directory structure
+80.0 ns
+# puts "INFO:   netlist   = $netlist_v"
+INFO:   netlist   = /tmp/fsaif_preflight_256/preflight_256_funcsim.v
+# puts "INFO:   saif_out  = $saif_out"
+INFO:   saif_out  = /home/digital-1/SRIP2026/Updated-FFT-Processor/sim/preflight_256.saif
+# create_project -in_memory -part $fpga_part
+WARNING: [Device 21-436] No parts matched 'Chromosome sizes for different FFT sizes:
+  FFT-8   :  3 stages x 2 =   6 genes
+  FFT-16  :  4 stages x 2 =   8 genes
+  FFT-32  :  5 stages x 2 =  10 genes
+  FFT-64  :  6 stages x 2 =  12 genes
+  FFT-128 :  7 stages x 2 =  14 genes
+  FFT-256 :  8 stages x 2 =  16 genes
+  FFT-512 :  9 stages x 2 =  18 genes
+  FFT-1024: 10 stages x 2 =  20 genes
+[2026-09-23 11:42:32] [INFO] Initialized directory structure
+xc7a35tcpg236-1'
+ERROR: [Coretcl 2-106] Specified part could not be found.
+INFO: [Common 17-206] Exiting Vivado at Wed Sep 23 11:42:34 2026...

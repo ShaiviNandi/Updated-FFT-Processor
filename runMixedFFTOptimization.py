@@ -10,6 +10,7 @@ import zipfile
 import csv
 import glob
 import math
+import traceback
 import hashlib
 
 import matplotlib
@@ -111,7 +112,11 @@ def _decode_objectives(obj_row, fft_size, chromosome=None):
         'area_luts':      int(cached.get('area', -1) or -1),
         'saif_used':      int(cached.get('saif_used', 0) or 0),
         'checksum_match': int(cached.get('checksum_match', 0) or 0),
-        'sqnr_db':        sqnr_db,
+        # Prefer the measured value. Under the hinge every design at or above
+        # target maps to perf_obj = 0, so the inversion cannot tell them apart;
+        # the cache carries the true figure.
+        'sqnr_db':        (float(cached['sqnr']) if cached.get('sqnr') is not None
+                           else sqnr_db),
         'norm_latency':   norm_latency,
         'crit_delay_ns':  crit_delay,
         'meets_timing':   meets_timing,
@@ -674,11 +679,16 @@ def save_optimization_results(result, callback, fft_size):
             f.write("\n\nBest Solutions by Objective:\n")
             f.write('-' * 60 + '\n')
 
+            # Objective columns are [energy_pJ, sqnr_error^2, norm_latency];
+            # all three are minimised, so argmin on each is the best design for
+            # it. Area left the objective vector (it takes only three values
+            # across the whole chromosome space), so there is no column 3 to
+            # take an argmin over - area is reported per solution in the table
+            # above and enforced as a constraint instead.
             best_specs = [
-                ("Best Power (min)",       0, "power_W",      "W"),
-                ("Best Area (min)",        1, "area_luts",    "LUTs"),
-                ("Best SQNR (max perf)",   2, "sqnr_db",      "dB"),
-                ("Best Crit-Path (min)",   3, "norm_latency", "norm"),
+                ("Best Energy/transform (min)", 0, "energy_pj",    "pJ"),
+                ("Best SQNR (max perf)",        1, "sqnr_db",      "dB"),
+                ("Best Crit-Path (min)",        2, "norm_latency", "norm"),
             ]
 
             for label, col, key, unit in best_specs:
@@ -956,6 +966,7 @@ def run_full_optimization_sweep():
             result = run_optimization_for_fft_size(fft_size)
             all_results[fft_size] = result
         except Exception as e:
+            log_message(traceback.format_exc(), level='ERROR')
             log_message(
                 f"ERROR: Optimisation failed for {fft_size}-point FFT: {e}",
                 level='ERROR'
