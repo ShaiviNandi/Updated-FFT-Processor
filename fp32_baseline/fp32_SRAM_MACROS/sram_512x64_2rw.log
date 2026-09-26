@@ -1,0 +1,61 @@
+[2026-09-17 14:42:39.162854] |==============================================================================|
+[2026-09-17 14:42:39.162969] |=========                      OpenRAM v1.2.49                       =========|
+[2026-09-17 14:42:39.163010] |=========                                                            =========|
+[2026-09-17 14:42:39.163042] |=========               VLSI Design and Automation Lab               =========|
+[2026-09-17 14:42:39.163067] |=========        Computer Science and Engineering Department         =========|
+[2026-09-17 14:42:39.163091] |=========            University of California Santa Cruz             =========|
+[2026-09-17 14:42:39.163114] |=========                                                            =========|
+[2026-09-17 14:42:39.163135] |=========          Usage help: openram-user-group@ucsc.edu           =========|
+[2026-09-17 14:42:39.163157] |=========        Development help: openram-dev-group@ucsc.edu        =========|
+[2026-09-17 14:42:39.163178] |=========                See LICENSE for license info                =========|
+[2026-09-17 14:42:39.163199] |==============================================================================|
+[2026-09-17 14:42:39.163225] ** Start: 09/17/2026 14:42:39
+[2026-09-17 14:42:39.163250] Technology: freepdk45
+[2026-09-17 14:42:39.163272] Total size: 32768 bits
+[2026-09-17 14:42:39.163299] Word size: 64
+Words: 512
+Banks: 1
+[2026-09-17 14:42:39.163324] RW ports: 2
+R-only ports: 0
+W-only ports: 0
+[2026-09-17 14:42:39.163346] DRC/LVS/PEX is only run on the top-level design to save run-time (inline_lvsdrc=True to do inline checking).
+[2026-09-17 14:42:39.163368] DRC/LVS/PEX is disabled (check_lvsdrc=True to enable).
+[2026-09-17 14:42:39.163389] Characterization is disabled (using analytical delay models) (analytical_delay=False to simulate).
+[2026-09-17 14:42:39.163410] Only generating nominal corner timing.
+[2026-09-17 14:42:39.163433] Words per row: None
+[2026-09-17 14:42:39.163459] Output files are: 
+[2026-09-17 14:42:39.163481] /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.lvs
+[2026-09-17 14:42:39.163502] /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.sp
+[2026-09-17 14:42:39.163522] /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.v
+[2026-09-17 14:42:39.163542] /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.lib
+[2026-09-17 14:42:39.163562] /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.py
+[2026-09-17 14:42:39.163582] /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.html
+[2026-09-17 14:42:39.163602] /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.log
+[2026-09-17 14:42:39.163622] /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.lef
+[2026-09-17 14:42:39.163641] /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.gds
+[2026-09-17 14:48:00.986337] ** Submodules: 321.8 seconds
+[2026-09-17 14:48:01.100282] ** Placement: 0.1 seconds
+[2026-09-17 19:00:33.117665] ** Routing: 15152.0 seconds
+[2026-09-17 19:00:33.132974] ** Verification: 0.0 seconds
+[2026-09-17 19:00:33.133024] ** SRAM creation: 15474.0 seconds
+[2026-09-17 19:00:33.133063] SP: Writing to /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.sp
+[2026-09-17 19:00:33.650687] ** Spice writing: 0.5 seconds
+[2026-09-17 19:00:33.650745] DELAY: Writing stimulus...
+[2026-09-17 19:00:35.650563] ** DELAY: 2.0 seconds
+[2026-09-17 19:00:36.066896] GDS: Writing to /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.gds
+[2026-09-17 19:00:36.853041] ** GDS: 0.8 seconds
+[2026-09-17 19:00:36.853103] LEF: Writing to /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.lef
+[2026-09-17 19:00:36.941786] ** LEF: 0.1 seconds
+[2026-09-17 19:00:36.941828] LVS: Writing to /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.lvs.sp
+[2026-09-17 19:00:37.359321] ** LVS writing: 0.4 seconds
+[2026-09-17 19:00:37.359378] LIB: Characterizing... 
+[2026-09-17 19:00:37.398400] WARNING: file elmore.py: line 45: In analytical mode, all ports have the timing of the first read port.
+
+[2026-09-17 19:00:39.993849] ** Characterization: 2.6 seconds
+[2026-09-17 19:00:39.994006] Config: Writing to /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.py
+[2026-09-17 19:00:39.994047] ** Config: 0.0 seconds
+[2026-09-17 19:00:39.997293] Datasheet: Writing to /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.html
+[2026-09-17 19:00:39.998087] ** Datasheet: 0.0 seconds
+[2026-09-17 19:00:39.998124] Verilog: Writing to /home/ihs24/OpenRAM/openram_outputs/fp32_SRAM_MACROS/sram_512x64_2rw.v
+[2026-09-17 19:00:39.998238] ** Verilog: 0.0 seconds
+[2026-09-17 19:00:40.002077] ** End: 15480.8 seconds
