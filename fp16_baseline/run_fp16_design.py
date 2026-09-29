@@ -14,19 +14,24 @@ baseline FFT cores, in order:
 Each step is a separate script with its own CLI; this driver just calls them in
 sequence with a shared `--sizes` list and stops at the first failure.
 
-`--sram-width` is REQUIRED because it changes what the area number means:
-  64 = wrapper over the existing 512x64 SRAM macro. Runs today with the
-       Liberty already in fp32_baseline/fp32_SRAM_MACROS/, but over-counts
-       FP16 memory area and power by roughly 2x.
-  32 = width-matched 512x32 macro, the correct FP16 memory. Needs a
-       compiler-generated Liberty passed through with --ram-lib.
-See synth/run_fp16_synthesis.py's docstring for the full explanation.
+`--memory` is REQUIRED because it selects the verification track:
+  regarray = behavioural register arrays. Vivado infers BRAM; this is the FPGA
+             track, and it needs no SRAM macro and no macro Liberty.
+  sram     = SRAM macros. The ASIC track, and it then needs --sram-width:
+               64 = wrapper over the existing 512x64 macro. Runs today with the
+                    Liberty already in fp32_baseline/fp32_SRAM_MACROS/, but
+                    over-counts FP16 memory area and power by roughly 2x.
+               32 = width-matched 512x32 macro, the correct FP16 memory. Needs a
+                    compiler-generated Liberty passed through with --ram-lib.
+Simulation (step 3) gives identical results either way; the choice only changes
+what synthesis (step 4) measures.
 
 Usage:
-    python3 fp16_baseline/run_fp16_design.py --sram-width 64
-    python3 fp16_baseline/run_fp16_design.py --sram-width 64 --sizes 16 1024
-    python3 fp16_baseline/run_fp16_design.py --sram-width 64 --skip-templates --skip-twiddles
-    python3 fp16_baseline/run_fp16_design.py --sram-width 32 \\
+    python3 fp16_baseline/run_fp16_design.py --memory regarray
+    python3 fp16_baseline/run_fp16_design.py --memory sram --sram-width 64
+    python3 fp16_baseline/run_fp16_design.py --memory sram --sram-width 64 --sizes 16 1024
+    python3 fp16_baseline/run_fp16_design.py --memory regarray --skip-templates --skip-twiddles
+    python3 fp16_baseline/run_fp16_design.py --memory sram --sram-width 32 \\
         --ram-lib path/to/sram_512x32_2rw_TT_1p0V_25C.lib
 """
 
@@ -56,12 +61,18 @@ def main():
                      help="FFT sizes to carry through every step (default: all 10)")
     ap.add_argument("--clock-period", type=float, default=10.0,
                      help="Clock period in ns passed to the synthesis step (default 10.0)")
-    ap.add_argument("--sram-width", type=int, choices=(32, 64), required=True,
-                     help="REQUIRED. Which sram_512x32_2rw model to use; see the "
-                          "module docstring. 64 runs today but over-counts FP16 "
-                          "memory ~2x; 32 is correct but needs a 512x32 Liberty.")
+    ap.add_argument("--memory", choices=("regarray", "sram"), required=True,
+                     help="REQUIRED. regarray = register arrays (FPGA track); "
+                          "sram = SRAM macros (ASIC track, needs --sram-width).")
+    ap.add_argument("--sram-width", type=int, choices=(32, 64), default=None,
+                     help="Required with --memory sram. 64 runs today but "
+                          "over-counts FP16 memory ~2x; 32 is correct but needs "
+                          "a 512x32 Liberty.")
     ap.add_argument("--ram-lib", default=None,
                      help="Forwarded to the synthesis step. Required with --sram-width 32.")
+    ap.add_argument("--std-lib", default=None,
+                     help="Forwarded to the synthesis step: standard-cell Liberty "
+                          "path, if it is not at the default 45_nm_PDK location.")
 
     ap.add_argument("--skip-templates", action="store_true",
                      help="Skip fp16_template_generator.py")
@@ -94,15 +105,21 @@ def main():
         run_step(
             "3/4  sim/fp16_performance_evaluator.py",
             [PYTHON, os.path.join("sim", "fp16_performance_evaluator.py"),
-             "--sizes", *size_args, "--sram-width", str(args.sram_width)],
+             "--sizes", *size_args, "--memory", args.memory]
+            + (["--sram-width", str(args.sram_width)]
+               if args.sram_width is not None else []),
         )
 
     if not args.skip_synth:
         cmd = [PYTHON, os.path.join("synth", "run_fp16_synthesis.py"),
                "--sizes", *size_args, "--clock-period", str(args.clock_period),
-               "--sram-width", str(args.sram_width)]
+               "--memory", args.memory]
+        if args.sram_width is not None:
+            cmd += ["--sram-width", str(args.sram_width)]
         if args.ram_lib:
             cmd += ["--ram-lib", args.ram_lib]
+        if args.std_lib:
+            cmd += ["--std-lib", args.std_lib]
         run_step("4/4  synth/run_fp16_synthesis.py", cmd)
 
     print(f"\n{'=' * 70}\n[run_fp16_design] All requested steps completed.\n{'=' * 70}")

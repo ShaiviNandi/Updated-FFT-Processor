@@ -113,8 +113,8 @@ def log(msg):
 
 class Fp16Synthesizer:
     def __init__(self, clock_period, std_lib, ram_lib, source_dir, shared_dir,
-                 generated_dir, work_dir, yosys_path, sta_path, sram_width,
-                 timeout=1800):
+                 generated_dir, work_dir, yosys_path, sta_path, memory,
+                 sram_width, timeout=1800):
         self.clock_period = clock_period
         self.std_lib = os.path.abspath(std_lib)
         self.ram_lib = os.path.abspath(ram_lib)
@@ -124,17 +124,24 @@ class Fp16Synthesizer:
         self.work_dir = os.path.abspath(work_dir)
         self.yosys_path = yosys_path
         self.sta_path = sta_path
+        self.memory = memory
         self.sram_width = sram_width
         self.timeout = timeout
 
         # Which module Yosys blackboxes. With --sram-width 64 the wrapper
         # sram_512x32_2rw stays as glue and the inner 64-bit macro is the
-        # blackbox; with 32 the width-matched macro itself is.
-        self.sram_macro_module = ("sram_512x64_2rw" if sram_width == 64
-                                  else "sram_512x32_2rw")
+        # blackbox; with 32 the width-matched macro itself is. With
+        # --memory regarray there is no macro at all.
+        if memory == "sram":
+            self.sram_macro_module = ("sram_512x64_2rw" if sram_width == 64
+                                      else "sram_512x32_2rw")
+        else:
+            self.sram_macro_module = None
 
-        for path, label in ((self.std_lib, "standard-cell liberty"),
-                             (self.ram_lib, "SRAM macro liberty")):
+        required = [(self.std_lib, "standard-cell liberty")]
+        if memory == "sram":
+            required.append((self.ram_lib, "SRAM macro liberty"))
+        for path, label in required:
             if not os.path.isfile(path):
                 raise SystemExit(f"{label} not found: {path}")
         for f in ("agu.v", "bit_reversal.v"):
@@ -153,7 +160,8 @@ class Fp16Synthesizer:
 
     def collect_sources(self, n):
         core, top = self.core_and_top_files(n)
-        sources = collect_source_files(self.source_dir, self.sram_width)
+        sources = collect_source_files(self.source_dir, self.memory,
+                                       self.sram_width)
         sources += [
             os.path.join(self.shared_dir, "agu.v"),
             os.path.join(self.shared_dir, "bit_reversal.v"),
@@ -178,11 +186,16 @@ class Fp16Synthesizer:
 
         flatten_cmd = "flatten -noscopeinfo\n            " if flatten else ""
         read_cmds = "\n".join(f"read_verilog -sv {f}" for f in sources)
+        # With --memory regarray the register arrays are synthesised like any
+        # other logic, so there is nothing to blackbox and no macro liberty.
+        blackbox_cmd = (f"# PRE-SYNTHESIS BLACKBOX\n            blackbox {self.sram_macro_module}\n"
+                        if self.sram_macro_module else "")
+        stat_libs = f"-liberty {self.std_lib}"
+        if self.memory == "sram":
+            stat_libs += f" -liberty {self.ram_lib}"
         yosys_script = textwrap.dedent(f"""\
             {read_cmds}
-            # PRE-SYNTHESIS BLACKBOX
-            blackbox {self.sram_macro_module}
-
+            {blackbox_cmd}
             hierarchy -check -top {top_module}
             {flatten_cmd}proc
             opt -purge
@@ -197,7 +210,7 @@ class Fp16Synthesizer:
             opt_clean -purge
             setundef -zero -undriven
 
-            stat -liberty {self.std_lib} -liberty {self.ram_lib}
+            stat {stat_libs}
             write_verilog -noattr {netlist_v}
         """)
         with open(script_path, "w") as f:
@@ -240,11 +253,12 @@ class Fp16Synthesizer:
         power_rpt = os.path.join(work_dir, f"fp16_fft_{n}_power.rpt")
         sta_log = os.path.join(work_dir, "sta.log")
         script_path = os.path.join(work_dir, f"fp16_fft_{n}_sta.tcl")
+        ram_lib_cmd = (f"read_liberty {self.ram_lib}\n            "
+                       if self.memory == "sram" else "")
 
         sta_script = textwrap.dedent(f"""\
             read_liberty {self.std_lib}
-            read_liberty {self.ram_lib}
-            read_verilog {netlist_v}
+            {ram_lib_cmd}read_verilog {netlist_v}
             link_design {top_module}
             create_clock -name {CLOCK_NET_NAME} -period {self.clock_period} [get_ports {CLOCK_NET_NAME}]
             set_input_delay  [expr {{{self.clock_period}}} / 4.0] -clock {CLOCK_NET_NAME} [all_inputs]
@@ -287,6 +301,7 @@ class Fp16Synthesizer:
         core, _top = self.core_and_top_files(n)
         ev = FP16PerformanceEvaluator(n, shared_sources_dir=self.shared_dir,
                                       sim_dir=work_dir, dump_vcd=True,
+                                      memory=self.memory,
                                       sram_width=self.sram_width)
         result = ev.run_verilog_simulation(core, design_name)
         if result is None:
@@ -302,11 +317,12 @@ class Fp16Synthesizer:
         power_rpt = os.path.join(work_dir, f"fp16_fft_{n}_power_vcd.rpt")
         sta_log = os.path.join(work_dir, "sta_vcd.log")
         script_path = os.path.join(work_dir, f"fp16_fft_{n}_sta_vcd.tcl")
+        ram_lib_cmd = (f"read_liberty {self.ram_lib}\n            "
+                       if self.memory == "sram" else "")
 
         sta_script = textwrap.dedent(f"""\
             read_liberty {self.std_lib}
-            read_liberty {self.ram_lib}
-            read_verilog {hier_netlist_v}
+            {ram_lib_cmd}read_verilog {hier_netlist_v}
             link_design {top_module}
             create_clock -name {CLOCK_NET_NAME} -period {self.clock_period} [get_ports {CLOCK_NET_NAME}]
             read_vcd -scope tb_{top_module[:-4]}/dut {vcd_file}
@@ -482,12 +498,19 @@ def main():
     ap.add_argument("--sizes", type=int, nargs="*", default=ALL_SIZES)
     ap.add_argument("--clock-period", type=float, default=10.0,
                      help="Clock period in ns (default 10.0, matches the mixed-precision flow)")
-    ap.add_argument("--sram-width", type=int, choices=(32, 64), required=True,
-                     help="REQUIRED. 64 = wrapper over the existing 512x64 macro "
-                          "(runs today with the Liberty you have, but over-counts "
+    ap.add_argument("--memory", choices=("regarray", "sram"), required=True,
+                     help="REQUIRED. Memory implementation, and therefore which "
+                          "verification track this run belongs to. "
+                          "regarray = behavioural register arrays (FPGA track; "
+                          "no SRAM macro, no macro Liberty needed). "
+                          "sram = SRAM macros (ASIC track), which then needs "
+                          "--sram-width.")
+    ap.add_argument("--sram-width", type=int, choices=(32, 64), default=None,
+                     help="Required with --memory sram, ignored otherwise. "
+                          "64 = wrapper over the existing 512x64 macro (runs "
+                          "today with the Liberty you have, but over-counts "
                           "FP16 memory ~2x). 32 = width-matched macro (correct, "
-                          "needs a compiler-generated Liberty via --ram-lib). "
-                          "See the module docstring.")
+                          "needs a compiler-generated Liberty via --ram-lib).")
     ap.add_argument("--std-lib", default=DEFAULT_STD_LIB)
     ap.add_argument("--ram-lib", default=None,
                      help="SRAM macro Liberty. Defaults to the existing 512x64 "
@@ -509,19 +532,25 @@ def main():
     args = ap.parse_args()
 
     ram_lib = args.ram_lib or DEFAULT_RAM_LIB_64
-    if args.sram_width == 32 and args.ram_lib is None:
-        raise SystemExit(
-            "--sram-width 32 needs --ram-lib pointing at a compiler-generated\n"
-            "sram_512x32_2rw Liberty. None exists yet: adapt\n"
-            "fp32_baseline/fp32_SRAM_MACROS/sram_512x64_2rw.py with word_size = 32\n"
-            "and re-run OpenRAM. To get numbers now, use --sram-width 64 instead\n"
-            "and report that FP16 memory area is over-counted ~2x.")
+    if args.memory == "sram":
+        if args.sram_width is None:
+            raise SystemExit("--memory sram also needs --sram-width 32 or 64.")
+        if args.sram_width == 32 and args.ram_lib is None:
+            raise SystemExit(
+                "--sram-width 32 needs --ram-lib pointing at a compiler-generated\n"
+                "sram_512x32_2rw Liberty. None exists yet: adapt\n"
+                "fp32_baseline/fp32_SRAM_MACROS/sram_512x64_2rw.py with word_size = 32\n"
+                "and re-run OpenRAM. To get numbers now, use --sram-width 64 instead\n"
+                "and report that FP16 memory area is over-counted ~2x.")
+    elif args.sram_width is not None:
+        print("[fp16-synth] note: --sram-width is ignored with --memory regarray")
 
     synth = Fp16Synthesizer(
         clock_period=args.clock_period, std_lib=args.std_lib, ram_lib=ram_lib,
         source_dir=args.source_dir, shared_dir=args.shared_dir,
         generated_dir=args.generated_dir, work_dir=args.work_dir,
-        yosys_path=args.yosys, sta_path=args.sta, sram_width=args.sram_width,
+        yosys_path=args.yosys, sta_path=args.sta, memory=args.memory,
+        sram_width=args.sram_width,
     )
 
     rows = [synth.synthesize(n) for n in args.sizes]
@@ -535,13 +564,18 @@ def main():
         else:
             r["energy_per_fft_nj"] = None
 
-    if args.sram_width == 64:
-        sram_note = ("MEMORY: --sram-width 64 -- the four SRAM macros are 512x64 with the upper "
-                     "32 bits tied off, so FP16 memory area and memory power are OVER-COUNTED by "
-                     "roughly 2x. Area here is a pessimistic bound on FP16, not a measurement. "
+    if args.memory == "regarray":
+        sram_note = ("MEMORY: --memory regarray -- behavioural register arrays, synthesised as "
+                     "standard-cell flops at 45nm. This is the FPGA-track memory; on an ASIC "
+                     "flow it is NOT comparable to an SRAM-macro design. Use --memory sram for "
+                     "ASIC numbers.")
+    elif args.sram_width == 64:
+        sram_note = ("MEMORY: --memory sram --sram-width 64 -- the four SRAM macros are 512x64 "
+                     "with the upper 32 bits tied off, so FP16 memory area and memory power are "
+                     "OVER-COUNTED by roughly 2x. A pessimistic bound on FP16, not a measurement. "
                      "Generate a 512x32 macro and re-run with --sram-width 32 for the real number.")
     else:
-        sram_note = ("MEMORY: --sram-width 32 -- width-matched 512x32 macros, "
+        sram_note = ("MEMORY: --memory sram --sram-width 32 -- width-matched 512x32 macros, "
                      f"Liberty {os.path.basename(ram_lib)}.")
 
     hdr = (f"{'N':>6} | {'Power (mW)':>11} | {'PowerSrc':>13} | {'AnnotPins':>9} | "

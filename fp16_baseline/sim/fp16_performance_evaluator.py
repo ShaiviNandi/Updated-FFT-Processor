@@ -20,9 +20,11 @@ What differs is only what has to differ for an FP16 datapath:
   * the golden FFT is computed in float64 before quantisation
   * sources: fp16_baseline/source/*.v plus ONLY agu.v and bit_reversal.v from
     the shared ../verilog_sources
-  * --sram-width selects which sram_512x32_2rw model is compiled (see
-    source/fp16_memory.v). Simulation results are identical either way; the
-    flag exists so the same source list can be handed to synthesis.
+  * --memory selects the memory implementation: `regarray` (behavioural
+    register arrays, the FPGA track) or `sram` (SRAM macros, the ASIC track);
+    with `sram`, --sram-width picks the macro model. Simulation results are
+    identical for every combination -- the flags exist so the same source list
+    can be handed to whichever synthesis flow is being run.
 
 Location: fp16_baseline/sim/fp16_performance_evaluator.py
 All paths are resolved relative to this file, so it can be run from anywhere:
@@ -70,6 +72,8 @@ DEFAULT_SHARED_DIR = os.path.join(REPO_ROOT, "verilog_sources")
 # The 64-bit macro model lives in the FP32 baseline; it is referenced rather
 # than copied so the repository has exactly one definition of it.
 SRAM64_MODEL = os.path.join(REPO_ROOT, "fp32_baseline", "source", "sram_512x64_2rw.v")
+MEM_REGARRAY_DIR = "mem_regarray"
+MEM_SRAM_DIR = "mem_sram"
 SRAM32_NATIVE = "sram_512x32_2rw.v"
 SRAM32_FROM64 = os.path.join("sram_variants", "sram_512x32_2rw_from64.v")
 
@@ -78,34 +82,71 @@ INF_SQNR_CREDIT = 100.0          # same credit the mixed evaluator gives an exac
 ALL_SIZES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
 
 
-def collect_source_files(source_dir, sram_width):
+def collect_source_files(source_dir, memory="regarray", sram_width=32):
     """The source list for both simulation and synthesis.
 
-    Exactly one model of `sram_512x32_2rw` is included: the native 32-bit one
-    (sram_width == 32, default) or the wrapper over the existing 512x64 macro
-    (sram_width == 64), which also pulls in the FP32 baseline's macro model.
-    Including both would be a duplicate module definition.
+    `source_dir/*.v` holds the format RTL (arithmetic, butterfly, twiddle ROM).
+    The memory lives in one of two sibling directories, and exactly one is
+    compiled -- both define `fp16_dual_bank_memory_concurrent` with the same
+    ports, so including both would be a duplicate module definition:
+
+      memory == "regarray"  -> mem_regarray/fp16_memory.v
+            Behavioural register arrays; Vivado infers BRAM. The FPGA track.
+            Self-contained: no macro model, no Liberty.
+
+      memory == "sram"      -> mem_sram/fp16_memory.v + one macro model
+            SRAM-macro based. The ASIC track. `sram_width` then picks the macro
+            model: 32 = native width-matched sram_512x32_2rw (needs a
+            compiler-generated Liberty), 64 = wrapper over the existing
+            512x64 macro, which also pulls in the FP32 baseline's macro model.
+
+    Simulation results are identical for every combination; the choice only
+    matters downstream, in synthesis.
     """
     source_dir = os.path.abspath(source_dir)
     files = sorted(glob_module.glob(os.path.join(source_dir, "*.v")))
 
-    native = os.path.join(source_dir, SRAM32_NATIVE)
+    # Memory RTL must come from mem_regarray/ or mem_sram/, never from the
+    # source/ root. A stale root-level copy (left behind by the pre-two-track
+    # layout) would otherwise be globbed in alongside the chosen variant and
+    # produce a duplicate definition of fp16_dual_bank_memory_concurrent.
+    STALE_AT_ROOT = ("fp16_memory.v", "sram_512x32_2rw.v")
+    stale = [f for f in files if os.path.basename(f) in STALE_AT_ROOT]
+    if stale:
+        for f in stale:
+            print(f"[fp16] WARNING ignoring stale {os.path.relpath(f, source_dir)} "
+                  f"in source/ root -- memory now lives in mem_regarray/ or "
+                  f"mem_sram/. Delete it.")
+        files = [f for f in files if f not in stale]
+
+    if memory == "regarray":
+        files.append(os.path.join(source_dir, MEM_REGARRAY_DIR, "fp16_memory.v"))
+        return files
+
+    if memory != "sram":
+        raise ValueError(f"memory must be 'regarray' or 'sram', got {memory!r}")
+
+    mem_dir = os.path.join(source_dir, MEM_SRAM_DIR)
+    files.append(os.path.join(mem_dir, "fp16_memory.v"))
     if sram_width == 64:
-        files = [f for f in files if os.path.abspath(f) != native]
-        files.append(os.path.join(source_dir, SRAM32_FROM64))
+        files.append(os.path.join(mem_dir, SRAM32_FROM64))
         files.append(SRAM64_MODEL)
+    else:
+        files.append(os.path.join(mem_dir, SRAM32_NATIVE))
     return files
 
 
 class FP16PerformanceEvaluator:
     def __init__(self, fft_size, shared_sources_dir=DEFAULT_SHARED_DIR,
-                 sim_dir=None, sim_timeout=600, dump_vcd=False, sram_width=32):
+                 sim_dir=None, sim_timeout=600, dump_vcd=False,
+                 memory="regarray", sram_width=32):
         self.fft_size            = fft_size
         self.num_stages          = int(math.log2(fft_size))
         self.verilog_sources_dir = os.path.join(BASE_DIR, 'source')
         self.shared_sources_dir  = os.path.abspath(shared_sources_dir)
         self.sim_dir             = os.path.abspath(sim_dir or os.path.join(SIM_DIR_ROOT, 'perf'))
         self.sim_timeout         = sim_timeout
+        self.memory              = memory
         self.sram_width          = sram_width
         # Off by default: this does not change anything about the SQNR/cycle
         # measurement this class exists for. When True, _generate_testbench
@@ -398,7 +439,8 @@ endmodule
         os.makedirs(sim_dir, exist_ok=True)
 
         tb_file = self._generate_testbench(verilog_file, design_name)
-        lib_sources = collect_source_files(self.verilog_sources_dir, self.sram_width)
+        lib_sources = collect_source_files(self.verilog_sources_dir,
+                                          self.memory, self.sram_width)
         lib_sources += [os.path.join(self.shared_sources_dir, 'agu.v'),
                         os.path.join(self.shared_sources_dir, 'bit_reversal.v')]
 
@@ -583,11 +625,16 @@ def main():
     ap.add_argument("--sizes", type=int, nargs="*", default=ALL_SIZES)
     ap.add_argument("--shared-dir", default=DEFAULT_SHARED_DIR,
                     help="directory with agu.v and bit_reversal.v")
+    ap.add_argument("--memory", choices=("regarray", "sram"), default="regarray",
+                    help="memory implementation: regarray = behavioural "
+                         "register arrays, the FPGA track (default, "
+                         "self-contained); sram = SRAM macros, the ASIC track. "
+                         "Simulation results are identical either way.")
     ap.add_argument("--sram-width", type=int, choices=(32, 64), default=32,
-                    help="which sram_512x32_2rw model to compile: 32 = native "
-                         "width-matched (default), 64 = wrapper over the "
-                         "existing 512x64 macro. Simulation results are "
-                         "identical; see source/fp16_memory.v")
+                    help="only with --memory sram: which sram_512x32_2rw model "
+                         "to compile. 32 = native width-matched (needs a "
+                         "compiler-generated Liberty), 64 = wrapper over the "
+                         "existing 512x64 macro.")
     ap.add_argument("--out", default=os.path.join(SIM_DIR_ROOT, 'perf', 'fp16_sqnr_results.txt'),
                     help="summary table (text)")
     args = ap.parse_args()
@@ -599,6 +646,7 @@ def main():
     rows = []
     for n in args.sizes:
         ev = FP16PerformanceEvaluator(n, shared_sources_dir=args.shared_dir,
+                                     memory=args.memory,
                                      sram_width=args.sram_width)
         r = ev.evaluate_size()
         rows.append((n, r))

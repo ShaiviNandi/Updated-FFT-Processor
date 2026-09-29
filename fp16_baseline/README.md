@@ -26,12 +26,15 @@ fp16_baseline/
 │   ├── fp16_adder.v              fp16_add_sub, fp16_complex_add_sub
 │   ├── fp16_multiplier.v         fp16_mul, fp16_cmul
 │   ├── fp16_butterfly.v          fp16_butterfly_generation_unit (2-cycle internally pipelined), fp16_butterfly_wrapper
-│   ├── fp16_memory.v             fp16_dual_bank_memory_concurrent (32-bit word, 4x sram_512x32_2rw macros)
 │   ├── fp16_twiddle_rom.v        twiddle_factor_fp16 (synthesizable case-statement ROM; auto-generated)
-│   ├── sram_512x32_2rw.v         width-matched SRAM macro model  (default)
-│   ├── sram_variants/
-│   │   └── sram_512x32_2rw_from64.v   same module name, wraps the existing 512x64 macro (--sram-width 64)
-│   └── twiddles_fp16_1024.txt    512 x 32-bit ROM contents (auto-generated)
+│   ├── twiddles_fp16_1024.txt    512 x 32-bit ROM contents (auto-generated)
+│   ├── mem_regarray/             FPGA track  (--memory regarray)
+│   │   └── fp16_memory.v         fp16_dual_bank_memory_concurrent, behavioural register arrays -> BRAM
+│   └── mem_sram/                 ASIC track  (--memory sram)
+│       ├── fp16_memory.v         fp16_dual_bank_memory_concurrent, 4x sram_512x32_2rw macros
+│       ├── sram_512x32_2rw.v     width-matched macro model (--sram-width 32)
+│       └── sram_variants/
+│           └── sram_512x32_2rw_from64.v   same module name, wraps the existing 512x64 macro (--sram-width 64)
 ├── generated_cores/               (generated)
 │   └── fp16_fft_<N>/              N = 2,4,8,16,32,64,128,256,512,1024
 │       ├── fp16_fft_<N>_core.v
@@ -62,14 +65,21 @@ format-agnostic, so they are instantiated directly rather than duplicated.
 
 ## One-command run
 
-`--sram-width` is required — it changes what the area number means (see
-*Memory* below).
+`--memory` is required — it selects the verification track (see *Memory* below).
 
 ```
-python3 run_fp16_design.py --sram-width 64                  # all 10 sizes, all 4 steps
-python3 run_fp16_design.py --sram-width 64 --sizes 16 1024   # a subset
-python3 run_fp16_design.py --sram-width 64 --clock-period 8.0
+# FPGA track: register arrays, Vivado infers BRAM. Self-contained.
+python3 run_fp16_design.py --memory regarray
+
+# ASIC track: SRAM macros, Yosys + OpenSTA.
+python3 run_fp16_design.py --memory sram --sram-width 64
+python3 run_fp16_design.py --memory sram --sram-width 64 --sizes 16 1024
+python3 run_fp16_design.py --memory sram --sram-width 64 --clock-period 8.0
 ```
+
+Step 3 (simulation) gives **identical results for every combination** — verified
+across all ten sizes for `regarray`, `sram --sram-width 32` and
+`sram --sram-width 64`. The flag only changes what step 4 measures.
 
 Runs, in order: `fp16_template_generator.py` → `generate_fp16_twiddles.py` →
 `sim/fp16_performance_evaluator.py` → `synth/run_fp16_synthesis.py`, stopping at
@@ -136,12 +146,38 @@ FP16 number previously reported for those sizes is invalid. The generator now
 derives `RESULT_BANK` from `log2(N) % 2`, matching the FP32 baseline, and all ten
 sizes pass — see *Measured results*.
 
-### Memory — the one choice that decides what the area number means
+### Memory — two tracks, and a width caveat inside one of them
+
+Project convention: **register arrays for FPGA verification, SRAM macros for
+ASIC verification.** This baseline carries both. Both files define
+`fp16_dual_bank_memory_concurrent` with the same port list, so exactly one is
+compiled and the generated cores never change:
+
+| | `--memory regarray` | `--memory sram` |
+|---|---|---|
+| Implementation | behavioural register arrays | 4× SRAM macro |
+| Track | FPGA / Vivado (infers BRAM) | ASIC / Yosys + OpenSTA |
+| External dependency | none | macro model + Liberty |
+| ASIC-comparable | no — becomes standard-cell flops | yes |
+
+Verified drop-in: the two produce bit-identical simulation results at every
+size. They reach the same 1-cycle read latency differently — `regarray`
+registers into `r_*` on posedge then muxes combinationally, `sram` relies on the
+macro's negedge update.
+
+One practical note on `regarray`: at 45 nm it synthesises the whole memory into
+flops — 4 × (N/2) × 32 bits, so 16,384 at N=256 and 65,536 at N=1024. Yosys
+`abc` gets slow well before N=1024 (N=256 exceeded a 2-minute budget locally).
+That is the FPGA variant doing exactly what it should, and a further reason not
+to run it through the ASIC flow.
+
+#### Inside the ASIC track: the 512×32 macro does not exist yet
 
 FP16's word is 32 bits, but the only SRAM the compiler has produced is
-`sram_512x64_2rw` (in `fp32_baseline/fp32_SRAM_MACROS/`), sized for FP32. The RTL
-always instantiates the width-matched `sram_512x32_2rw`; exactly one model of that
-module is compiled, and the flow picks which:
+`sram_512x64_2rw` (in `fp32_baseline/fp32_SRAM_MACROS/`), sized for FP32.
+`mem_sram/fp16_memory.v` always instantiates the width-matched
+`sram_512x32_2rw`; exactly one model of that module is compiled, and the flow
+picks which:
 
 | | `--sram-width 64` | `--sram-width 32` |
 |---|---|---|
@@ -159,8 +195,23 @@ measurement of it.
 The fix is one SRAM-compiler run: adapt
 `fp32_baseline/fp32_SRAM_MACROS/sram_512x64_2rw.py` with `word_size = 32`,
 re-run OpenRAM, then use `--sram-width 32 --ram-lib <new Liberty>`. Until then,
-**state which setting produced any table you publish.** There is no default;
-the argument is required and the chosen value is printed in the report header.
+**state which setting produced any table you publish.** The report header prints
+the memory choice and, for the ASIC track, the width.
+
+#### Cross-design status under this convention
+
+| | register arrays (FPGA) | SRAM macros (ASIC) |
+|---|---|---|
+| Mixed FP4/FP8 | `verilog_sources/memory.v` | **none exists** |
+| FP16 | `source/mem_regarray/` | `source/mem_sram/` |
+| FP32 | **none exists** | `fp32_baseline/source/fp32_memory.v` |
+
+So neither track currently has all three designs. An FPGA table can hold mixed
+and FP16; an ASIC table can hold FP16 and FP32. Adding mixed to the ASIC table
+needs a macro-backed mixed memory (a 512×24 macro, or the 512×32 with 8 bits
+tied off and that stated); adding FP32 to an FPGA table needs a register-array
+variant of `fp32_memory.v`. Both are mechanical — the port list is already
+common — but neither exists, so don't build a three-way table until one is done.
 
 ### Synthesizable twiddle ROM
 
@@ -230,15 +281,22 @@ the superseded version, where they were verified.
 **Full transform, all ten sizes** — the SQNR table above. All pass, including
 the five odd-`log2(N)` sizes that the superseded version got wrong.
 
-**Both SRAM variants give identical simulation results** — N=8 and N=256 return
-86.87 dB / 71.39 dB and 57 / 1139 cycles under `--sram-width 32` and
-`--sram-width 64` alike, as they must.
+**All three memory configurations give identical simulation results** —
+`--memory regarray`, `--memory sram --sram-width 32` and
+`--memory sram --sram-width 64` return the same cycles and the same SQNR at
+every one of the ten sizes.
 
-**Yosys elaboration + mapping**, sizes 2 / 8 / 256 / 1024: completes, maps to
-gates, **zero inferred latches**, and instantiates exactly **4 SRAM macros** per
-design, matching the FP32 organisation. Mapped cells 5,287 (N=2) → 13,017
-(N=1024) with a constant 707 flip-flops, consistent with the
-constant-area-by-construction framing.
+**Yosys elaboration + mapping.** ASIC track (`--memory sram`), sizes
+2 / 8 / 256 / 1024: completes, maps to gates, **zero inferred latches**, and
+instantiates exactly **4 SRAM macros** per design, matching the FP32
+organisation. Mapped cells 5,287 (N=2) → 13,017 (N=1024) with a constant 707
+flip-flops, consistent with the constant-area-by-construction framing. FPGA
+track (`--memory regarray`) at N=8: completes, zero latches, 11,156 cells,
+1,475 flops (707 pipeline + 512 memory + 256 read registers).
+
+**Emitted Yosys scripts differ correctly by track** — `regarray` has no
+`blackbox` line and one `-liberty`; `sram` blackboxes `sram_512x64_2rw` and
+passes both liberties.
 
 ### Not done — flagging honestly
 
