@@ -1,0 +1,13 @@
+Metric,Value
+design_name,fp16_fft_4
+top_module,fp16_fft_4_top
+lut_count,2778
+lutram_count,73
+dsp_count,5
+bram_count,4
+ff_count,93
+io_count,0
+total_power_w,0.076
+wns_ns,13.129
+critical_path_delay_ns,66.546
+clock_period_ns,80.0
