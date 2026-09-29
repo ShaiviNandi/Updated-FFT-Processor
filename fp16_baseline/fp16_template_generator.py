@@ -4,51 +4,87 @@ FP16 baseline FFT core/top generator.
 
 Emits a fully-pipelined (II=1) IEEE-754 binary16 FFT core + top for each FFT
 size, structurally matched to the NSGA-optimised mixed-precision cores in
-generated_cores/ so that FPGA/ASIC results can be compared directly:
+generated_cores/ (repository root) and to the FP32 baseline, so that ASIC
+results can be compared directly:
 
   * same streaming AGU (dit_fft_agu_streaming) and bit_reverse front end
   * same dual-bank ping-pong memory organisation and 1-cycle read
-  * same TOTAL_LATENCY = 11 datapath alignment and 12-cycle inter-stage stall
-    -> identical cycle counts per transform
   * same IDLE/RUN/FLUSH/DONE control FSM and active-low async reset
+  * TOTAL_LATENCY = 13 (11 cycles operand alignment + 2 cycles for the
+    internally-pipelined FP16 butterfly -- see fp16_butterfly.v) and
+    STALL_CYCLES = TOTAL_LATENCY + 1 inter-stage stall, identical to the FP32
+    baseline. This is 2 cycles more than the mixed-precision cores'
+    TOTAL_LATENCY = 11, so cycle counts per transform are 2*num_stages higher,
+    NOT identical. The depth is held equal to FP32's on purpose (see
+    fp16_butterfly.v) so that area and energy are the only variables across
+    the precision sweep.
 
-Differences are exactly the ones the baseline is supposed to have:
+Differences from the mixed-precision core are exactly the ones the baseline is
+supposed to have:
   * 32-bit complex FP16 memory word instead of the 24-bit unified FP8+FP4 word
   * no per-stage precision localparams, no precision muxes, no FP4<->FP8
     converters in the datapath
 
 Usage:
-    python fp16_template_generator.py                 # all sizes into generated_cores/
-    python fp16_template_generator.py --sizes 256 1024
-    python fp16_template_generator.py --outdir some/other/dir
+    python3 fp16_baseline/fp16_template_generator.py                 # all sizes
+    python3 fp16_baseline/fp16_template_generator.py --sizes 256 1024
+    python3 fp16_baseline/fp16_template_generator.py --outdir some/other/dir
+
+The script lives directly in fp16_baseline/ and, by default, writes to
+fp16_baseline/generated_cores/fp16_fft_<N>/ regardless of the working directory.
 """
 
 import argparse
 import os
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_OUTDIR = os.path.join(HERE, "generated_cores")
+
 ALL_SIZES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
 
 MAX_N = 1024
 ADDR_WIDTH = 11
-TOTAL_LATENCY = 11
+
+# The shared butterfly (fp16_butterfly.v) is internally pipelined 2 cycles
+# deep (multiply -> combine-add -> final-add, one arithmetic primitive per
+# stage), matching the FP32 baseline's depth exactly. The operand (A/B) and
+# twiddle pipelines feed the butterfly's INPUTS and are unchanged; only the
+# write-back address/enable pipeline, which waits for the butterfly's OUTPUT,
+# needs to grow by those same 2 cycles.
+BUTTERFLY_LATENCY = 2
+TOTAL_LATENCY = 11 + BUTTERFLY_LATENCY
 TWIDDLE_LATENCY = 10
-STALL_CYCLES = 12
+STALL_CYCLES = TOTAL_LATENCY + 1
 
 
 def log2i(n: int) -> int:
     return n.bit_length() - 1
 
 
+def result_bank(n: int) -> int:
+    """Bank select that reads the final result: 1 for even log2(N), 0 for odd.
+
+    Load writes bank-select 0 and every stage writes the opposite bank from the
+    one it reads, so after log2(N) stages the result sits in bank 1 for an even
+    stage count and bank 0 for an odd one. Hardcoding this to 1 silently
+    returns the wrong bank -- and therefore garbage -- for N = 2, 8, 32, 128,
+    512. Measured: ~1.1 dB SQNR instead of ~65 dB.
+    """
+    return 1 if log2i(n) % 2 == 0 else 0
+
+
 def gen_core(n: int) -> str:
     stages = log2i(n)
+    res_bank = result_bank(n)
     return f"""// =============================================================================
 // FP16 Baseline FFT Core - {n}-point FULLY PIPELINED II=1 ARCHITECTURE
 //
 // IEEE 754 binary16 (E5M10) throughout.  Reference design for benchmarking
-// against the NSGA-optimised mixed-precision FP4/FP8 core mixed_fft_{n}_core.
+// against the NSGA-optimised mixed-precision FP4/FP8 core mixed_fft_{n}_core
+// and against the FP32 baseline fp32_fft_{n}_core.
 //
-// Cycle-for-cycle identical control: same AGU, same TOTAL_LATENCY = {TOTAL_LATENCY},
-// same {STALL_CYCLES}-cycle inter-stage pipeline flush, same FSM.
+// Same AGU, same TOTAL_LATENCY = {TOTAL_LATENCY}, same {STALL_CYCLES}-cycle inter-stage
+// pipeline flush and same FSM as the FP32 baseline.
 // Active-low asynchronous reset (negedge rst).
 //
 // Memory word: [31:16] FP16 Real, [15:0] FP16 Imag
@@ -78,6 +114,14 @@ module fp16_fft_{n}_core #(
 
     // Single-precision baseline: {stages} stages, all FP16.
     localparam TOTAL_STAGES = {stages};
+
+    // Bank holding the final result.  Load writes bank-select 0 (sub-arrays
+    // b1_*) and every stage writes the opposite bank from the one it reads,
+    // so the result ends up in b1_* (select 1) after an even number of
+    // stages and in b0_* (select 0) after an odd number.  fft_bank_sel is
+    // parked on this value after the transform because it also decides
+    // which arrays see the READ addresses during unload.
+    localparam RESULT_BANK = 1'b{res_bank};
 
     reg  start_agu_reg;
     wire streaming_enable;
@@ -258,10 +302,11 @@ module fp16_fft_{n}_core #(
     wire [31:0] B_32_aligned = B_32_pipe[9];
 
     // -------------------------------------------------------------------------
-    // SINGLE SHARED BUTTERFLY UNIT (FP16)
+    // SINGLE SHARED BUTTERFLY UNIT (FP16, internally 2-cycle pipelined)
     // -------------------------------------------------------------------------
     wire [31:0] X_bf, Y_bf;
     fp16_butterfly_wrapper shared_bf (
+        .clk (clk),
         .A (A_32_aligned),
         .B (B_32_aligned),
         .W (twiddle),
@@ -314,7 +359,7 @@ module fp16_fft_{n}_core #(
 
                 FLUSH_ST: begin
                     if (flush_counter == 0) begin
-                        fft_bank_sel <= 1'b1;
+                        fft_bank_sel <= RESULT_BANK;
                         done         <= 1'b1;
                         state        <= DONE_ST;
                     end else begin
@@ -338,15 +383,16 @@ endmodule
 
 def gen_top(n: int) -> str:
     lg = log2i(n)
+    res_bank = result_bank(n)
     aw = max(1, lg)              # width of the user-facing load/unload address
     pad = ADDR_WIDTH - aw
     pad_lit = f"{pad}'b{'0' * pad}"
     return f"""// =============================================================================
 // FP16 Baseline FFT TOP - {n}-point PIPELINED CONFIGURATION
 //
-// Same interface shape as mixed_fft_{n}_top, with 32-bit complex FP16 load /
-// unload words in place of the 16-bit mixed-precision words.  No format
-// conversion on load: the baseline stores exactly what it is given.
+// Same interface shape as mixed_fft_{n}_top and fp32_fft_{n}_top, with 32-bit
+// complex FP16 load / unload words.  No format conversion on load: the
+// baseline stores exactly what it is given.
 // =============================================================================
 `timescale 1ns/1ps
 
@@ -416,7 +462,7 @@ module fp16_fft_{n}_top (
                 bank_sel <= 1'b1;
             end else if (core_done) begin
                 done     <= 1'b1;
-                bank_sel <= 1'b1;
+                bank_sel <= 1'b{res_bank};   // bank holding the result (log2 N = {lg})
             end else if (!start && done) begin
                 done <= 1'b0;
             end
@@ -430,8 +476,8 @@ def main():
     ap = argparse.ArgumentParser(description="Generate FP16 baseline FFT cores.")
     ap.add_argument("--sizes", type=int, nargs="*", default=ALL_SIZES,
                     help="FFT sizes to generate (default: all powers of two 2..1024)")
-    ap.add_argument("--outdir", type=str, default="generated_cores",
-                    help="Output directory (default: generated_cores)")
+    ap.add_argument("--outdir", type=str, default=DEFAULT_OUTDIR,
+                    help="Output directory (default: fp16_baseline/generated_cores)")
     args = ap.parse_args()
 
     for n in args.sizes:

@@ -2,11 +2,19 @@
 
 IEEE 754 **binary16 (E5M10, bias 15)** reference implementation of the same FFT
 architecture as the NSGA-optimised mixed-precision FP4/FP8 cores, so the paper
-can report area / power / timing / accuracy against a conventional FP16 design.
+can report area / power / energy / accuracy against a conventional half-precision
+design. It is the FP16 sibling of `fp32_baseline/`, built to the same conventions
+and measured by the same flow, so FP4/FP8 → FP16 → FP32 forms one uniform table.
 
 **Nothing in the existing tree was modified.** This directory is entirely
-additive, and every module name is prefixed `fp16_` so both designs can sit in
-one project without collisions.
+additive, and every module name is prefixed `fp16_` (or suffixed `_fp16`) so the
+FP16, FP32 and mixed designs can all sit in one project without collisions.
+
+> **Rebuilt 2026-09-29.** An earlier version of this directory targeted Vivado
+> FPGA synthesis with a `verilog_sources/` layout, a fully combinational
+> butterfly at `TOTAL_LATENCY = 11`, behavioural register-array memory and a
+> `$readmemb` ROM. It has been replaced. That version also had a real bug — see
+> *RESULT_BANK* below. Superseded files are listed at the end.
 
 ---
 
@@ -14,304 +22,280 @@ one project without collisions.
 
 ```
 fp16_baseline/
-├── verilog_sources/
+├── source/
 │   ├── fp16_adder.v              fp16_add_sub, fp16_complex_add_sub
 │   ├── fp16_multiplier.v         fp16_mul, fp16_cmul
-│   ├── fp16_butterfly.v          fp16_butterfly_generation_unit, fp16_butterfly_wrapper
-│   ├── fp16_memory.v             fp16_dual_bank_memory_concurrent (32-bit word)
-│   ├── fp16_twiddle_rom.v        twiddle_factor_fp16
-│   └── twiddles_fp16_1024.txt    512 × 32-bit ROM contents
-├── generated_cores/
-│   └── fp16_fft_<N>/             N = 2,4,8,16,32,64,128,256,512,1024
+│   ├── fp16_butterfly.v          fp16_butterfly_generation_unit (2-cycle internally pipelined), fp16_butterfly_wrapper
+│   ├── fp16_memory.v             fp16_dual_bank_memory_concurrent (32-bit word, 4x sram_512x32_2rw macros)
+│   ├── fp16_twiddle_rom.v        twiddle_factor_fp16 (synthesizable case-statement ROM; auto-generated)
+│   ├── sram_512x32_2rw.v         width-matched SRAM macro model  (default)
+│   ├── sram_variants/
+│   │   └── sram_512x32_2rw_from64.v   same module name, wraps the existing 512x64 macro (--sram-width 64)
+│   └── twiddles_fp16_1024.txt    512 x 32-bit ROM contents (auto-generated)
+├── generated_cores/               (generated)
+│   └── fp16_fft_<N>/              N = 2,4,8,16,32,64,128,256,512,1024
 │       ├── fp16_fft_<N>_core.v
 │       └── fp16_fft_<N>_top.v
-├── tb/                           self-check harnesses (see Verification)
-├── fp16_template_generator.py    regenerates all cores/tops
-├── generate_fp16_twiddles.py     regenerates the ROM contents
-├── vivado_synthesis_fp16.tcl     batch-mode synthesis (clone of ../vivado_synthesis.tcl)
-├── run_fp16_synthesis.py         batch driver + FP16-vs-mixed comparison table
+├── sim/
+│   ├── fp16_performance_evaluator.py   Icarus simulation: SQNR + exec-cycle count, per size
+│   └── perf/                            (generated) fp16_sqnr_results.txt (kept) + fp16_perf_artifacts.zip
+├── synth/
+│   ├── run_fp16_synthesis.py           Yosys + OpenSTA PPA (Power, Area, CritDelay, Slack, NormLat, Energy/FFT)
+│   └── (generated) fp16_ppa_report.txt (kept) + fp16_synth_artifacts.zip
+├── fp16_template_generator.py     regenerates all cores/tops
+├── generate_fp16_twiddles.py      regenerates the ROM contents (.txt table + synthesizable .v ROM)
+├── run_fp16_design.py             runs all four steps in order for a shared --sizes list
 └── README.md
 ```
 
-**Reused unchanged from `verilog_sources/`:** `agu.v` (`dit_fft_agu_streaming`)
-and `bit_reversal.v` (`bit_reverse`). Both are format-agnostic, so they are
-instantiated directly rather than duplicated — duplicating them would create
-conflicting module definitions when both designs are compiled together.
+**Path conventions.** Every script resolves its own default paths relative to
+its own file location, so all of them behave the same regardless of the working
+directory they're invoked from.
+
+**Reused unchanged from `../verilog_sources/`:** `agu.v`
+(`dit_fft_agu_streaming`) and `bit_reversal.v` (`bit_reverse`) — both are
+format-agnostic, so they are instantiated directly rather than duplicated.
+**Referenced from `../fp32_baseline/source/`:** `sram_512x64_2rw.v`, only under
+`--sram-width 64`, so the repository has exactly one definition of that macro.
 
 ---
 
-## Architectural parity (what makes the comparison fair)
+## One-command run
 
-Everything structural is matched to `mixed_fft_<N>_core`:
+`--sram-width` is required — it changes what the area number means (see
+*Memory* below).
 
-| | Mixed FP4/FP8 | FP16 baseline |
+```
+python3 run_fp16_design.py --sram-width 64                  # all 10 sizes, all 4 steps
+python3 run_fp16_design.py --sram-width 64 --sizes 16 1024   # a subset
+python3 run_fp16_design.py --sram-width 64 --clock-period 8.0
+```
+
+Runs, in order: `fp16_template_generator.py` → `generate_fp16_twiddles.py` →
+`sim/fp16_performance_evaluator.py` → `synth/run_fp16_synthesis.py`, stopping at
+the first failing step. Each step also has its own CLI.
+
+Requires on `$PATH`: `iverilog`/`vvp`, `yosys`, `sta` (OpenSTA). Needs `numpy`.
+
+---
+
+## Architecture
+
+Structurally matched to `mixed_fft_<N>_core` at the repository root and to the
+FP32 baseline:
+
+| | Mixed FP4/FP8 | FP16 baseline | FP32 baseline |
+|---|---|---|---|
+| Address generation | `dit_fft_agu_streaming` | same instance | same instance |
+| Input reordering | `bit_reverse` | same instance | same instance |
+| Memory | dual-bank ping-pong, 2 sub-banks, TDP, 1-cycle read | identical, from SRAM macros | identical, from SRAM macros |
+| Memory word | 24-bit unified | **32-bit** | 64-bit |
+| `TOTAL_LATENCY` | 11 | **13** | **13** |
+| Inter-stage flush | 12-cycle stall | **14-cycle** | **14-cycle** |
+| Control FSM | IDLE / RUN / FLUSH / DONE, async active-low reset | identical | identical |
+| Butterfly | one shared unit, II = 1, combinational | one shared unit, II = 1, **internally 2-cycle pipelined** | one shared unit, II = 1, **internally 2-cycle pipelined** |
+
+### `TOTAL_LATENCY = 13` and the 2-cycle butterfly
+
+The FP32 baseline splits its butterfly into three single-primitive pipeline
+stages because a 24×24 multiply chained into two dependent FP32 adds measures
+~13.4 ns at 45 nm — over a 10 ns budget:
+
+```
+cycle T   : 4 real multiplies (B x W)                     -> register
+cycle T+1 : complex-multiply combine (ac-bd, ad+bc = W*B)  -> register
+cycle T+2 : final complex add/sub, X = A + WB, Y = A - WB  (combinational)
+```
+
+**This baseline keeps the same 2-cycle depth even though FP16's narrower
+arithmetic would very likely meet 10 ns with fewer — or zero — stages.** That is
+a deliberate choice for architectural parity across the precision sweep, not a
+re-derived minimum: holding the control path fixed makes area and energy the only
+variables. Re-deriving a per-precision optimum is a legitimate alternative
+experiment, but it would confound the comparison.
+
+The operand (A/B) and twiddle pipelines feed the butterfly's *inputs* and stay at
+depth 11; only the write-back pipeline, which waits on the *output*, grows by 2.
+
+**Consequence, stated plainly:** this baseline is **not** cycle-matched to the
+mixed-precision cores. Cycle counts are `2 * num_stages` higher — 1139 vs 1123 at
+N=256 — exactly as for FP32. That is why **Energy/FFT**, which multiplies each
+design's own power by its own ExecCycles, is the comparable metric rather than
+raw cycles.
+
+### `RESULT_BANK` — a bug the rebuild fixes
+
+Load writes bank 0 and every stage writes the opposite bank from the one it
+reads, so after `log2(N)` stages the result sits in bank 1 for an even stage
+count and **bank 0 for an odd one**. The superseded version hardcoded the unload
+bank to 1, so every odd-`log2(N)` size read the wrong bank and returned garbage.
+
+Measured on the old cores: **N = 8 gave 1.13 dB and N = 32 gave 1.30 dB**, where
+the even sizes passed at ~65 dB. N = 2, 8, 32, 128, 512 were all affected. Any
+FP16 number previously reported for those sizes is invalid. The generator now
+derives `RESULT_BANK` from `log2(N) % 2`, matching the FP32 baseline, and all ten
+sizes pass — see *Measured results*.
+
+### Memory — the one choice that decides what the area number means
+
+FP16's word is 32 bits, but the only SRAM the compiler has produced is
+`sram_512x64_2rw` (in `fp32_baseline/fp32_SRAM_MACROS/`), sized for FP32. The RTL
+always instantiates the width-matched `sram_512x32_2rw`; exactly one model of that
+module is compiled, and the flow picks which:
+
+| | `--sram-width 64` | `--sram-width 32` |
 |---|---|---|
-| Address generation | `dit_fft_agu_streaming` | same instance |
-| Input reordering | `bit_reverse` | same instance |
-| Memory | dual-bank ping-pong, 2 sub-banks, TDP, 1-cycle read | identical organisation |
-| Datapath alignment | `TOTAL_LATENCY = 11` | `TOTAL_LATENCY = 11` |
-| Twiddle pipeline | 11 registers | 11 registers |
-| Inter-stage flush | 12-cycle stall | 12-cycle stall |
-| Control FSM | IDLE / RUN / FLUSH / DONE, async active-low reset | identical |
-| Butterfly | one shared unit, II = 1 | one shared unit, II = 1 |
+| Model | wrapper over the existing 512×64 macro, upper 32 bits tied off | native width-matched macro |
+| Liberty | the one you already have | **must be generated** |
+| Runs today | yes | no |
+| FP16 memory area | **over-counted ~2×** | correct |
 
-**Measured: a 256-point transform takes 1123 cycles in *both* designs.** Latency
-is therefore identical by construction and any reported difference is purely
-area, power and *F*max.
+This matters more than it sounds: in the FP32 baseline the four macros are
+**87–95 % of total area**, so memory word width is most of what a precision
+comparison measures. A half-used 64-bit macro hides the entire effect and makes
+FP16 look far closer to FP32 than it is — a pessimistic bound on FP16, not a
+measurement of it.
 
-### Deliberate differences
+The fix is one SRAM-compiler run: adapt
+`fp32_baseline/fp32_SRAM_MACROS/sram_512x64_2rw.py` with `word_size = 32`,
+re-run OpenRAM, then use `--sram-width 32 --ram-lib <new Liberty>`. Until then,
+**state which setting produced any table you publish.** There is no default;
+the argument is required and the chosen value is printed in the report header.
 
-These are the things the baseline is supposed to differ in — flag them in the
-paper rather than hiding them:
+### Synthesizable twiddle ROM
 
-1. **32-bit memory word** (`[31:16]` real, `[15:0]` imag) instead of the 24-bit
-   unified FP8+FP4 word. A true FP16 design must store 32 bits per complex
-   sample; truncating to 24 would not be FP16 and reviewers would say so.
-2. **No precision plumbing.** The mixed core carries per-stage
-   `STAGE<i>_MULT_PREC` / `ADD_PREC` / `OUT_PREC` localparams, a
-   `current_stage_stable` tracker, a `stable_stage_pipe`, and eight
-   `fp4↔fp8` converters around the butterfly. None of that exists in a
-   single-precision design, so it is all removed. Leaving dead muxing in would
-   inflate the baseline's area and flatter your result.
-3. **Twiddle ROM is 32-bit, no `PRECISION` port**, and its file path is a
-   parameter (`TWIDDLE_FILE`) rather than the hardcoded absolute path in
-   `twiddle_rom.v`.
+`fp16_twiddle_rom.v` is a combinational case-statement ROM auto-generated by
+`generate_fp16_twiddles.py` from the same computed entries as
+`twiddles_fp16_1024.txt`, not a `$readmemb` memory — a `$readmemb` ROM depends on
+a relative path resolving against whatever working directory the tool runs from,
+which is fine for Icarus but fragile across Yosys/OpenSTA invocations. It also
+avoids an inferred latch that an always-block-assigned `raw_data` produces (the
+same construct is still present in `verilog_sources/twiddle_rom.v` — see *Related
+note* at the end).
 
-### Numeric conventions — matched on purpose
+### Numeric conventions
 
-Matched to `adder.v` / `multiplier.v` so the accuracy comparison isolates
-*precision*, not *exception handling*:
+Matched to `adder.v` / `multiplier.v` and to the FP32 baseline so the accuracy
+comparison isolates *precision*, not *exception handling*:
 
 - Round-to-Nearest-Even on both add and multiply.
-- **Overflow saturates** to the largest finite normal (±65504.0). No Inf/NaN
-  encodings are produced, exactly as the FP4/FP8 units saturate.
-- Subnormal **inputs** are handled correctly in both units; subnormal
-  **results** are produced by the adder and flushed to zero by the multiplier
-  (mirroring `fp8_mul`'s underflow behaviour).
+- **Overflow saturates** to the largest finite normal (±65504.0, `0x7BFF`). No
+  Inf/NaN encodings are produced.
+- Subnormal **inputs** handled correctly in both units; subnormal **results** are
+  produced by the adder and flushed to zero by the multiplier.
 
-If a reviewer specifically wants IEEE Inf/NaN propagation, say so and it is a
-small change to the result-assembly block in each unit.
+---
+
+## Measured results
+
+### Accuracy and cycles — `sim/perf/fp16_sqnr_results.txt`
+
+Same 11 test signals, same golden (FFT of the input quantised to the design's
+format), same SQNR definition, same exact-match-counts-as-100 dB averaging as the
+mixed and FP32 evaluators.
+
+| N | ExecCycles | Avg SQNR (dB) | Avg non-exact (dB) | Exact |
+|---|---|---|---|---|
+| 2 | 18 | 112.71 | 146.59 | 8/11 |
+| 4 | 35 | 120.17 | 127.74 | 3/11 |
+| 8 | 57 | 86.87 | 81.94 | 3/11 |
+| 16 | 91 | 79.87 | 77.86 | 1/11 |
+| 32 | 153 | 76.69 | 74.36 | 1/11 |
+| 64 | 279 | 73.02 | 70.32 | 1/11 |
+| 128 | 549 | 72.28 | 69.51 | 1/11 |
+| 256 | 1139 | 71.39 | 68.53 | 1/11 |
+| 512 | 2433 | 70.59 | 67.65 | 1/11 |
+| 1024 | 5263 | 69.78 | 66.76 | 1/11 |
+
+**ExecCycles are identical to the FP32 baseline's at every size** (18 / 35 / 57 /
+91 / 153 / 279 / 549 / 1139 / 2433 / 5263), confirming the control paths match
+exactly. SQNR sits between the mixed-precision cores' 22–39 dB and FP32's
+143–155 dB, as a 10-bit mantissa should.
+
+### PPA — `synth/fp16_ppa_report.txt`
+
+**Not yet produced.** See *Not done* below.
 
 ---
 
 ## Verification performed
 
-All run with Icarus Verilog 12.0 against numpy `float16` / `float64` references.
+**Arithmetic, bit-exactness — 40,000 random operand pairs.** FP16 adder and
+multiplier are bit-exact against numpy `float16` (with the saturate/flush
+conventions applied): 0 mismatches on add, sub and mul. Vector mix covered
+full-range patterns, small normals, near-cancellation, subnormals, saturating
+magnitudes and wide exponent spreads. These two files carry over unchanged from
+the superseded version, where they were verified.
 
-**1. Arithmetic, bit-exactness — 40,000 random operand pairs**
+**Full transform, all ten sizes** — the SQNR table above. All pass, including
+the five odd-`log2(N)` sizes that the superseded version got wrong.
 
-Vector mix: full-range random bit patterns, small normals, near-cancellation
-pairs, subnormals, saturating magnitudes, and wide exponent spreads.
+**Both SRAM variants give identical simulation results** — N=8 and N=256 return
+86.87 dB / 71.39 dB and 57 / 1139 cycles under `--sram-width 32` and
+`--sram-width 64` alike, as they must.
 
-```
-add: 40000/40000 exact  (0 mismatches)
-sub: 40000/40000 exact  (0 mismatches)
-mul: 40000/40000 exact  (0 mismatches)
-```
+**Yosys elaboration + mapping**, sizes 2 / 8 / 256 / 1024: completes, maps to
+gates, **zero inferred latches**, and instantiates exactly **4 SRAM macros** per
+design, matching the FP32 organisation. Mapped cells 5,287 (N=2) → 13,017
+(N=1024) with a constant 707 flip-flops, consistent with the
+constant-area-by-construction framing.
 
-Bit-exact against numpy `float16` with the saturate/flush conventions applied.
+### Not done — flagging honestly
 
-**2. End-to-end transform vs `numpy.fft.fft` (float64)**
-
-| N | cycles | SNR | max abs error | dominant bins |
-|---|---|---|---|---|
-| 16 | 83 | 65.60 dB | 0.0011 | match |
-| 64 | 267 | 63.68 dB | 0.0040 | match |
-| 256 | 1123 | 59.32 dB | 0.0186 | match |
-| 1024 | 5243 | 60.21 dB | 0.0714 | match |
-
-**3. Elaboration** — all ten `fp16_fft_<N>_top` modules elaborate clean.
-
-**4. Synthesis smoke test (Yosys 0.33)** — `fp16_fft_256_top` maps fully to
-gates with **no inferred latches** anywhere in the FP16 sources. This caught a
-real latch in the first draft of the twiddle ROM, now fixed. The only remaining
-warning is the tri-state check in `fp16_memory.v` (`=== 1'bz`), inherited
-verbatim from your `memory.v`, which Vivado handles.
-
-**5. Synthesis flow plumbing** — `vivado_synthesis_fp16.tcl` and
-`run_fp16_synthesis.py` were exercised end-to-end against a stubbed Vivado
-(mock `report_utilization` / `report_power` / `report_timing_summary` output):
-argument handling, source selection, twiddle staging, CSV schema, the
-`--with-mixed` second invocation, `--report-only`, and the missing-binary error
-path all behave correctly.
-
-### Not yet done — flagging honestly
-
-- **No Vivado run has been performed on this RTL** — Vivado is not available
-  in the environment this was built in, so the flow below is plumbing-tested
-  against a stub, not against real Vivado. Yosys confirms the RTL is
-  synthesisable and latch-free, but the actual timing, area and power numbers
-  are still yours to produce. Run `--sizes 256` first as a smoke test before
-  committing to the full sweep. The
-  `(* use_dsp = "yes" *)` attribute on the 11×11 multiplier is inherited from
-  the existing style; on a real FP16 core you may want to sweep
-  `use_dsp = yes/no`, since one FP16 multiply maps very differently to a DSP48
-  than an FP4 or FP8 one does.
-- **Not integrated with the RISC-V / PicoRV32 flow.** The `risc-v-integration/`
-  path assumes 16-bit load/unload words; the FP16 top uses 32-bit words, so the
-  CUSTOM-0 encoding and the firmware's load/unload loop need widening. Tell me
-  when you want that and I'll do it as a separate additive change.
-- **Sizes 2, 4, 8, 32, 128, 512 were elaborated but not simulated** end-to-end.
-  They come from the same generator as the four sizes that were simulated, so
-  the risk is low, but they are untested.
-- `objectiveEvaluationFFT.py` / `performance_evaluator.py` have not been touched
-  and do not yet know about these cores.
+- **No Yosys-with-45nm-Liberty or OpenSTA run.** `45_nm_PDK/` is not on the
+  machine this was built on, and `sta` is not installed there, so
+  `synth/run_fp16_synthesis.py` is **unverified end to end**. It is a faithful
+  port of `run_fp32_synthesis.py` (same passes, same regexes, same report
+  schema), but the first real run may need fixing. Run `--sizes 256` first.
+- **The Yosys checks above used two local substitutions** because this
+  environment has Yosys 0.33: `flatten` instead of `flatten -noscopeinfo`, and a
+  blackbox stub instead of the SRAM behavioural model. Both `flatten
+  -noscopeinfo` and reading the OpenRAM model abort on 0.33 — and **your
+  original `fp32_baseline/source/sram_512x64_2rw.v` aborts identically**, so this
+  is a Yosys-version difference, not a defect in either model. Your Yosys
+  demonstrably handles both, since `fp32_ppa_report.txt` exists.
+- **`--sram-width 32` cannot be run at all yet** — no 512×32 Liberty exists. The
+  script refuses rather than silently substituting the 64-bit one.
+- **Not integrated with the RISC-V / PicoRV32 flow.** `risc-v-integration/`
+  assumes 16-bit load/unload words; the FP16 top uses 32-bit, so the CUSTOM-0
+  encoding and firmware loop need widening.
+- **`objectiveEvaluationFFT.py` has not been touched** and does not know about
+  these cores.
 
 ---
 
-## How to run
+## Superseded by the rebuild
 
-**Simulation** (from a directory containing `twiddles_fp16_1024.txt`):
-
-```
-iverilog -g2005 -o fft.vvp -s fp16_fft_256_top \
-    fp16_baseline/verilog_sources/*.v \
-    verilog_sources/agu.v verilog_sources/bit_reversal.v \
-    fp16_baseline/generated_cores/fp16_fft_256/*.v \
-    <your_testbench>.v
-vvp fft.vvp
-```
-
-**Reproduce the arithmetic check:**
+These files are from the Vivado-track version and are no longer part of the
+design. Nothing in the current flow reads them:
 
 ```
-cd fp16_baseline
-python3 tb/check_fp16_arith.py gen fp16_vectors.txt
-iverilog -g2005 -o tb.vvp -s tb_fp16_arith \
-    verilog_sources/fp16_adder.v verilog_sources/fp16_multiplier.v tb/tb_fp16_arith.v
-vvp tb.vvp
-python3 tb/check_fp16_arith.py check fp16_vectors.txt fp16_results.txt
+fp16_baseline/verilog_sources/         -> replaced by source/
+fp16_baseline/vivado_synthesis_fp16.tcl
+fp16_baseline/run_fp16_synthesis.py    -> replaced by synth/run_fp16_synthesis.py
+fp16_baseline/tb/                      -> replaced by sim/
 ```
 
-**Reproduce the transform check (256-point):**
+`source/fp16_adder.v` and `source/fp16_multiplier.v` are the same verified files
+carried over from `verilog_sources/`. Delete the list above when convenient;
+they were left in place rather than removed automatically.
 
-```
-cd fp16_baseline
-cp verilog_sources/twiddles_fp16_1024.txt .
-python3 tb/check_fp16_fft.py gen fft_in.txt
-iverilog -g2005 -o fft.vvp -s tb_fp16_fft_256 \
-    verilog_sources/*.v ../verilog_sources/agu.v ../verilog_sources/bit_reversal.v \
-    generated_cores/fp16_fft_256/*.v tb/tb_fp16_fft_256.v
-vvp fft.vvp
-python3 tb/check_fp16_fft.py check fft_out.txt
-```
-
-**Regenerate the RTL:**
-
-```
-python3 fp16_template_generator.py                  # all 10 sizes
-python3 fp16_template_generator.py --sizes 256 1024
-python3 generate_fp16_twiddles.py --out verilog_sources/twiddles_fp16_1024.txt
-```
-
----
-
-## Vivado batch synthesis
-
-`vivado_synthesis_fp16.tcl` is a behavioural clone of `../vivado_synthesis.tcl`
-— same in-memory project, same `synth_design -mode out_of_context`, same
-report regexes, same CSV schema — so the FP16 metrics slot straight into your
-existing tables. The original TCL is **not modified**.
-
-It takes two extra `-tclargs` beyond the original seven:
-
-| # | arg | why |
-|---|---|---|
-| 8 | `shared_dir` | the FP16 sources live in their own tree, so `agu.v` and `bit_reversal.v` are pulled from `../verilog_sources` by name. Only those two — nothing else from the mixed tree leaks in. |
-| 9 | `twiddle_file` | copied into the CWD so the ROM's relative `$readmemb` resolves the same way no matter where Vivado was launched. |
-
-### Run it
-
-From the repository root — the same directory you run
-`runMixedFFTOptimization.py` from:
-
-```
-python3 fp16_baseline/run_fp16_synthesis.py --with-mixed
-```
-
-`--with-mixed` also re-synthesises each matching NSGA-optimised core **in the
-same session, through the unmodified `vivado_synthesis.tcl`**. One Vivado
-version, one part, one clock, one run — that is the controlled comparison to
-put in the paper, rather than pairing fresh FP16 numbers against mixed numbers
-from an older sweep.
-
-Other useful invocations:
-
-```
-# one size, quick smoke test before committing to the full sweep
-python3 fp16_baseline/run_fp16_synthesis.py --sizes 256
-
-# FP16 only, all ten sizes
-python3 fp16_baseline/run_fp16_synthesis.py
-
-# override the defaults scraped from globalVariablesMixedFFT.py
-python3 fp16_baseline/run_fp16_synthesis.py --clock 80.0 --part xc7a35tcpg236-1 \
-    --vivado /home/digital-1/2025.2/Vivado/bin/vivado
-
-# re-tabulate from existing CSVs without re-running Vivado
-python3 fp16_baseline/run_fp16_synthesis.py --report-only --with-mixed
-```
-
-Defaults are read out of `globalVariablesMixedFFT.py` by text-scrape (not
-import, which would create directories and append to `optimization.log` as a
-side effect): `CLOCK_PERIOD = 80.0`, `FPGA_DEVICE = xc7a35tcpg236-1`,
-`VIVADO_PATH = /home/digital-1/2025.2/Vivado/bin/vivado`.
-
-### Output
-
-Per-design CSVs and logs land in `reports/fp16_baseline/`:
-
-```
-reports/fp16_baseline/
-├── fp16_fft_<N>_metrics.csv        same schema as your existing *_metrics.csv
-├── fp16_fft_<N>_vivado.log
-├── fp16_fft_<N>_run.log            stdout/stderr capture
-├── mixed_fft_<N>_metrics.csv       only with --with-mixed
-└── fp16_vs_mixed_comparison.csv    joined table with FP16/mixed ratios
-```
-
-and the table is printed to the terminal as FP16 rows, mixed rows, and a ratio
-block where `>1` means FP16 costs more.
-
-### To run it by hand for one design
-
-```
-vivado -mode batch -source fp16_baseline/vivado_synthesis_fp16.tcl -tclargs \
-    fp16_fft_256 \
-    $(pwd)/reports/fp16_baseline/fp16_fft_256_metrics.csv \
-    80.0 \
-    $(pwd)/fp16_baseline/generated_cores/fp16_fft_256/fp16_fft_256_core.v \
-    $(pwd)/fp16_baseline/generated_cores/fp16_fft_256/fp16_fft_256_top.v \
-    $(pwd)/fp16_baseline/verilog_sources \
-    xc7a35tcpg236-1 \
-    $(pwd)/verilog_sources \
-    $(pwd)/fp16_baseline/verilog_sources/twiddles_fp16_1024.txt
-```
-
-### One thing to watch
-
-At `CLOCK_PERIOD = 80.0 ns` the mixed-precision cores have a lot of slack. An
-FP16 butterfly is a much deeper combinational path (11×11 multiply plus a
-5-bit-exponent aligner and normaliser, all unpipelined inside one butterfly),
-so if FP16 misses timing at 80 ns that is a **real** result worth reporting,
-not a setup error. Report WNS for both rather than only "met/not met". If you
-want an Fmax comparison rather than a fixed-clock one, sweep `--clock` down
-until each design's WNS crosses zero.
+If you still want the FPGA-track numbers, the Vivado TCL is a working clone of
+`vivado_synthesis.tcl` — but note that it clones the **v1** flow
+(`create_clock` after `synth_design`, no `opt_design`, vectorless power), which
+`area-power-variance-rootcause.md` retired, and that its FP16 rows for N = 2, 8,
+32, 128, 512 came from the `RESULT_BANK`-broken cores.
 
 ---
 
 ## Related note on the existing tree (not changed)
 
-While synthesis-checking my ROM I found the same construct in your
-`verilog_sources/twiddle_rom.v`: `raw_data` is a `reg` assigned only inside the
+`verilog_sources/twiddle_rom.v` assigns `raw_data` (a `reg`) only inside the
 `else` branch of `if (is_midpoint)`, which makes synthesis **infer a latch** on
-that 24-bit signal. Yosys flags it; Vivado will too, as a `WARNING` you may
-have been scrolling past. It is functionally harmless (`twiddle_out` is fully
-assigned on every path) but it costs area and sits in the twiddle path.
-
-I fixed it in `fp16_twiddle_rom.v` by making `raw_data` a continuous
-assignment. **I did not touch your file** — the one-line equivalent change
-there would be `reg [23:0] raw_data;` → `wire [23:0] raw_data = rom[rom_addr];`
-with the assignment removed from the always block. Your call whether to apply
-it; note that doing so would change the mixed-precision area numbers slightly,
-so if you do it, re-run the mixed cores too.
+that 24-bit signal. Functionally harmless — `twiddle_out` is fully assigned on
+every path — but it costs area and sits in the twiddle path. The FP16 and FP32
+baselines both avoid it by construction (case-statement ROM). The one-line
+equivalent fix there is `reg [23:0] raw_data;` → `wire [23:0] raw_data =
+rom[rom_addr];` with the assignment removed from the always block. **Your file
+was not modified**; applying it would shift the mixed-precision area numbers
+slightly, so re-run those cores if you do.

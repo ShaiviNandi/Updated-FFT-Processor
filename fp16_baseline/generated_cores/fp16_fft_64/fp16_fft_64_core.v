@@ -2,10 +2,11 @@
 // FP16 Baseline FFT Core - 64-point FULLY PIPELINED II=1 ARCHITECTURE
 //
 // IEEE 754 binary16 (E5M10) throughout.  Reference design for benchmarking
-// against the NSGA-optimised mixed-precision FP4/FP8 core mixed_fft_64_core.
+// against the NSGA-optimised mixed-precision FP4/FP8 core mixed_fft_64_core
+// and against the FP32 baseline fp32_fft_64_core.
 //
-// Cycle-for-cycle identical control: same AGU, same TOTAL_LATENCY = 11,
-// same 12-cycle inter-stage pipeline flush, same FSM.
+// Same AGU, same TOTAL_LATENCY = 13, same 14-cycle inter-stage
+// pipeline flush and same FSM as the FP32 baseline.
 // Active-low asynchronous reset (negedge rst).
 //
 // Memory word: [31:16] FP16 Real, [15:0] FP16 Imag
@@ -36,6 +37,14 @@ module fp16_fft_64_core #(
     // Single-precision baseline: 6 stages, all FP16.
     localparam TOTAL_STAGES = 6;
 
+    // Bank holding the final result.  Load writes bank-select 0 (sub-arrays
+    // b1_*) and every stage writes the opposite bank from the one it reads,
+    // so the result ends up in b1_* (select 1) after an even number of
+    // stages and in b0_* (select 0) after an odd number.  fft_bank_sel is
+    // parked on this value after the transform because it also decides
+    // which arrays see the READ addresses during unload.
+    localparam RESULT_BANK = 1'b1;
+
     reg  start_agu_reg;
     wire streaming_enable;
     wire [ADDR_WIDTH-1:0] idx_a, idx_b, k;
@@ -60,7 +69,7 @@ module fp16_fft_64_core #(
         if (!rst) begin
             pipeline_stall_cnt <= 0;
         end else if (safe_done_stage && !safe_done_fft) begin
-            pipeline_stall_cnt <= 12;
+            pipeline_stall_cnt <= 14;
         end else if (pipeline_stall_cnt > 0) begin
             pipeline_stall_cnt <= pipeline_stall_cnt - 1;
         end
@@ -125,7 +134,7 @@ module fp16_fft_64_core #(
     // -------------------------------------------------------------------------
     // Write-back address / enable pipeline
     // -------------------------------------------------------------------------
-    localparam TOTAL_LATENCY = 11;
+    localparam TOTAL_LATENCY = 13;
 
     (* srl_style = "srl" *) reg [TOTAL_LATENCY-1:0]  wr_en_pipe;
     (* srl_style = "srl" *) reg [ADDR_WIDTH-1:0]     wr_addr_a_pipe [0:TOTAL_LATENCY-1];
@@ -215,10 +224,11 @@ module fp16_fft_64_core #(
     wire [31:0] B_32_aligned = B_32_pipe[9];
 
     // -------------------------------------------------------------------------
-    // SINGLE SHARED BUTTERFLY UNIT (FP16)
+    // SINGLE SHARED BUTTERFLY UNIT (FP16, internally 2-cycle pipelined)
     // -------------------------------------------------------------------------
     wire [31:0] X_bf, Y_bf;
     fp16_butterfly_wrapper shared_bf (
+        .clk (clk),
         .A (A_32_aligned),
         .B (B_32_aligned),
         .W (twiddle),
@@ -271,7 +281,7 @@ module fp16_fft_64_core #(
 
                 FLUSH_ST: begin
                     if (flush_counter == 0) begin
-                        fft_bank_sel <= 1'b1;
+                        fft_bank_sel <= RESULT_BANK;
                         done         <= 1'b1;
                         state        <= DONE_ST;
                     end else begin

@@ -1,9 +1,9 @@
 // =============================================================================
 // FP16 Baseline FFT TOP - 2-point PIPELINED CONFIGURATION
 //
-// Same interface shape as mixed_fft_2_top, with 32-bit complex FP16 load /
-// unload words in place of the 16-bit mixed-precision words.  No format
-// conversion on load: the baseline stores exactly what it is given.
+// Same interface shape as mixed_fft_2_top and fp32_fft_2_top, with 32-bit
+// complex FP16 load / unload words.  No format conversion on load: the
+// baseline stores exactly what it is given.
 // =============================================================================
 `timescale 1ns/1ps
 
@@ -73,7 +73,7 @@ module fp16_fft_2_top (
                 bank_sel <= 1'b1;
             end else if (core_done) begin
                 done     <= 1'b1;
-                bank_sel <= 1'b1;
+                bank_sel <= 1'b0;   // bank holding the result (log2 N = 1)
             end else if (!start && done) begin
                 done <= 1'b0;
             end
