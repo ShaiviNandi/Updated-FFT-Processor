@@ -49,6 +49,13 @@ def main():
                      help="FFT sizes to carry through every step (default: all 10)")
     ap.add_argument("--clock-period", type=float, default=10.0,
                      help="Clock period in ns passed to the synthesis step (default 10.0)")
+    ap.add_argument("--memory", choices=("regarray", "sram"), default="sram",
+                     help="regarray = register arrays (FPGA track); sram = SRAM "
+                          "macros (ASIC track, default, matches the published "
+                          "fp32_ppa_report.txt).")
+    ap.add_argument("--std-lib", default=None,
+                     help="Forwarded to the synthesis step: standard-cell Liberty "
+                          "path, if not at the default 45_nm_PDK location.")
 
     ap.add_argument("--skip-templates", action="store_true",
                      help="Skip fp32_template_generator.py")
@@ -81,14 +88,16 @@ def main():
         run_step(
             "3/4  sim/fp32_performance_evaluator.py",
             [PYTHON, os.path.join("sim", "fp32_performance_evaluator.py"),
-             "--sizes", *size_args],
+             "--sizes", *size_args, "--memory", args.memory],
         )
 
     if not args.skip_synth:
         run_step(
             "4/4  synth/run_fp32_synthesis.py",
             [PYTHON, os.path.join("synth", "run_fp32_synthesis.py"),
-             "--sizes", *size_args, "--clock-period", str(args.clock_period)],
+             "--sizes", *size_args, "--clock-period", str(args.clock_period),
+             "--memory", args.memory]
+            + (["--std-lib", args.std_lib] if args.std_lib else []),
         )
 
     print(f"\n{'=' * 70}\n[run_fp32_design] All requested steps completed.\n{'=' * 70}")

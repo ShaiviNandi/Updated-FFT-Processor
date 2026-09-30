@@ -69,6 +69,55 @@ SIM_DIR_ROOT = os.path.dirname(os.path.abspath(__file__))       # fp32_baseline/
 BASE_DIR = os.path.dirname(SIM_DIR_ROOT)                        # fp32_baseline
 DEFAULT_SHARED_DIR = os.path.join(os.path.dirname(BASE_DIR), "verilog_sources")
 
+MEM_REGARRAY_DIR = "mem_regarray"
+MEM_SRAM_DIR = "mem_sram"
+SRAM64_MODEL = "sram_512x64_2rw.v"
+
+
+def collect_source_files(source_dir, memory="regarray"):
+    """The source list for both simulation and synthesis.
+
+    `source_dir/*.v` holds the format RTL (arithmetic, butterfly, twiddle ROM).
+    The memory lives in one of two sibling directories, and exactly one is
+    compiled -- both define `fp32_dual_bank_memory_concurrent` with the same
+    ports, so including both would be a duplicate module definition:
+
+      memory == "regarray"  -> mem_regarray/fp32_memory.v
+            Behavioural register arrays; Vivado infers BRAM. The FPGA track.
+            Self-contained: no macro model, no Liberty.
+
+      memory == "sram"      -> mem_sram/fp32_memory.v + sram_512x64_2rw.v
+            SRAM-macro based. The ASIC track.
+
+    Simulation results are identical either way; the choice only matters
+    downstream, in synthesis.
+    """
+    source_dir = os.path.abspath(source_dir)
+    files = sorted(glob_module.glob(os.path.join(source_dir, "*.v")))
+
+    # Memory RTL must come from mem_regarray/ or mem_sram/, never the source/
+    # root. A stale root-level copy would be globbed in alongside the chosen
+    # variant and duplicate fp32_dual_bank_memory_concurrent.
+    STALE_AT_ROOT = ("fp32_memory.v", "sram_512x64_2rw.v")
+    stale = [f for f in files if os.path.basename(f) in STALE_AT_ROOT]
+    if stale:
+        for f in stale:
+            print(f"[fp32] WARNING ignoring stale {os.path.basename(f)} in source/ "
+                  f"root -- memory now lives in mem_regarray/ or mem_sram/. Delete it.")
+        files = [f for f in files if f not in stale]
+
+    if memory == "regarray":
+        files.append(os.path.join(source_dir, MEM_REGARRAY_DIR, "fp32_memory.v"))
+        return files
+    if memory != "sram":
+        raise ValueError(f"memory must be 'regarray' or 'sram', got {memory!r}")
+
+    mem_dir = os.path.join(source_dir, MEM_SRAM_DIR)
+    files.append(os.path.join(mem_dir, "fp32_memory.v"))
+    files.append(os.path.join(mem_dir, SRAM64_MODEL))
+    return files
+
+
 FP32_MAX = float(np.finfo(np.float32).max)
 INF_SQNR_CREDIT = 100.0          # same credit the mixed evaluator gives an exact match
 ALL_SIZES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
@@ -76,13 +125,15 @@ ALL_SIZES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
 
 class FP32PerformanceEvaluator:
     def __init__(self, fft_size, shared_sources_dir=DEFAULT_SHARED_DIR,
-                 sim_dir=None, sim_timeout=600, dump_vcd=False):
+                 sim_dir=None, sim_timeout=600, dump_vcd=False,
+                 memory="regarray"):
         self.fft_size            = fft_size
         self.num_stages          = int(math.log2(fft_size))
         self.verilog_sources_dir = os.path.join(BASE_DIR, 'source')
         self.shared_sources_dir  = os.path.abspath(shared_sources_dir)
         self.sim_dir             = os.path.abspath(sim_dir or os.path.join(SIM_DIR_ROOT, 'perf'))
         self.sim_timeout         = sim_timeout
+        self.memory              = memory
         # Off by default: this does not change anything about the SQNR/cycle
         # measurement this class exists for. When True, _generate_testbench
         # also dumps a VCD of the RTL simulation (same stimulus, same DUT),
@@ -374,7 +425,7 @@ endmodule
         os.makedirs(sim_dir, exist_ok=True)
 
         tb_file = self._generate_testbench(verilog_file, design_name)
-        lib_sources = sorted(glob_module.glob(os.path.join(self.verilog_sources_dir, '*.v')))
+        lib_sources = collect_source_files(self.verilog_sources_dir, self.memory)
         lib_sources += [os.path.join(self.shared_sources_dir, 'agu.v'),
                         os.path.join(self.shared_sources_dir, 'bit_reversal.v')]
 
@@ -452,18 +503,23 @@ endmodule
 
         avg_exec_cycles = "N/A"
         tot_sim_cycles = "N/A"
-        execs = []
+        execs, loads, unloads = [], [], []
         for line in sim_log.splitlines():
             if "Exec Cycles:" in line:
-                parts = line.split("|")
-                for p in parts:
+                for p in line.split("|"):
                     if "Exec Cycles:" in p:
                         execs.append(int(p.split(":")[1].strip()))
+                    elif "Load:" in p:
+                        loads.append(int(p.split(":")[1].strip()))
+                    elif "Unload:" in p:
+                        unloads.append(int(p.split(":")[1].strip()))
             if "FINAL_METRICS" in line:
                 tot_sim_cycles = line.split("Total Cycles:")[1].strip()
 
         if execs:
             avg_exec_cycles = str(sum(execs) // len(execs))
+        avg_load_cycles   = (sum(loads) // len(loads)) if loads else -1
+        avg_unload_cycles = (sum(unloads) // len(unloads)) if unloads else -1
 
         sim_outputs = self._parse_simulation_output(output_file)
         if sim_outputs is None or len(sim_outputs) == 0: return fail
@@ -513,9 +569,19 @@ endmodule
         except (ValueError, TypeError):
             tot_sim_int = -1
 
+        # Both cycle denominators the throughput/energy table needs:
+        #   compute-only  = avg_exec_cycles          (start-to-done, canonical)
+        #   end-to-end    = load + exec + unload     (non-overlapped batch)
+        e2e = (avg_load_cycles + avg_exec_int + avg_unload_cycles
+               if (avg_load_cycles >= 0 and avg_unload_cycles >= 0 and avg_exec_int > 0)
+               else -1)
+
         return {
             'sqnr':             avg_sqnr,          # same definition as the mixed evaluator
             'avg_exec_cycles':  avg_exec_int,
+            'avg_load_cycles':  avg_load_cycles,
+            'avg_unload_cycles': avg_unload_cycles,
+            'avg_e2e_cycles':   e2e,
             'tot_sim_cycles':   tot_sim_int,
             # reporting-only extras
             'sqnr_finite_avg':  finite_avg,
@@ -569,6 +635,11 @@ def main():
     ap.add_argument("--sizes", type=int, nargs="*", default=ALL_SIZES)
     ap.add_argument("--shared-dir", default=DEFAULT_SHARED_DIR,
                     help="directory with agu.v and bit_reversal.v")
+    ap.add_argument("--memory", choices=("regarray", "sram"), default="regarray",
+                    help="memory implementation: regarray = behavioural register "
+                         "arrays, the FPGA track (default, self-contained); "
+                         "sram = SRAM macros, the ASIC track. Simulation results "
+                         "are identical either way.")
     ap.add_argument("--out", default=os.path.join(SIM_DIR_ROOT, 'perf', 'fp32_sqnr_results.txt'),
                     help="summary table (text)")
     args = ap.parse_args()
@@ -579,24 +650,68 @@ def main():
 
     rows = []
     for n in args.sizes:
-        ev = FP32PerformanceEvaluator(n, shared_sources_dir=args.shared_dir)
+        ev = FP32PerformanceEvaluator(n, shared_sources_dir=args.shared_dir,
+                                     memory=args.memory)
         r = ev.evaluate_size()
         rows.append((n, r))
 
-    hdr = (f"{'N':>6} | {'Exec cycles':>11} | {'Avg SQNR (dB)':>13} | "
-           f"{'Avg non-exact (dB)':>18} | {'Exact':>7}")
-    sep = "-" * len(hdr)
-    lines = ["FP32 baseline - SQNR using the mixed-precision evaluator methodology",
-             f"(11 signals; exact match counted as {INF_SQNR_CREDIT:.0f} dB in 'Avg SQNR')",
-             "", hdr, sep]
+    nsig = rows[0][1]['num_signals'] if rows else 0
+    COLS = [
+        ("FFT size", "points"),
+        ("Compute cycles", "clock cycles"),
+        ("Input load", "clock cycles"),
+        ("Output unload", "clock cycles"),
+        ("End-to-end cycles", "clock cycles"),
+        ("Average SQNR", "dB"),
+        ("Average SQNR, non-exact only", "dB"),
+        ("Bit-exact signals", "count of %d" % nsig),
+    ]
+
+    body = []
     for n, r in rows:
         if r['avg_exec_cycles'] < 0:
-            lines.append(f"{n:>6} | {'FAILED':>11} | {'-':>13} | {'-':>18} | {'-':>7}")
+            body.append([str(n), "FAILED", "-", "-", "-", "-", "-", "-"])
             continue
         fin = r['sqnr_finite_avg']
-        fin_s = "all exact" if math.isinf(fin) else f"{fin:.2f}"
-        lines.append(f"{n:>6} | {r['avg_exec_cycles']:>11} | {r['sqnr']:>13.2f} | "
-                     f"{fin_s:>18} | {r['num_exact']:>3}/{r['num_signals']:<3}")
+        body.append([
+            str(n),
+            str(r['avg_exec_cycles']),
+            str(r['avg_load_cycles']),
+            str(r['avg_unload_cycles']),
+            str(r['avg_e2e_cycles']),
+            "%.2f" % r['sqnr'],
+            "all exact" if math.isinf(fin) else "%.2f" % fin,
+            "%d/%d" % (r['num_exact'], r['num_signals']),
+        ])
+
+    widths = [max(len(COLS[i][0]), len(COLS[i][1]),
+                  max((len(b[i]) for b in body), default=0))
+              for i in range(len(COLS))]
+    hdr = " | ".join(c[0].rjust(w) for c, w in zip(COLS, widths))
+    unit = " | ".join(c[1].rjust(w) for c, w in zip(COLS, widths))
+    sep = "-" * len(hdr)
+
+    lines = ["FP32 BASELINE - ACCURACY AND CYCLE COUNTS",
+             "",
+             "Signal-to-quantisation-noise ratio measured with the same methodology as the",
+             "mixed-precision evaluator: %d test signals, and a bit-exact result" % nsig,
+             "credited as %.0f dB in the 'Average SQNR' column." % INF_SQNR_CREDIT,
+             "",
+             "Memory implementation: %s%s" % (
+                 args.memory,
+                 " (--sram-width %s)" % args.sram_width if args.memory == "sram" else ""),
+             "",
+             "Two cycle counts are reported, and both are carried through to throughput",
+             "and energy as equal columns:",
+             "  Compute cycles    start of transform to done. Canonical in this flow, and",
+             "                    the fair basis for comparing precisions, since load and",
+             "                    unload cost the same at every precision.",
+             "  End-to-end cycles input load + compute + output unload. This architecture",
+             "                    does not overlap I/O with compute: the two memory banks",
+             "                    ping-pong between FFT STAGES, so double-buffering the",
+             "                    input against compute would need a third bank.",
+             "", hdr, unit, sep]
+    lines.extend(" | ".join(v.rjust(w) for v, w in zip(b, widths)) for b in body)
     text = "\n".join(lines) + "\n"
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w") as f:

@@ -78,7 +78,8 @@ BASE_DIR = os.path.dirname(SYNTH_DIR)                            # fp32_baseline
 REPO_ROOT = os.path.dirname(BASE_DIR)                             # repo root
 
 sys.path.insert(0, os.path.join(BASE_DIR, "sim"))
-from fp32_performance_evaluator import FP32PerformanceEvaluator  # noqa: E402
+from fp32_performance_evaluator import (                          # noqa: E402
+    FP32PerformanceEvaluator, collect_source_files)
 
 ALL_SIZES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
 
@@ -113,7 +114,8 @@ def log(msg):
 
 class Fp32Synthesizer:
     def __init__(self, clock_period, std_lib, ram_lib, source_dir, shared_dir,
-                 generated_dir, work_dir, yosys_path, sta_path, timeout=1800):
+                 generated_dir, work_dir, yosys_path, sta_path, memory,
+                 timeout=1800):
         self.clock_period = clock_period
         self.std_lib = os.path.abspath(std_lib)
         self.ram_lib = os.path.abspath(ram_lib)
@@ -123,10 +125,17 @@ class Fp32Synthesizer:
         self.work_dir = os.path.abspath(work_dir)
         self.yosys_path = yosys_path
         self.sta_path = sta_path
+        self.memory = memory
         self.timeout = timeout
 
-        for path, label in ((self.std_lib, "standard-cell liberty"),
-                             (self.ram_lib, "SRAM macro liberty")):
+        # With --memory regarray there is no SRAM macro, so no macro liberty
+        # and nothing to blackbox.
+        self.sram_macro_module = SRAM_MACRO_MODULE if memory == "sram" else None
+
+        required = [(self.std_lib, "standard-cell liberty")]
+        if memory == "sram":
+            required.append((self.ram_lib, "SRAM macro liberty"))
+        for path, label in required:
             if not os.path.isfile(path):
                 raise SystemExit(f"{label} not found: {path}")
         for f in ("agu.v", "bit_reversal.v"):
@@ -145,11 +154,7 @@ class Fp32Synthesizer:
 
     def collect_sources(self, n):
         core, top = self.core_and_top_files(n)
-        sources = sorted(
-            f for f in
-            [os.path.join(self.source_dir, f) for f in os.listdir(self.source_dir)]
-            if f.endswith(".v")
-        )
+        sources = collect_source_files(self.source_dir, self.memory)
         sources += [
             os.path.join(self.shared_dir, "agu.v"),
             os.path.join(self.shared_dir, "bit_reversal.v"),
@@ -179,11 +184,14 @@ class Fp32Synthesizer:
 
         flatten_cmd = "flatten -noscopeinfo\n            " if flatten else ""
         read_cmds = "\n".join(f"read_verilog -sv {f}" for f in sources)
+        blackbox_cmd = (f"# PRE-SYNTHESIS BLACKBOX\n            blackbox {self.sram_macro_module}\n"
+                        if self.sram_macro_module else "")
+        stat_libs = f"-liberty {self.std_lib}"
+        if self.memory == "sram":
+            stat_libs += f" -liberty {self.ram_lib}"
         yosys_script = textwrap.dedent(f"""\
             {read_cmds}
-            # PRE-SYNTHESIS BLACKBOX
-            blackbox {SRAM_MACRO_MODULE}
-
+            {blackbox_cmd}
             hierarchy -check -top {top_module}
             {flatten_cmd}proc
             opt -purge
@@ -198,7 +206,7 @@ class Fp32Synthesizer:
             opt_clean -purge
             setundef -zero -undriven
 
-            stat -liberty {self.std_lib} -liberty {self.ram_lib}
+            stat {stat_libs}
             write_verilog -noattr {netlist_v}
         """)
         with open(script_path, "w") as f:
@@ -241,11 +249,12 @@ class Fp32Synthesizer:
         power_rpt = os.path.join(work_dir, f"fp32_fft_{n}_power.rpt")
         sta_log = os.path.join(work_dir, "sta.log")
         script_path = os.path.join(work_dir, f"fp32_fft_{n}_sta.tcl")
+        ram_lib_cmd = (f"read_liberty {self.ram_lib}\n            "
+                       if self.memory == "sram" else "")
 
         sta_script = textwrap.dedent(f"""\
             read_liberty {self.std_lib}
-            read_liberty {self.ram_lib}
-            read_verilog {netlist_v}
+            {ram_lib_cmd}read_verilog {netlist_v}
             link_design {top_module}
             create_clock -name {CLOCK_NET_NAME} -period {self.clock_period} [get_ports {CLOCK_NET_NAME}]
             set_input_delay  [expr {{{self.clock_period}}} / 4.0] -clock {CLOCK_NET_NAME} [all_inputs]
@@ -294,7 +303,8 @@ class Fp32Synthesizer:
         design_name = f"fp32_fft_{n}"
         core, _top = self.core_and_top_files(n)
         ev = FP32PerformanceEvaluator(n, shared_sources_dir=self.shared_dir,
-                                      sim_dir=work_dir, dump_vcd=True)
+                                      sim_dir=work_dir, dump_vcd=True,
+                                      memory=self.memory)
         result = ev.run_verilog_simulation(core, design_name)
         if result is None:
             log(f"Activity VCD simulation FAILED for {design_name}")
@@ -309,11 +319,12 @@ class Fp32Synthesizer:
         power_rpt = os.path.join(work_dir, f"fp32_fft_{n}_power_vcd.rpt")
         sta_log = os.path.join(work_dir, "sta_vcd.log")
         script_path = os.path.join(work_dir, f"fp32_fft_{n}_sta_vcd.tcl")
+        ram_lib_cmd = (f"read_liberty {self.ram_lib}\n            "
+                       if self.memory == "sram" else "")
 
         sta_script = textwrap.dedent(f"""\
             read_liberty {self.std_lib}
-            read_liberty {self.ram_lib}
-            read_verilog {hier_netlist_v}
+            {ram_lib_cmd}read_verilog {hier_netlist_v}
             link_design {top_module}
             create_clock -name {CLOCK_NET_NAME} -period {self.clock_period} [get_ports {CLOCK_NET_NAME}]
             read_vcd -scope tb_{top_module[:-4]}/dut {vcd_file}
@@ -495,6 +506,13 @@ def main():
     ap.add_argument("--sizes", type=int, nargs="*", default=ALL_SIZES)
     ap.add_argument("--clock-period", type=float, default=10.0,
                      help="Clock period in ns (default 10.0, matches the mixed-precision flow)")
+    ap.add_argument("--memory", choices=("regarray", "sram"), default="sram",
+                     help="Memory implementation, and therefore which verification "
+                          "track this run belongs to. sram = SRAM macros (ASIC "
+                          "track, the default and what the published "
+                          "fp32_ppa_report.txt used); regarray = behavioural "
+                          "register arrays (FPGA track; no macro liberty needed, "
+                          "and NOT comparable to a macro design on ASIC).")
     ap.add_argument("--std-lib", default=DEFAULT_STD_LIB)
     ap.add_argument("--ram-lib", default=DEFAULT_RAM_LIB)
     ap.add_argument("--source-dir", default=DEFAULT_SOURCE_DIR)
@@ -517,7 +535,7 @@ def main():
         clock_period=args.clock_period, std_lib=args.std_lib, ram_lib=args.ram_lib,
         source_dir=args.source_dir, shared_dir=args.shared_dir,
         generated_dir=args.generated_dir, work_dir=args.work_dir,
-        yosys_path=args.yosys, sta_path=args.sta,
+        yosys_path=args.yosys, sta_path=args.sta, memory=args.memory,
     )
 
     rows = [synth.synthesize(n) for n in args.sizes]
@@ -536,9 +554,15 @@ def main():
            f"{'CritDelay (ns)':>14} | {'Slack (ns)':>10} | {'NormLat':>8} | "
            f"{'ExecCyc':>8} | {'Energy/FFT (nJ)':>16} | {'Status':>6}")
     sep = "-" * len(hdr)
+    mem_note = ("MEMORY: --memory sram -- 4x sram_512x64_2rw macros (ASIC track)."
+                if args.memory == "sram" else
+                "MEMORY: --memory regarray -- behavioural register arrays, synthesised as "
+                "standard-cell flops at 45nm. This is the FPGA-track memory; on an ASIC "
+                "flow it is NOT comparable to an SRAM-macro design.")
     lines = ["FP32 baseline - PPA extraction using the mixed-precision evaluator methodology",
              "(Yosys synthesis + area; OpenSTA timing + power; no OpenROAD P&R)",
              f"Clock period: {args.clock_period} ns",
+             mem_note,
              "Energy/FFT = Power(mW) * ExecCycles * ClockPeriod(ns) / 1000, "
              f"ExecCycles from {os.path.relpath(os.path.abspath(args.cycles_file), SYNTH_DIR)}",
              "Power is measured from a real RTL-simulation VCD (the same 11 signals used for "

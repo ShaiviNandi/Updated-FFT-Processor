@@ -71,7 +71,8 @@ DEFAULT_SHARED_DIR = os.path.join(REPO_ROOT, "verilog_sources")
 
 # The 64-bit macro model lives in the FP32 baseline; it is referenced rather
 # than copied so the repository has exactly one definition of it.
-SRAM64_MODEL = os.path.join(REPO_ROOT, "fp32_baseline", "source", "sram_512x64_2rw.v")
+SRAM64_MODEL = os.path.join(REPO_ROOT, "fp32_baseline", "source", "mem_sram",
+                            "sram_512x64_2rw.v")
 MEM_REGARRAY_DIR = "mem_regarray"
 MEM_SRAM_DIR = "mem_sram"
 SRAM32_NATIVE = "sram_512x32_2rw.v"
@@ -518,18 +519,23 @@ endmodule
 
         avg_exec_cycles = "N/A"
         tot_sim_cycles = "N/A"
-        execs = []
+        execs, loads, unloads = [], [], []
         for line in sim_log.splitlines():
             if "Exec Cycles:" in line:
-                parts = line.split("|")
-                for p in parts:
+                for p in line.split("|"):
                     if "Exec Cycles:" in p:
                         execs.append(int(p.split(":")[1].strip()))
+                    elif "Load:" in p:
+                        loads.append(int(p.split(":")[1].strip()))
+                    elif "Unload:" in p:
+                        unloads.append(int(p.split(":")[1].strip()))
             if "FINAL_METRICS" in line:
                 tot_sim_cycles = line.split("Total Cycles:")[1].strip()
 
         if execs:
             avg_exec_cycles = str(sum(execs) // len(execs))
+        avg_load_cycles   = (sum(loads) // len(loads)) if loads else -1
+        avg_unload_cycles = (sum(unloads) // len(unloads)) if unloads else -1
 
         sim_outputs = self._parse_simulation_output(output_file)
         if sim_outputs is None or len(sim_outputs) == 0: return fail
@@ -579,9 +585,19 @@ endmodule
         except (ValueError, TypeError):
             tot_sim_int = -1
 
+        # Both cycle denominators the throughput/energy table needs:
+        #   compute-only  = avg_exec_cycles          (start-to-done, canonical)
+        #   end-to-end    = load + exec + unload     (non-overlapped batch)
+        e2e = (avg_load_cycles + avg_exec_int + avg_unload_cycles
+               if (avg_load_cycles >= 0 and avg_unload_cycles >= 0 and avg_exec_int > 0)
+               else -1)
+
         return {
             'sqnr':             avg_sqnr,          # same definition as the mixed evaluator
             'avg_exec_cycles':  avg_exec_int,
+            'avg_load_cycles':  avg_load_cycles,
+            'avg_unload_cycles': avg_unload_cycles,
+            'avg_e2e_cycles':   e2e,
             'tot_sim_cycles':   tot_sim_int,
             # reporting-only extras
             'sqnr_finite_avg':  finite_avg,
@@ -651,20 +667,63 @@ def main():
         r = ev.evaluate_size()
         rows.append((n, r))
 
-    hdr = (f"{'N':>6} | {'Exec cycles':>11} | {'Avg SQNR (dB)':>13} | "
-           f"{'Avg non-exact (dB)':>18} | {'Exact':>7}")
-    sep = "-" * len(hdr)
-    lines = ["FP16 baseline - SQNR using the mixed-precision evaluator methodology",
-             f"(11 signals; exact match counted as {INF_SQNR_CREDIT:.0f} dB in 'Avg SQNR')",
-             "", hdr, sep]
+    nsig = rows[0][1]['num_signals'] if rows else 0
+    COLS = [
+        ("FFT size", "points"),
+        ("Compute cycles", "clock cycles"),
+        ("Input load", "clock cycles"),
+        ("Output unload", "clock cycles"),
+        ("End-to-end cycles", "clock cycles"),
+        ("Average SQNR", "dB"),
+        ("Average SQNR, non-exact only", "dB"),
+        ("Bit-exact signals", "count of %d" % nsig),
+    ]
+
+    body = []
     for n, r in rows:
         if r['avg_exec_cycles'] < 0:
-            lines.append(f"{n:>6} | {'FAILED':>11} | {'-':>13} | {'-':>18} | {'-':>7}")
+            body.append([str(n), "FAILED", "-", "-", "-", "-", "-", "-"])
             continue
         fin = r['sqnr_finite_avg']
-        fin_s = "all exact" if math.isinf(fin) else f"{fin:.2f}"
-        lines.append(f"{n:>6} | {r['avg_exec_cycles']:>11} | {r['sqnr']:>13.2f} | "
-                     f"{fin_s:>18} | {r['num_exact']:>3}/{r['num_signals']:<3}")
+        body.append([
+            str(n),
+            str(r['avg_exec_cycles']),
+            str(r['avg_load_cycles']),
+            str(r['avg_unload_cycles']),
+            str(r['avg_e2e_cycles']),
+            "%.2f" % r['sqnr'],
+            "all exact" if math.isinf(fin) else "%.2f" % fin,
+            "%d/%d" % (r['num_exact'], r['num_signals']),
+        ])
+
+    widths = [max(len(COLS[i][0]), len(COLS[i][1]),
+                  max((len(b[i]) for b in body), default=0))
+              for i in range(len(COLS))]
+    hdr = " | ".join(c[0].rjust(w) for c, w in zip(COLS, widths))
+    unit = " | ".join(c[1].rjust(w) for c, w in zip(COLS, widths))
+    sep = "-" * len(hdr)
+
+    lines = ["FP16 BASELINE - ACCURACY AND CYCLE COUNTS",
+             "",
+             "Signal-to-quantisation-noise ratio measured with the same methodology as the",
+             "mixed-precision evaluator: %d test signals, and a bit-exact result" % nsig,
+             "credited as %.0f dB in the 'Average SQNR' column." % INF_SQNR_CREDIT,
+             "",
+             "Memory implementation: %s%s" % (
+                 args.memory,
+                 " (--sram-width %s)" % args.sram_width if args.memory == "sram" else ""),
+             "",
+             "Two cycle counts are reported, and both are carried through to throughput",
+             "and energy as equal columns:",
+             "  Compute cycles    start of transform to done. Canonical in this flow, and",
+             "                    the fair basis for comparing precisions, since load and",
+             "                    unload cost the same at every precision.",
+             "  End-to-end cycles input load + compute + output unload. This architecture",
+             "                    does not overlap I/O with compute: the two memory banks",
+             "                    ping-pong between FFT STAGES, so double-buffering the",
+             "                    input against compute would need a third bank.",
+             "", hdr, unit, sep]
+    lines.extend(" | ".join(v.rjust(w) for v, w in zip(b, widths)) for b in body)
     text = "\n".join(lines) + "\n"
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w") as f:
