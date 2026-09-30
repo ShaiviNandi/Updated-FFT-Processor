@@ -1,3 +1,93 @@
+# =============================================================================
+# .gitignore
+#
+# WHY THIS MATTERS HERE: `git ls-files` currently reports 20060 tracked files,
+# 13137 of them under reports/ -- about 620 MB of Vivado logs already committed.
+# Adding a path here does NOT untrack a file that is already in the index, so
+# this file only stops the bleeding. See "already tracked" at the bottom.
+# =============================================================================
+
+# ---- Vivado scratch ---------------------------------------------------------
+.Xil/
+*.jou
+*.str
+usage_statistics_webtalk*
+vivado_pid*
+vivado*.backup.log
+hs_err_pid*.log
 .Xil
+vivado_projects/
+
+# ---- Xilinx simulator (xvlog / xelab / xsim) --------------------------------
+xsim.dir/
+xelab.pb
+xvlog.pb
+xsim.log
+webtalk*.log
+*.wdb
+*.vcd
+*.saif
+
+# ---- Icarus Verilog ---------------------------------------------------------
+*.vvp
+sim.out
+
+# ---- Python -----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ---- sweep and driver output ------------------------------------------------
+# reports/ holds the NSGA-II sweep's per-design CSVs (3.3 MB, worth keeping) and
+# its per-design Vivado logs (620 MB, regenerable). Ignore the logs, keep the
+# CSVs -- the CSVs are the provenance for the published numbers.
+reports/*.log
+optimization.log
+generation.txt
+sweep*.log
+sweep.pid
+smoke*.log
+*_saif.log
+*_pwr.log
+
+# Driver scratch: staged sources, per-design Vivado logs, funcsim netlists.
+# The committed record is the report .txt and the metrics .csv, not the workdirs.
+**/fpga_work/
+**/fpga_work_impl/
+**/synth_work/
+synth_mixed/fpga_work*/
+
+# ---- generated RTL ----------------------------------------------------------
+# Regenerable from a chromosome plus fft_template_generator.py in one command,
+# and generated_designs/ accumulates one file per evaluation (4227 of them).
+generated_designs/
+generated_cores_gated/
+
+# ---- archives and attic -----------------------------------------------------
 *.zip
-__pycache__
+*.tar.gz
+_attic/
+
+# ---- OS ---------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =============================================================================
+# ALREADY TRACKED -- this file cannot help with those. To stop carrying them
+# without touching the working tree or losing any file on disk:
+#
+#   git rm -r --cached reports .Xil generated_designs vivado_projects
+#   git commit -m "stop tracking Vivado logs and generated RTL"
+#
+# Then re-add just the CSVs that are the sweep's provenance:
+#
+#   git add -f reports/*.csv
+#   git commit -m "keep per-design metrics CSVs"
+#
+# That removes ~620 MB from future commits. It does NOT shrink .git, because the
+# blobs stay in history; only a history rewrite (git filter-repo / BFG) does
+# that, and it rewrites every commit hash, so every existing clone -- digital-1
+# included -- has to be re-cloned. Decide that separately.
+# =============================================================================

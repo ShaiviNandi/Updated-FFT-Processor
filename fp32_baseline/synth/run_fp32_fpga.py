@@ -87,6 +87,7 @@ ALL_SIZES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
 # The repo's own scripts -- used unmodified.
 V2_TCL = os.path.join(REPO_ROOT, "vivado_synthesis_v2.tcl")
 SAIF_TCL = os.path.join(REPO_ROOT, "generate_saif_funcsim.tcl")
+IMPL_TCL = os.path.join(REPO_ROOT, "vivado_implement.tcl")
 
 DEFAULT_SOURCE_DIR = os.path.join(BASE_DIR, "source")
 DEFAULT_SHARED_DIR = os.path.join(REPO_ROOT, "verilog_sources")
@@ -308,13 +309,16 @@ def synth_one(n, args, cfg):
             log(f"  {design} SAIF pass returned ok but no SAIF at {saif}")
             saif_ok = False
 
-    cmd = [cfg["vivado"], "-mode", "batch", "-source", V2_TCL,
+    cmd = [cfg["vivado"], "-mode", "batch", "-source", (IMPL_TCL if args.implement else V2_TCL),
            "-nojournal", "-log", os.path.join(work, "pwr_vivado.log"),
            "-tclargs", design, os.path.abspath(csv_out), str(args.clock_period),
            os.path.abspath(core), os.path.abspath(top), os.path.abspath(vdir),
            args.part,
            (os.path.abspath(saif) if saif_ok else ""),
            str(args.use_dsp), strip_path]
+    if args.implement:
+        cmd.append(os.path.abspath(
+            os.path.splitext(csv_out)[0] + "_impl.csv"))
     ok, dt, out = run_vivado(cmd, os.path.join(work, "pwr_run.log"), args.timeout)
     pwr_cksum = checksum_of(out)
     cov = saif_coverage(out)
@@ -660,9 +664,35 @@ def main():
     ap.add_argument("--timeout", type=int, default=cfg["timeout"],
                     help=f"per-pass Vivado timeout, two passes per design "
                          f"(default {cfg['timeout']} from VIVADO_TIMEOUT_S)")
+    ap.add_argument("--implement", action="store_true",
+                    help="run vivado_implement.tcl instead of vivado_synthesis_v2.tcl: "
+                         "it SOURCES v2 unmodified, then places, phys-opts and routes "
+                         "the same netlist and re-reports. Writes a second CSV per "
+                         "design with post-synthesis and post-route side by side. "
+                         "Output paths get an _impl suffix so the post-synthesis "
+                         "sweep is not overwritten. Slower -- budget 5-15 min per "
+                         "design on top of synthesis.")
     ap.add_argument("--report-only", action="store_true")
     args = ap.parse_args()
     cfg["vivado"] = args.vivado
+
+    if args.implement:
+        # Keep the post-synthesis sweep intact: only paths the user left at their
+        # default are redirected, so an explicit --out/--csv/--work-dir still wins.
+        if args.work_dir == DEFAULT_WORK:
+            args.work_dir = DEFAULT_WORK + "_impl"
+        if args.reports == DEFAULT_WORK:
+            args.reports = args.work_dir
+        if args.out == DEFAULT_OUT:
+            args.out = os.path.splitext(DEFAULT_OUT)[0] + "_impl.txt"
+        if args.csv == DEFAULT_CSV:
+            args.csv = os.path.splitext(DEFAULT_CSV)[0] + "_impl.csv"
+        if args.timeout == cfg["timeout"]:
+            args.timeout = max(cfg["timeout"], 5400)
+        log("--implement: place + phys_opt + route after synthesis; "
+            f"outputs under {args.work_dir}")
+        if not os.path.isfile(IMPL_TCL):
+            raise SystemExit(f"vivado_implement.tcl not found at {IMPL_TCL}")
 
     for n in args.sizes:
         if n & (n - 1) or n < 2 or n > 1024:

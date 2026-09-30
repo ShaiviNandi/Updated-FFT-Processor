@@ -1,2 +1,2 @@
 N,solution_id,chromosome,config_type,balance_score,power_W,energy_pJ,area_LUTs,crit_delay_ns,sqnr_dB,sqnr_dB_asreported,exec_cycles,e2e_cycles,candidates
-8,1,000001,Mixed Precision,0.801284,0.022,11220.0,853.0,25.007,25.9146,25.9146,51,84,16
+256,8,0000111111111111,Mixed Precision,0.857168,0.041,460430.0,1392.0,35.161,23.1673,23.1673,1123,2148,22

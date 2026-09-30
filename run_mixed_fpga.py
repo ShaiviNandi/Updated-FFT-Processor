@@ -29,9 +29,9 @@ WHY THIS EXISTS RATHER THAN REUSING generated_cores/
   `generated_cores/` untouched.
 
 SELECTION  (identical arithmetic to optimal_designs.py)
-  Per size, over the solutions that satisfy sqnr_dB >= --sqnr-floor and
-  meets_timing == 1, preferring the truly mixed subset (a chromosome containing
-  both a 0 and a 1) and falling back to the whole filtered set if none is mixed:
+  Per size, over the solutions that satisfy sqnr_dB >= --sqnr-floor, preferring
+  the truly mixed subset (a chromosome containing both a 0 and a 1) and falling
+  back to the whole filtered set if none is mixed:
 
       norm_x       = (x - min) / (max - min)          over that same subset
                      (0.5 if max == min)
@@ -44,6 +44,14 @@ SELECTION  (identical arithmetic to optimal_designs.py)
   max SQNR) in the min-max normalised objective box; lowest wins. Note that the
   normalisation is per-size and over the filtered set, so balance_score is a
   within-size ranking, never comparable across sizes.
+
+  optimal_designs.py additionally filters on meets_timing == 1. That column is
+  written as (crit_delay_ns <= REFERENCE_CLOCK_PERIOD_NS), i.e. <= 80 ns, and
+  every design in results/ has a critical path of 12-37 ns -- so it is 1 for all
+  260 rows across all ten sizes and excludes nothing. This driver omits it by
+  default rather than carry a filter that implies a timing check it is not
+  performing; --require-meets-timing puts it back. The pandas cross-check below
+  keeps it, so if the two ever disagree, that filter has become load-bearing.
 
   This is deliberately re-implemented in the standard library rather than pandas
   so the driver has no third-party dependency on the synthesis host. Run with
@@ -101,6 +109,7 @@ ALL_SIZES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
 # The repo's own scripts -- used unmodified.
 V2_TCL = os.path.join(REPO_ROOT, "vivado_synthesis_v2.tcl")
 SAIF_TCL = os.path.join(REPO_ROOT, "generate_saif_funcsim.tcl")
+IMPL_TCL = os.path.join(REPO_ROOT, "vivado_implement.tcl")
 
 DEFAULT_RESULTS = os.path.join(REPO_ROOT, "results")
 DEFAULT_VERILOG = os.path.join(REPO_ROOT, "verilog_sources")
@@ -202,11 +211,12 @@ def fnum(v):
         return None
 
 
-def select_best(n, results_dir, suffix, sqnr_floor):
+def select_best(n, results_dir, suffix, sqnr_floor, require_timing=False):
     """Return (best_row_dict, diagnostics) or (None, diagnostics)."""
     path = os.path.join(results_dir, f"fft_{n}", f"all_solutions_fft{n}{suffix}.csv")
     diag = {"N": n, "csv": path, "rows_total": 0, "rows_passing": 0,
-            "rows_mixed": 0, "config_type": "", "note": ""}
+            "rows_mixed": 0, "config_type": "", "note": "",
+            "meets_timing_applied": bool(require_timing)}
     if not os.path.isfile(path):
         diag["note"] = "solutions CSV not found"
         return None, diag
@@ -232,7 +242,12 @@ def select_best(n, results_dir, suffix, sqnr_floor):
         s = fnum(r.get(MAX_OBJECTIVE))
         if s is None or s < sqnr_floor:
             continue
-        if "meets_timing" in r:
+        # meets_timing is NOT applied by default. It is written as
+        # (crit_delay <= REFERENCE_CLOCK_PERIOD_NS), i.e. <= 80 ns, and every
+        # design in results/ is 12-37 ns, so it is 1 for all 260 rows across all
+        # ten sizes and excludes nothing. Keeping it in would imply a timing
+        # filter that is not there. --require-meets-timing restores it.
+        if require_timing and "meets_timing" in r:
             mt = fnum(r.get("meets_timing"))
             if mt is None or int(mt) != 1:
                 continue
@@ -241,7 +256,8 @@ def select_best(n, results_dir, suffix, sqnr_floor):
         passing.append(r)
     diag["rows_passing"] = len(passing)
     if not passing:
-        diag["note"] = f"no solution meets SQNR >= {sqnr_floor} dB and timing"
+        diag["note"] = (f"no solution passes SQNR >= {sqnr_floor} dB"
+                        + (" and meets_timing" if require_timing else ""))
         return None, diag
 
     def bits(r):
@@ -307,6 +323,9 @@ def verify_selection_with_pandas(sel, results_dir, suffix, sqnr_floor):
         log("--verify-selection needs pandas/numpy; skipping the cross-check")
         return True
     ok = True
+    log("cross-check mirrors optimal_designs.py exactly, meets_timing filter "
+        "included; the driver itself omits it. A disagreement therefore means "
+        "that filter has stopped being inert and is now load-bearing.")
     for row in sel:
         n = row["N"]
         df = pd.read_csv(os.path.join(results_dir, f"fft_{n}",
@@ -339,7 +358,8 @@ def verify_selection_with_pandas(sel, results_dir, suffix, sqnr_floor):
     return ok
 
 
-def write_selection_table(sel, diags, path, suffix, sqnr_floor):
+def write_selection_table(sel, diags, path, suffix, sqnr_floor,
+                          require_timing=False):
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     fields = ["N", "solution_id", "chromosome", "config_type", "balance_score",
               "power_W", "energy_pJ", "area_LUTs", "crit_delay_ns", "sqnr_dB",
@@ -377,7 +397,12 @@ def write_selection_table(sel, diags, path, suffix, sqnr_floor):
          "BEST BALANCED MIXED-PRECISION DESIGN PER FFT SIZE",
          "=" * 78, "",
          "Source: results/fft_<N>/all_solutions_fft<N>%s.csv" % suffix,
-         "Filters: SQNR at least %.0f dB, and meets_timing = 1." % sqnr_floor,
+         "Filter: SQNR at least %.0f dB.%s" % (
+             sqnr_floor,
+             " Also meets_timing = 1." if require_timing else
+             " meets_timing is NOT applied: it records crit_delay <= 80 ns,"),
+         "" if require_timing else
+         "which every design in results/ satisfies, so it excludes nothing.",
          "Objective: minimise the Euclidean distance to the ideal corner (lowest",
          "power, smallest area, shortest critical path, highest SQNR) after min-max",
          "normalising each objective over the solutions that pass the filters:",
@@ -511,12 +536,15 @@ def synth_one(row, args, cfg):
             log(f"  {design} SAIF pass returned ok but no SAIF at {saif}")
             saif_ok = False
 
-    cmd = [cfg["vivado"], "-mode", "batch", "-source", V2_TCL,
+    cmd = [cfg["vivado"], "-mode", "batch", "-source", (IMPL_TCL if args.implement else V2_TCL),
            "-nojournal", "-log", os.path.join(work, "pwr_vivado.log"),
            "-tclargs", design, os.path.abspath(csv_out), str(args.clock_period),
            os.path.abspath(core), os.path.abspath(top), vdir, args.part,
            (os.path.abspath(saif) if saif_ok else ""),
            str(args.use_dsp), args.strip_path]
+    if args.implement:
+        cmd.append(os.path.abspath(
+            os.path.splitext(csv_out)[0] + "_impl.csv"))
     ok, dt, out = run_vivado(cmd, os.path.join(work, "pwr_run.log"), args.timeout)
     pwr_cksum = checksum_of(out)
     cov = saif_coverage(out)
@@ -848,6 +876,12 @@ def main():
                          "--sizes value)")
     ap.add_argument("--solution-id", type=int, default=0,
                     help="solution id to label a --chromosome override")
+    ap.add_argument("--require-meets-timing", action="store_true",
+                    help="also require meets_timing == 1, as optimal_designs.py "
+                         "does. Off by default: that column is "
+                         "(crit_delay <= 80 ns) and every design in results/ is "
+                         "12-37 ns, so the filter excludes nothing and only "
+                         "implies a timing check that is not happening.")
     ap.add_argument("--verify-selection", action="store_true",
                     help="re-derive the selection with pandas exactly as "
                          "optimal_designs.py does and assert the chromosomes agree")
@@ -864,9 +898,35 @@ def main():
                          "avg_exec_cycles and the derived end-to-end count")
     ap.add_argument("--select-only", action="store_true",
                     help="print and store the selection table, then stop")
+    ap.add_argument("--implement", action="store_true",
+                    help="run vivado_implement.tcl instead of vivado_synthesis_v2.tcl: "
+                         "it SOURCES v2 unmodified, then places, phys-opts and routes "
+                         "the same netlist and re-reports. Writes a second CSV per "
+                         "design with post-synthesis and post-route side by side. "
+                         "Output paths get an _impl suffix so the post-synthesis "
+                         "sweep is not overwritten. Slower -- budget 5-15 min per "
+                         "design on top of synthesis.")
     ap.add_argument("--report-only", action="store_true")
     args = ap.parse_args()
     cfg["vivado"] = args.vivado
+
+    if args.implement:
+        # Keep the post-synthesis sweep intact: only paths the user left at their
+        # default are redirected, so an explicit --out/--csv/--work-dir still wins.
+        if args.work_dir == DEFAULT_WORK:
+            args.work_dir = DEFAULT_WORK + "_impl"
+        if args.reports == DEFAULT_WORK:
+            args.reports = args.work_dir
+        if args.out == DEFAULT_OUT:
+            args.out = os.path.splitext(DEFAULT_OUT)[0] + "_impl.txt"
+        if args.csv == DEFAULT_CSV:
+            args.csv = os.path.splitext(DEFAULT_CSV)[0] + "_impl.csv"
+        if args.timeout == cfg["timeout"]:
+            args.timeout = max(cfg["timeout"], 5400)
+        log("--implement: place + phys_opt + route after synthesis; "
+            f"outputs under {args.work_dir}")
+        if not os.path.isfile(IMPL_TCL):
+            raise SystemExit(f"vivado_implement.tcl not found at {IMPL_TCL}")
 
     for n in args.sizes:
         if n & (n - 1) or n < 2 or n > 1024:
@@ -889,7 +949,7 @@ def main():
         sel, diags = [], []
         for n in args.sizes:
             row, d = select_best(n, args.results_dir, args.solutions_suffix,
-                                 args.sqnr_floor)
+                                 args.sqnr_floor, args.require_meets_timing)
             diags.append(d)
             if row is None:
                 log(f"N={n}: no design selected ({d['note']})")
@@ -899,7 +959,8 @@ def main():
             raise SystemExit("no design selected for any requested size")
 
     write_selection_table(sel, diags, args.selection_csv,
-                          args.solutions_suffix, args.sqnr_floor)
+                          args.solutions_suffix, args.sqnr_floor,
+                          args.require_meets_timing)
     if args.verify_selection and not args.chromosome:
         if not verify_selection_with_pandas(sel, args.results_dir,
                                             args.solutions_suffix, args.sqnr_floor):
