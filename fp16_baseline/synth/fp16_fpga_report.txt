@@ -1,0 +1,124 @@
+==============================================================================
+FP16 BASELINE - FPGA SYNTHESIS, POWER AND THROUGHPUT
+==============================================================================
+
+What this reports: area, achievable clock frequency and dynamic power for the
+FP16 reference FFT cores on FPGA, plus the throughput, energy and efficiency
+figures derived from them.
+
+Target FPGA device              : xc7a35tcpg236-1
+Clock period used for power/XDC : 10.0 ns (100.0 MHz constraint)
+Memory implementation           : register arrays (Vivado infers Block RAM)
+DSP inference for multipliers   : enabled
+Synthesis script                : vivado_synthesis_v2.tcl (unmodified)
+Switching-activity script       : generate_saif_funcsim.tcl (unmodified)
+Minimum accepted SAIF coverage  : 10% of design nets
+
+The clock constraint above only sets the operating point at which dynamic
+power is reported. Energy per transform is frequency-invariant, so it is the
+same physical quantity whatever constraint is used.
+
+TABLE 1  RESOURCE UTILISATION
+FFT size  Logic LUTs  LUTs used as memory  Flip-flops  Block RAM tiles  DSP slices
+  points       count                count       count            count       count
+----------------------------------------------------------------------------------
+       2        2470                   69         442                0           4
+       4        2911                   73         225                4           5
+       8        2919                   78         236                4           5
+      16        2901                   87         253                4           6
+      32        3031                  103         286                4           6
+      64        3055                  107         293                4           6
+     128        3132                  109         298                4           6
+     256        3143                  111         301                4           6
+     512        3126                  113         306                4           6
+    1024        3179                  115         309                4           6
+
+TABLE 2  TIMING AND POWER
+FFT size  Maximum frequency  Critical path delay  Worst negative slack  Dynamic power  Static power  Total on-chip power
+  points                MHz                   ns                    ns          watts         watts                watts
+------------------------------------------------------------------------------------------------------------------------
+       2              41.82               23.912               -13.912         0.0240        0.0680               0.0930
+       4              41.12               24.320               -14.320         0.0500        0.0690               0.1180
+       8              41.12               24.320               -14.320         0.0660        0.0690               0.1350
+      16              41.12               24.320               -14.320         0.0780        0.0690               0.1470
+      32              41.12               24.320               -14.320         0.0860        0.0690               0.1550
+      64              41.12               24.320               -14.320         0.0930        0.0690               0.1610
+     128              41.12               24.320               -14.320         0.0950        0.0690               0.1630
+     256              41.12               24.320               -14.320         0.0980        0.0690               0.1660
+     512              41.12               24.320               -14.320         0.0980        0.0690               0.1670
+    1024              41.12               24.320               -14.320         0.1000        0.0690               0.1690
+  Maximum frequency is 1 / critical path delay, not the constrained frequency.
+
+TABLE 3  ARE THE POWER NUMBERS TRUSTWORTHY?
+FFT size  Switching activity annotated  Design nets annotated  Netlist checksums agree  Post-synthesis optimisation ran  Vectorless dynamic power
+  points                      yes / no       percent of total                 yes / no                         yes / no      watts, for reference
+-------------------------------------------------------------------------------------------------------------------------------------------------
+       2                           yes                     37                      yes                              yes                    0.0690
+       4                            no                     10                      yes                              yes                    0.0830
+       8                           yes                     10                      yes                              yes                    0.0860
+      16                           yes                     11                      yes                              yes                    0.0880
+      32                           yes                     13                      yes                              yes                    0.0920
+      64                           yes                     13                      yes                              yes                    0.0940
+     128                           yes                     15                      yes                              yes                    0.0950
+     256                           yes                     15                      yes                              yes                    0.0970
+     512                           yes                     15                      yes                              yes                    0.0970
+    1024                           yes                     15                      yes                              yes                    0.1140
+  'Switching activity annotated' is Vivado's own count of design nets matched by
+  the activity file, tested against the coverage floor above. Where it reads 'no',
+  energy and throughput-per-watt are left blank in the tables below rather than
+  reported from vectorless power, which on this device is mostly static leakage
+  and barely varies between designs. The dynamic power in Table 2 and the
+  vectorless figure here must differ; if they are equal, the activity file was
+  not really applied.
+
+TABLE 4  THROUGHPUT AND EFFICIENCY, COMPUTE ONLY (start of transform to done)
+FFT size  Cycles per transform             Throughput  Energy per transform   Throughput per watt  Throughput per 1000 logic LUTs
+  points          clock cycles  transforms per second            nanojoules  transforms per joule           transforms per second
+---------------------------------------------------------------------------------------------------------------------------------
+       2                    18              2,323,334                  4.32           231,481,481                         940,621
+       4                    35              1,174,812                     -                     -                         403,577
+       8                    57                721,376                 37.62            26,581,606                         247,131
+      16                    91                451,851                 70.98            14,088,476                         155,757
+      32                   153                268,748                131.58             7,599,939                          88,666
+      64                   279                147,378                259.47             3,854,010                          48,242
+     128                   549                 74,897                521.55             1,917,362                          23,913
+     256                  1139                 36,100               1116.22               895,881                          11,486
+     512                  2433                 16,900               2384.34               419,403                           5,406
+    1024                  5263                  7,813               5263.00               190,006                           2,458
+  Isolates the datapath. This is the cycle count the rest of the flow treats
+  as canonical, and the fair basis for comparing one precision against
+  another, because the load and unload overhead is identical across
+  precisions.
+
+TABLE 5  THROUGHPUT AND EFFICIENCY, END TO END (load + compute + unload)
+FFT size  Cycles per transform             Throughput  Energy per transform   Throughput per watt  Throughput per 1000 logic LUTs
+  points          clock cycles  transforms per second            nanojoules  transforms per joule           transforms per second
+---------------------------------------------------------------------------------------------------------------------------------
+       2                    27              1,548,889                  6.48           154,320,988                         627,081
+       4                    52                790,739                     -                     -                         271,638
+       8                    90                456,871                 59.40            16,835,017                         156,516
+      16                   156                263,580                121.68             8,218,277                          90,858
+      32                   282                145,810                242.52             4,123,371                          48,106
+      64                   536                 76,713                498.48             2,006,099                          25,111
+     128                  1062                 38,718               1008.90               991,179                          12,362
+     256                  2164                 19,001               2120.72               471,538                           6,046
+     512                  4482                  9,174               4392.36               227,668                           2,935
+    1024                  9360                  4,393               9360.00               106,838                           1,382
+  What the non-overlapped system actually achieves per transform. The two
+  memory banks ping-pong between FFT stages, so they cannot also
+  double-buffer input against compute; overlapping the two would need a
+  third bank.
+
+HOW THE DERIVED COLUMNS ARE COMPUTED
+  Throughput (transforms/s)      = maximum frequency / cycles per transform
+  Energy per transform (nJ)      = dynamic power x cycles x clock period
+  Throughput per watt (transf/J) = 1 / energy per transform. These are the
+                                   same quantity: transforms per second
+                                   divided by joules per second is
+                                   transforms per joule. It is not a
+                                   separate measurement.
+  Throughput per 1000 logic LUTs = throughput / (logic LUTs / 1000)
+
+WARNING  Switching activity was not annotated for FFT size(s) [4].
+         Energy per transform and throughput per watt are omitted for
+         those rows. Check the SAIF strip path and the activity-pass log.

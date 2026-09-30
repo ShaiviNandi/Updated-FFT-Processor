@@ -1,15 +1,31 @@
-FP32 baseline - SQNR using the mixed-precision evaluator methodology
-(11 signals; exact match counted as 100 dB in 'Avg SQNR')
+FP32 BASELINE - ACCURACY AND CYCLE COUNTS
 
-     N | Exec cycles | Avg SQNR (dB) | Avg non-exact (dB) |   Exact
--------------------------------------------------------------------
-     2 |          18 |        100.00 |          all exact |  11/11 
-     4 |          35 |        109.04 |             149.70 |   9/11 
-     8 |          57 |        154.64 |             160.10 |   1/11 
-    16 |          91 |        152.72 |             157.99 |   1/11 
-    32 |         153 |        149.56 |             154.52 |   1/11 
-    64 |         279 |        148.44 |             153.29 |   1/11 
-   128 |         549 |        146.83 |             151.52 |   1/11 
-   256 |        1139 |        145.45 |             149.99 |   1/11 
-   512 |        2433 |        144.97 |             149.47 |   1/11 
-  1024 |        5263 |        143.83 |             148.22 |   1/11 
+Signal-to-quantisation-noise ratio measured with the same methodology as the
+mixed-precision evaluator: 11 test signals, and a bit-exact result
+credited as 100 dB in the 'Average SQNR' column.
+
+Memory implementation: regarray
+
+Two cycle counts are reported, and both are carried through to throughput
+and energy as equal columns:
+  Compute cycles    start of transform to done. Canonical in this flow, and
+                    the fair basis for comparing precisions, since load and
+                    unload cost the same at every precision.
+  End-to-end cycles input load + compute + output unload. This architecture
+                    does not overlap I/O with compute: the two memory banks
+                    ping-pong between FFT STAGES, so double-buffering the
+                    input against compute would need a third bank.
+
+FFT size | Compute cycles |   Input load | Output unload | End-to-end cycles | Average SQNR | Average SQNR, non-exact only | Bit-exact signals
+  points |   clock cycles | clock cycles |  clock cycles |      clock cycles |           dB |                           dB |       count of 11
+----------------------------------------------------------------------------------------------------------------------------------------------
+       2 |             18 |            3 |             6 |                27 |       100.00 |                    all exact |             11/11
+       4 |             35 |            5 |            12 |                52 |       109.04 |                       149.70 |              9/11
+       8 |             57 |            9 |            24 |                90 |       154.64 |                       160.10 |              1/11
+      16 |             91 |           17 |            48 |               156 |       152.73 |                       158.00 |              1/11
+      32 |            153 |           33 |            96 |               282 |       149.57 |                       154.53 |              1/11
+      64 |            279 |           65 |           192 |               536 |       148.42 |                       153.26 |              1/11
+     128 |            549 |          129 |           384 |              1062 |       146.85 |                       151.53 |              1/11
+     256 |           1139 |          257 |           768 |              2164 |       145.46 |                       150.01 |              1/11
+     512 |           2433 |          513 |          1536 |              4482 |       144.99 |                       149.49 |              1/11
+    1024 |           5263 |         1025 |          3072 |              9360 |       143.84 |                       148.22 |              1/11
