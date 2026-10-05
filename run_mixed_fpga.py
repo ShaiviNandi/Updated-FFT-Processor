@@ -279,14 +279,40 @@ def select_best(n, results_dir, suffix, sqnr_floor, require_timing=False):
         norm[c] = [0.5] * len(target) if lo == hi else [(v - lo) / (hi - lo) for v in vals]
 
     best_i, best_score = None, None
+    scored = []
     for i in range(len(target)):
         score = math.sqrt(
             norm["power_W"][i] ** 2
             + norm["area_LUTs"][i] ** 2
             + norm["crit_delay_ns"][i] ** 2
             + (1.0 - norm[MAX_OBJECTIVE][i]) ** 2)
+        scored.append((score, i))
         if best_score is None or score < best_score:
             best_i, best_score = i, score
+
+    # Every candidate is kept, with its score and its rank, so the full front is
+    # on record and a different point can be measured later with --chromosome
+    # without re-deriving the ranking. Only the winner reaches the report.
+    scored.sort()
+    diag["candidates_scored"] = []
+    for rank, (score, i) in enumerate(scored, start=1):
+        c = target[i]
+        diag["candidates_scored"].append({
+            "N": n,
+            "rank": rank,
+            "solution_id": int(float(c.get("solution_id", -1))),
+            "chromosome": "".join(str(b) for b in bits(c)),
+            "balance_score": round(score, 6),
+            "is_reported": 1 if i == best_i else 0,
+            "on_pareto_front": c.get("on_pareto_front", ""),
+            "power_W": fnum(c.get("power_W")),
+            "area_LUTs": fnum(c.get("area_LUTs")),
+            "crit_delay_ns": fnum(c.get("crit_delay_ns")),
+            "sqnr_dB": fnum(c.get(MAX_OBJECTIVE)),
+            "energy_pJ": fnum(c.get("energy_pJ")),
+            "exec_cycles": (int(float(c["avg_exec_cycles"]))
+                            if fnum(c.get("avg_exec_cycles")) else None),
+        })
 
     r = dict(target[best_i])
     out = {
@@ -413,11 +439,25 @@ def write_selection_table(sel, diags, path, suffix, sqnr_floor,
          "Normalisation is per size and over the passing set, so the balance score",
          "ranks designs within one FFT size and must not be compared across sizes.",
          "",
+         "One design per size is reported below. Every candidate that passed the",
+         "filters is stored with its score and rank in mixed_all_candidates.csv, so",
+         "the whole front is on record; measure any other point with --chromosome.",
+         "",
          "  ".join(c[0].rjust(w) for c, w in zip(COLS, widths)),
          "  ".join(c[1].rjust(w) for c, w in zip(COLS, widths)),
          "-" * (sum(widths) + 2 * (len(widths) - 1))]
     for b in body:
         L.append("  ".join(v.rjust(w) for v, w in zip(b, widths)))
+    cand = [c for d in diags for c in d.get("candidates_scored", [])]
+    if cand:
+        cpath = os.path.join(os.path.dirname(os.path.abspath(path)),
+                             "mixed_all_candidates.csv")
+        with open(cpath, "w", newline="", encoding="utf-8") as f:
+            w = csv_mod.DictWriter(f, fieldnames=list(cand[0].keys()))
+            w.writeheader()
+            w.writerows(cand)
+        log(f"all scored candidates ({len(cand)} rows): {cpath}")
+
     fb = [r["N"] for r in sel if r["config_type"] != "Mixed Precision"]
     if fb:
         L += ["",
@@ -551,27 +591,76 @@ def synth_one(row, args, cfg):
     log(f"  {design} power pass: {'ok' if ok else 'FAILED'} ({dt:.0f}s)"
         f"  checksum={pwr_cksum}")
 
+    m = parse_metrics_csv(csv_out) or {}
     side = os.path.join(args.reports, f"{design}_driver.csv")
     prov = {"design": design, "chromosome": row["chromosome"],
             "solution_id": row["solution_id"],
             "synth_ok": int(ok), "saif_pass_ok": int(saif_ok),
             "saif_checksum": saif_cksum or "", "pwr_checksum": pwr_cksum or "",
             "checksum_match": int(bool(saif_cksum) and saif_cksum == pwr_cksum)}
-    # Trust Vivado's net count over the TCL's power-delta heuristic, exactly as
-    # objectiveEvaluationFFT.py does. This OVERRIDES saif_used from the CSV.
+    # Two independent tests, and EITHER is sufficient. Each catches the case the
+    # other misses.
+    #
+    #   coverage    Vivado's own "Design nets matched" count. Catches the failure
+    #               the net-count gate was added for: fft_16_sol12_gen1 had 844
+    #               of 1908 nets annotated while dynamic power and the vectorless
+    #               baseline both read 0.034 W, so a power-delta test alone would
+    #               have rejected a design that was properly annotated.
+    #
+    #   power shift Relative movement of dynamic power away from the vectorless
+    #               baseline. Catches the converse: coverage falls structurally as
+    #               the datapath widens, because a wide multiplier's interior is
+    #               most of its nets and synthesis never names them. FP32 annotates
+    #               8-11 % of nets while its power moves 4-29 %, so a coverage test
+    #               alone rejects seven of ten sizes whose annotation plainly
+    #               worked. Coverage % is therefore not comparable across
+    #               precisions and cannot be the only test.
+    #
+    # The sidecar records which test accepted the row, so the report can say so
+    # rather than presenting the two as equivalent evidence.
+    pdyn = num(m, "dynamic_power_w")
+    pvl = num(m, "dynamic_power_vectorless_w")
+    shift = None
+    if pdyn is not None and pvl not in (None, 0.0):
+        shift = abs(pdyn - pvl) / abs(pvl)
+        prov["saif_power_shift"] = round(shift, 4)
+
+    by_cov = False
     if cov is not None:
         matched, total = cov
         frac = (matched / total) if total else 0.0
         prov["saif_nets_matched"] = matched
         prov["saif_nets_total"] = total
         prov["saif_coverage"] = round(frac, 4)
-        prov["saif_used"] = 1 if frac >= args.min_coverage else 0
-        if frac < args.min_coverage:
-            log(f"  {design}: only {matched}/{total} nets ({100*frac:.0f}%) "
-                f"annotated - below {100*args.min_coverage:.0f}% floor")
-    elif saif_ok:
-        log(f"  {design}: could not find Vivado's 'Design nets matched' line; "
-            f"falling back to the TCL's saif_used heuristic, which is unreliable")
+        by_cov = frac >= args.min_coverage
+    by_shift = shift is not None and shift >= args.min_power_shift
+
+    if cov is None and shift is None:
+        if saif_ok:
+            log(f"  {design}: neither Vivado's 'Design nets matched' line nor a "
+                f"vectorless power figure was found; leaving saif_used as the "
+                f"TCL reported it, which is unreliable")
+    else:
+        prov["saif_used"] = 1 if (by_cov or by_shift) else 0
+        prov["saif_accepted_on"] = ("both" if (by_cov and by_shift) else
+                                    "coverage" if by_cov else
+                                    "power shift" if by_shift else "neither")
+        if by_cov or by_shift:
+            bits = []
+            if cov is not None:
+                bits.append(f"{matched}/{total} nets ({100*frac:.0f}%)")
+            if shift is not None:
+                bits.append(f"power moved {100*shift:.0f}%")
+            log(f"  {design}: annotation accepted on "
+                f"{prov['saif_accepted_on']} ({', '.join(bits)})")
+        else:
+            log(f"  {design}: REJECTED - "
+                + (f"{matched}/{total} nets ({100*frac:.0f}%) below the "
+                   f"{100*args.min_coverage:.0f}% floor"
+                   if cov is not None else "no net count")
+                + (f" and power moved only {100*shift:.1f}%, below the "
+                   f"{100*args.min_power_shift:.0f}% floor"
+                   if shift is not None else " and no power shift available"))
     with open(side, "w", newline="", encoding="utf-8") as f:
         w = csv_mod.writer(f)
         w.writerow(["Metric", "Value"])
@@ -649,7 +738,8 @@ def build_report(sel, args, cfg):
                   "critical_path_delay_ns", "fmax_mhz", "wns_ns",
                   "saif_used", "opt_design_ran", "use_dsp",
                   "checksum_match", "saif_checksum", "pwr_checksum",
-                  "saif_coverage", "saif_nets_matched", "saif_nets_total"):
+                  "saif_coverage", "saif_power_shift", "saif_accepted_on",
+                  "saif_nets_matched", "saif_nets_total"):
             r[k] = m.get(k, "")
         for tag, c in (("compute", ex), ("e2e", e2e)):
             for k, v in derive(m, c, args.clock_period).items():
@@ -768,6 +858,8 @@ def build_report(sel, args, cfg):
         ("FFT size", "points"),
         ("Switching activity annotated", "yes / no"),
         ("Design nets annotated", "percent of total"),
+        ("Dynamic power shift", "percent from vectorless"),
+        ("Accepted on", "which test passed"),
         ("Netlist checksums agree", "yes / no"),
         ("Post-synthesis optimisation ran", "yes / no"),
         ("Vectorless dynamic power", "watts, for reference"),
@@ -775,6 +867,9 @@ def build_report(sel, args, cfg):
         str(r["N"]), yn(r.get("saif_used")),
         ("{:.0f}".format(100 * float(r["saif_coverage"]))
          if r.get("saif_coverage") not in ("", None) else "-"),
+        ("{:.0f}".format(100 * float(r["saif_power_shift"]))
+         if r.get("saif_power_shift") not in ("", None) else "-"),
+        (r.get("saif_accepted_on") or "-"),
         yn(r.get("checksum_match")), yn(r.get("opt_design_ran")),
         g(r, "dynamic_power_vectorless_w", "{:.4f}"),
     ], notes=[
@@ -898,6 +993,14 @@ def main():
                          "avg_exec_cycles and the derived end-to-end count")
     ap.add_argument("--select-only", action="store_true",
                     help="print and store the selection table, then stop")
+    ap.add_argument("--min-power-shift", type=float, default=0.05,
+                    help="second acceptance test for switching activity: the "
+                         "relative movement of dynamic power away from the "
+                         "vectorless baseline, default 0.05. A design is trusted "
+                         "if it clears EITHER this or --min-coverage. Coverage %% "
+                         "falls structurally as the datapath widens, so it cannot "
+                         "be the only test; set to 1.0 to disable this one and "
+                         "gate on coverage alone.")
     ap.add_argument("--implement", action="store_true",
                     help="run vivado_implement.tcl instead of vivado_synthesis_v2.tcl: "
                          "it SOURCES v2 unmodified, then places, phys-opts and routes "

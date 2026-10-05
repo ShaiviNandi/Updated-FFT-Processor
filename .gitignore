@@ -59,10 +59,14 @@ smoke*.log
 synth_mixed/fpga_work*/
 
 # ---- generated RTL ----------------------------------------------------------
-# Regenerable from a chromosome plus fft_template_generator.py in one command,
-# and generated_designs/ accumulates one file per evaluation (4227 of them).
+# generated_designs/ accumulates one file per evaluation (4227 of them) and is
+# regenerable from a chromosome plus fft_template_generator.py in one command.
+#
+# generated_cores_gated/ is deliberately NOT ignored: those 18 files are the
+# exact RTL the published FPGA numbers were measured on, they are small, and
+# keeping them means the measured designs can be re-synthesised without first
+# re-deriving the chromosome selection.
 generated_designs/
-generated_cores_gated/
 
 # ---- archives and attic -----------------------------------------------------
 *.zip
