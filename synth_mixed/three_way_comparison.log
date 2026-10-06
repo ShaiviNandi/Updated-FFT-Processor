@@ -134,6 +134,6 @@ READING THE RATIOS
   A dash      one of the two numbers is missing or untrustworthy; it is
               never a 1.00 and never an assumption of equality.
 
-[compare] table: /sessions/rcw-01nlew7vonvhsuilm4pudjwr/mnt/Updated-FFT-Processor/synth_mixed/three_way_comparison.txt
+[compare] table: /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/three_way_comparison.txt
 
-[log written to /sessions/rcw-01nlew7vonvhsuilm4pudjwr/mnt/Updated-FFT-Processor/synth_mixed/three_way_comparison.log]
+[log written to /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/three_way_comparison.log]

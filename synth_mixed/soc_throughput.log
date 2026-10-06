@@ -3,6 +3,7 @@
 [soc-throughput] firmware: 35 instructions, 11 test vectors
 [soc-throughput] rewrote the twiddle path in the LOCAL copy of twiddle_rom.v (the repository's own copy carries an absolute digital-1 path)
 [soc-throughput] compiled
+[soc-throughput] f_max 28.44 MHz read from mixed_fpga_metrics.csv
 
 ==============================================================================
 FFT THROUGHPUT THROUGH THE RISC-V PCPI INTERFACE
@@ -12,7 +13,7 @@ FFT size            : 256 points
 Chromosome          : 0000111111111111 (solution 8, gated)
 Frames measured     : 11 of 11
 Simulation clock    : 10.0 ns
-Frequency quoted at : 31.39 MHz (the FFT core standalone, NOT the SoC)
+Frequency quoted at : 28.44 MHz (the FFT core standalone, NOT the SoC)
 
 Measured in simulation, not modelled. One 16-bit sample crosses PCPI per
 custom instruction, so a transform costs 256 loads and 256 stores on top
@@ -21,9 +22,9 @@ of the computation.
 Measurement basis                                 Cycles per transform  Throughput             What it counts                                        
 which cycles are counted                          clock cycles          transforms per second  definition                                            
 -----------------------------------------------------------------------------------------------------------------------------------------------------
-Datapath only (FFT core computing)                1,109                 28,305                 the CPU stalled in FFTWAIT; compare against ExecCycles
-Accelerator occupied (datapath + PCPI transfers)  4,187                 7,497                  cycles a custom-0 instruction holds the CPU           
-End to end (application)                          17,028                1,843                  reset to last result in memory, CPU loops included    
+Datapath only (FFT core computing)                1,109                 25,645                 the CPU stalled in FFTWAIT; compare against ExecCycles
+Accelerator occupied (datapath + PCPI transfers)  4,187                 6,793                  cycles a custom-0 instruction holds the CPU           
+End to end (application)                          17,028                1,670                  reset to last result in memory, CPU loops included    
 
 WHERE THE CYCLES GO, PER TRANSFORM
   Stage                                     clock cycles   percent of end to end
@@ -54,7 +55,7 @@ CROSS-CHECK
   within the few cycles FFTWAIT misses while the start instruction retires.
   If they diverge by more than that, one of the two is wrong.
 
-[soc-throughput] table: /mnt/user-data/uploads/Updated-FFT-Processor/synth_mixed/soc_throughput.txt
-[soc-throughput] csv  : /mnt/user-data/uploads/Updated-FFT-Processor/synth_mixed/soc_throughput.csv
+[soc-throughput] table: /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_throughput.txt
+[soc-throughput] csv  : /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_throughput.csv
 
-[log written to /mnt/user-data/uploads/Updated-FFT-Processor/synth_mixed/soc_throughput.log]
+[log written to /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_throughput.log]

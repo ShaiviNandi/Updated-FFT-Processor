@@ -1,3 +1,4 @@
+
 ==============================================================================
 FP16 BASELINE - FPGA SYNTHESIS, POWER AND THROUGHPUT
 ==============================================================================
@@ -127,3 +128,8 @@ HOW THE DERIVED COLUMNS ARE COMPUTED
                                    transforms per joule. It is not a
                                    separate measurement.
   Throughput per 1000 logic LUTs = throughput / (logic LUTs / 1000)
+
+[fp16-fpga] table: /home/digital-1/SRIP2026/Updated-FFT-Processor/fp16_baseline/synth/fp16_fpga_report.txt
+[fp16-fpga] csv  : /home/digital-1/SRIP2026/Updated-FFT-Processor/fp16_baseline/synth/fp16_fpga_metrics.csv
+
+[log written to /home/digital-1/SRIP2026/Updated-FFT-Processor/fp16_baseline/synth/fp16_fpga_report.log]

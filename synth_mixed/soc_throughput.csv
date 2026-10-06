@@ -1,7 +1,7 @@
 Metric,Value
 fft_n,256
 chromosome,0000111111111111
-fmax_mhz,31.39
+fmax_mhz,28.440601803134154
 clock_ns,10.000000
 complete,1
 cycles_accelerator,46057
