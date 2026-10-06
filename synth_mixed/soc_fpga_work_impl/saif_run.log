@@ -1,0 +1,730 @@
+cmd: /home/digital-1/2025.2/Vivado/bin/vivado -mode batch -source /home/digital-1/SRIP2026/Updated-FFT-Processor/generate_saif_funcsim.tcl -nojournal -log /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/saif_vivado.log -tclargs soc_fft /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/core/mixed_fft_256.v /home/digital-1/SRIP2026/Updated-FFT-Processor/risc-v-integration/soc_fft_top.v /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/tb_soc_power.v /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/soc_fft.saif 256 2 xc7a35tcpg236-1 10.0
+returncode: 1
+
+
+****** Vivado v2025.2 (64-bit)
+  **** SW Build 6299465 on Fri Nov 14 12:34:56 MST 2025
+  **** IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+  **** SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+  **** Start of session at: Tue Oct  6 12:14:47 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+
+Sourcing tcl script '/home/digital-1/.Xilinx/Vivado/Vivado_init.tcl'
+source /home/digital-1/SRIP2026/Updated-FFT-Processor/generate_saif_funcsim.tcl
+# set design_name  [lindex $argv 0]
+# set core_file    [lindex $argv 1]
+# set top_file     [lindex $argv 2]
+# set verilog_dir  [lindex $argv 3]
+# set tb_file      [lindex $argv 4]
+# set saif_out     [lindex $argv 5]
+# set fft_n 256
+# if { [llength $argv] >= 7 } { set fft_n [lindex $argv 6] }
+# set frames 4
+# if { [llength $argv] >= 8 } { set frames [lindex $argv 7] }
+# set fpga_part "xc7a35tcpg236-1"
+# if { [llength $argv] >= 9 } { set fpga_part [lindex $argv 8] }
+# set clock_period 10.0
+# if { [llength $argv] >= 10 } { set clock_period [lindex $argv 9] }
+# set top_module [format "%s_top" $design_name]
+# set tb_module  [file rootname [file tail $tb_file]]
+# set work_dir   "/tmp/fsaif_${design_name}"
+# set netlist_v  "${work_dir}/${design_name}_funcsim.v"
+# file mkdir $work_dir
+# puts "INFO: funcsim SAIF generation for $design_name"
+INFO: funcsim SAIF generation for soc_fft
+# puts "INFO:   top       = $top_module"
+INFO:   top       = soc_fft_top
+# puts "INFO:   tb        = $tb_module"
+INFO:   tb        = tb_soc_power
+# puts "INFO:   FFT_N     = $fft_n   frames = $frames"
+INFO:   FFT_N     = 256   frames = 2
+# puts "INFO:   part      = $fpga_part   clock = $clock_period ns"
+INFO:   part      = xc7a35tcpg236-1   clock = 10.0 ns
+# puts "INFO:   netlist   = $netlist_v"
+INFO:   netlist   = /tmp/fsaif_soc_fft/soc_fft_funcsim.v
+# puts "INFO:   saif_out  = $saif_out"
+INFO:   saif_out  = /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/soc_fft.saif
+# create_project -in_memory -part $fpga_part
+WARNING: [Board 49-91] Board repository path '<extracted path>/vivado-boards/new/board_files' does not exist, it will not be used to search board files.
+# foreach f [glob -nocomplain ${verilog_dir}/*.v] {
+#     if { [string match "*tb_*" [file tail $f]] == 0 } {
+#         add_files -norecurse $f
+#     }
+# }
+# add_files -norecurse $core_file
+# add_files -norecurse $top_file
+# set_property include_dirs $verilog_dir [current_fileset]
+# set_property top $top_module [current_fileset]
+# update_compile_order -fileset sources_1
+# set xdc_file "${work_dir}/${design_name}_constr.xdc"
+# set xfp [open $xdc_file w]
+# puts $xfp "create_clock -period $clock_period -name clk \[get_ports clk\]"
+# puts $xfp "set_input_delay  -clock clk 0.500 \[get_ports -filter {DIRECTION == IN && NAME != clk}\]"
+# puts $xfp "set_output_delay -clock clk 0.500 \[all_outputs\]"
+# close $xfp
+# read_xdc $xdc_file
+# synth_design -top $top_module -part $fpga_part -mode out_of_context
+Command: synth_design -top soc_fft_top -part xc7a35tcpg236-1 -mode out_of_context
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7a35t'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7a35t'
+INFO: [Device 21-403] Loading part xc7a35tcpg236-1
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 7 processes.
+INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
+INFO: [Synth 8-7075] Helper process launched with PID 6640
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 2427.879 ; gain = 483.875 ; free physical = 53329 ; free virtual = 91272
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'soc_fft_top' [/home/digital-1/SRIP2026/Updated-FFT-Processor/risc-v-integration/soc_fft_top.v:48]
+WARNING: [Synth 8-4446] all outputs are unconnected for this instance and logic may be removed [/home/digital-1/SRIP2026/Updated-FFT-Processor/risc-v-integration/soc_fft_top.v:58]
+INFO: [Synth 8-6157] synthesizing module 'picorv32_fft_soc' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32_fft_soc.v:13]
+	Parameter MEM_WORDS bound to: 8192 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'picorv32' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:62]
+	Parameter BARREL_SHIFTER bound to: 1'b1 
+	Parameter CATCH_MISALIGN bound to: 1'b1 
+	Parameter CATCH_ILLINSN bound to: 1'b1 
+	Parameter ENABLE_PCPI bound to: 1'b1 
+	Parameter ENABLE_MUL bound to: 1'b0 
+	Parameter ENABLE_DIV bound to: 1'b0 
+	Parameter ENABLE_IRQ bound to: 1'b0 
+	Parameter PROGADDR_RESET bound to: 0 - type: integer 
+	Parameter STACKADDR bound to: 16368 - type: integer 
+WARNING: [Synth 8-151] case item 1'b0 is unreachable [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:331]
+INFO: [Synth 8-155] case statement is not full and has no default [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:331]
+WARNING: [Synth 8-151] case item 1'b0 is unreachable [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1314]
+INFO: [Synth 8-155] case statement is not full and has no default [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1314]
+WARNING: [Synth 8-151] case item 1'b0 is unreachable [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1497]
+INFO: [Synth 8-155] case statement is not full and has no default [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1497]
+WARNING: [Synth 8-151] case item 1'b0 is unreachable [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1583]
+WARNING: [Synth 8-151] case item 1'b0 is unreachable [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1583]
+WARNING: [Synth 8-151] case item 1'b0 is unreachable [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1583]
+WARNING: [Synth 8-151] case item 1'b0 is unreachable [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1583]
+WARNING: [Synth 8-151] case item 1'b0 is unreachable [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1583]
+INFO: [Synth 8-6155] done synthesizing module 'picorv32' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:62]
+INFO: [Synth 8-6157] synthesizing module 'fft_pcpi_wrapper' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/fft_pcpi_wrapper.v:2]
+INFO: [Synth 8-6157] synthesizing module 'mixed_fft_256_top' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/mixed_fft_256_top.v:6]
+INFO: [Synth 8-6157] synthesizing module 'bit_reverse' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/bit_reversal.v:1]
+	Parameter MAX_N bound to: 1024 - type: integer 
+	Parameter WIDTH bound to: 11 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'bit_reverse' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/bit_reversal.v:1]
+INFO: [Synth 8-6157] synthesizing module 'complex_fp8_to_fp4' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/precision_converter.v:133]
+INFO: [Synth 8-6157] synthesizing module 'fp8_to_fp4_converter' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/precision_converter.v:55]
+INFO: [Synth 8-6155] done synthesizing module 'fp8_to_fp4_converter' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/precision_converter.v:55]
+INFO: [Synth 8-6155] done synthesizing module 'complex_fp8_to_fp4' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/precision_converter.v:133]
+INFO: [Synth 8-6157] synthesizing module 'mixed_fft_256_core' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/core/mixed_fft_256.v:7]
+	Parameter MAX_N bound to: 1024 - type: integer 
+	Parameter ADDR_WIDTH bound to: 11 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'dit_fft_agu_streaming' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/agu.v:6]
+	Parameter MAX_N bound to: 1024 - type: integer 
+	Parameter ADDR_WIDTH bound to: 11 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'dit_fft_agu_streaming' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/agu.v:6]
+INFO: [Synth 8-6157] synthesizing module 'twiddle_factor_unified' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/twiddle_rom.v:3]
+	Parameter MAX_N bound to: 1024 - type: integer 
+	Parameter ADDR_WIDTH bound to: 11 - type: integer 
+INFO: [Synth 8-3876] $readmem data file '/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/twiddles_1024.txt' is read successfully [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/twiddle_rom.v:21]
+INFO: [Synth 8-6155] done synthesizing module 'twiddle_factor_unified' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/twiddle_rom.v:3]
+INFO: [Synth 8-6157] synthesizing module 'mixed_dual_bank_memory_concurrent' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/memory.v:7]
+	Parameter n bound to: 256 - type: integer 
+	Parameter ADDR_WIDTH bound to: 11 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'mixed_dual_bank_memory_concurrent' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/memory.v:7]
+INFO: [Synth 8-6157] synthesizing module 'complex_fp4_to_fp8' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/precision_converter.v:117]
+INFO: [Synth 8-6157] synthesizing module 'fp4_to_fp8_converter' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/precision_converter.v:12]
+INFO: [Synth 8-6155] done synthesizing module 'fp4_to_fp8_converter' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/precision_converter.v:12]
+INFO: [Synth 8-6155] done synthesizing module 'complex_fp4_to_fp8' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/precision_converter.v:117]
+INFO: [Synth 8-6157] synthesizing module 'butterfly_wrapper_gated' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/butterfly_wrapper_gated.v:62]
+	Parameter PIPELINE_OPERANDS bound to: 0 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'fp4_cmul' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/multiplier.v:89]
+INFO: [Synth 8-6157] synthesizing module 'fp4_mul' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/multiplier.v:15]
+INFO: [Synth 8-6155] done synthesizing module 'fp4_mul' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/multiplier.v:15]
+INFO: [Synth 8-6157] synthesizing module 'fp4_add_sub' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/adder.v:1]
+INFO: [Synth 8-6155] done synthesizing module 'fp4_add_sub' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/adder.v:1]
+INFO: [Synth 8-6155] done synthesizing module 'fp4_cmul' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/multiplier.v:89]
+INFO: [Synth 8-6157] synthesizing module 'fp8_cmul' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/multiplier.v:183]
+INFO: [Synth 8-6157] synthesizing module 'fp8_mul' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/multiplier.v:111]
+INFO: [Synth 8-6155] done synthesizing module 'fp8_mul' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/multiplier.v:111]
+INFO: [Synth 8-6157] synthesizing module 'fp8_add_sub' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/adder.v:112]
+INFO: [Synth 8-6155] done synthesizing module 'fp8_add_sub' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/adder.v:112]
+INFO: [Synth 8-6155] done synthesizing module 'fp8_cmul' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/multiplier.v:183]
+INFO: [Synth 8-6157] synthesizing module 'fp4_complex_add_sub' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/adder.v:94]
+INFO: [Synth 8-6155] done synthesizing module 'fp4_complex_add_sub' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/adder.v:94]
+INFO: [Synth 8-6157] synthesizing module 'fp8_complex_add_sub' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/adder.v:236]
+INFO: [Synth 8-6155] done synthesizing module 'fp8_complex_add_sub' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/adder.v:236]
+INFO: [Synth 8-6155] done synthesizing module 'butterfly_wrapper_gated' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/butterfly_wrapper_gated.v:62]
+INFO: [Synth 8-226] default block is never used [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/core/mixed_fft_256.v:388]
+INFO: [Synth 8-6155] done synthesizing module 'mixed_fft_256_core' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/core/mixed_fft_256.v:7]
+INFO: [Synth 8-6155] done synthesizing module 'mixed_fft_256_top' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/mixed_fft_256_top.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'fft_pcpi_wrapper' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/fft_pcpi_wrapper.v:2]
+INFO: [Synth 8-6155] done synthesizing module 'picorv32_fft_soc' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32_fft_soc.v:13]
+INFO: [Synth 8-6155] done synthesizing module 'soc_fft_top' (0#1) [/home/digital-1/SRIP2026/Updated-FFT-Processor/risc-v-integration/soc_fft_top.v:48]
+WARNING: [Synth 8-6014] Unused sequential element mem_la_firstword_reg_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:392]
+WARNING: [Synth 8-6014] Unused sequential element last_mem_valid_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:393]
+WARNING: [Synth 8-6014] Unused sequential element next_insn_opcode_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:433]
+WARNING: [Synth 8-6014] Unused sequential element mem_la_secondword_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:571]
+WARNING: [Synth 8-6014] Unused sequential element prefetched_high_word_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:572]
+WARNING: [Synth 8-6014] Unused sequential element q_ascii_instr_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:779]
+WARNING: [Synth 8-6014] Unused sequential element q_insn_imm_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:780]
+WARNING: [Synth 8-6014] Unused sequential element q_insn_opcode_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:781]
+WARNING: [Synth 8-6014] Unused sequential element q_insn_rs1_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:782]
+WARNING: [Synth 8-6014] Unused sequential element q_insn_rs2_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:783]
+WARNING: [Synth 8-6014] Unused sequential element q_insn_rd_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:784]
+WARNING: [Synth 8-6014] Unused sequential element dbg_next_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:785]
+WARNING: [Synth 8-6014] Unused sequential element dbg_valid_insn_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:788]
+WARNING: [Synth 8-6014] Unused sequential element cached_ascii_instr_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:793]
+WARNING: [Synth 8-6014] Unused sequential element cached_insn_imm_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:794]
+WARNING: [Synth 8-6014] Unused sequential element cached_insn_opcode_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:796]
+WARNING: [Synth 8-6014] Unused sequential element cached_insn_rs1_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:799]
+WARNING: [Synth 8-6014] Unused sequential element cached_insn_rs2_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:800]
+WARNING: [Synth 8-6014] Unused sequential element cached_insn_rd_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:801]
+WARNING: [Synth 8-6014] Unused sequential element dbg_insn_addr_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:805]
+WARNING: [Synth 8-6014] Unused sequential element is_sll_srl_sra_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1110]
+WARNING: [Synth 8-6014] Unused sequential element clear_prefetched_high_word_q_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1293]
+WARNING: [Synth 8-6014] Unused sequential element set_mem_do_rinst_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1406]
+WARNING: [Synth 8-6014] Unused sequential element set_mem_do_rdata_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1407]
+WARNING: [Synth 8-6014] Unused sequential element set_mem_do_wdata_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1408]
+WARNING: [Synth 8-6014] Unused sequential element alu_out_0_q_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1410]
+WARNING: [Synth 8-6014] Unused sequential element alu_wait_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1413]
+WARNING: [Synth 8-6014] Unused sequential element alu_wait_2_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1414]
+WARNING: [Synth 8-6014] Unused sequential element dbg_rs1val_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1417]
+WARNING: [Synth 8-6014] Unused sequential element dbg_rs2val_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1418]
+WARNING: [Synth 8-6014] Unused sequential element dbg_rs1val_valid_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1419]
+WARNING: [Synth 8-6014] Unused sequential element dbg_rs2val_valid_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1420]
+WARNING: [Synth 8-6014] Unused sequential element next_irq_pending_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1440]
+WARNING: [Synth 8-6014] Unused sequential element decoder_trigger_q_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1447]
+WARNING: [Synth 8-6014] Unused sequential element decoder_pseudo_trigger_q_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1449]
+WARNING: [Synth 8-6014] Unused sequential element latched_trace_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1465]
+WARNING: [Synth 8-6014] Unused sequential element irq_active_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1471]
+WARNING: [Synth 8-6014] Unused sequential element irq_delay_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1472]
+WARNING: [Synth 8-6014] Unused sequential element irq_mask_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1473]
+WARNING: [Synth 8-6014] Unused sequential element irq_state_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1475]
+WARNING: [Synth 8-6014] Unused sequential element timer_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1477]
+WARNING: [Synth 8-6014] Unused sequential element current_pc_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1495]
+WARNING: [Synth 8-6014] Unused sequential element irq_pending_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1963]
+WARNING: [Synth 8-6014] Unused sequential element trace_valid_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/picorv32.v:1452]
+WARNING: [Synth 8-6014] Unused sequential element dbg_load_seq_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/fft_pcpi_wrapper.v:32]
+WARNING: [Synth 8-6014] Unused sequential element dbg_store_seq_reg was removed.  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/fft_pcpi_wrapper.v:38]
+WARNING: [Synth 8-7137] Register timeout_reg in module fft_pcpi_wrapper has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/srcs/fft_pcpi_wrapper.v:76]
+WARNING: [Synth 8-7129] Port clk in module butterfly_wrapper_gated is either unconnected or has no load
+WARNING: [Synth 8-7129] Port rst in module mixed_dual_bank_memory_concurrent is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[31] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[30] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[29] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[28] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[27] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[26] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[25] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[24] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[23] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[22] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[21] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[20] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[19] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[18] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[17] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[16] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[15] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[11] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[10] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[9] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[8] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_insn[7] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[31] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[30] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[29] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[28] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[27] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[26] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[25] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[24] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[23] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[22] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[21] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[20] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[19] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[18] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[17] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[16] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[15] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[14] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[13] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[12] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[11] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[10] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[9] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port pcpi_rs2[8] in module fft_pcpi_wrapper is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[31] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[30] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[29] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[28] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[27] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[26] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[25] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[24] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[23] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[22] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[21] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[20] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[19] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[18] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[17] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[16] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[15] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[14] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[13] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[12] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[11] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[10] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[9] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[8] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[7] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[6] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[5] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[4] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[3] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[2] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[1] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[0] in module picorv32 is either unconnected or has no load
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:03 ; elapsed = 00:00:03 . Memory (MB): peak = 2539.816 ; gain = 595.812 ; free physical = 53206 ; free virtual = 91150
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:03 ; elapsed = 00:00:03 . Memory (MB): peak = 2545.754 ; gain = 601.750 ; free physical = 53202 ; free virtual = 91146
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:00:03 ; elapsed = 00:00:03 . Memory (MB): peak = 2545.754 ; gain = 601.750 ; free physical = 53202 ; free virtual = 91146
+---------------------------------------------------------------------------------
+Netlist sorting complete. Time (s): cpu = 00:00:00.02 ; elapsed = 00:00:00.02 . Memory (MB): peak = 2545.754 ; gain = 0.000 ; free physical = 53202 ; free virtual = 91146
+INFO: [Project 1-570] Preparing netlist for logic optimization
+
+Processing XDC Constraints
+Initializing timing engine
+Parsing XDC File [/tmp/fsaif_soc_fft/soc_fft_constr.xdc]
+CRITICAL WARNING: [Vivado 12-4739] set_output_delay:No valid object(s) found for '-objects [all_outputs]'. [/tmp/fsaif_soc_fft/soc_fft_constr.xdc:3]
+Resolution: Check if the specified object(s) exists in the current design. If it does, ensure that the correct design hierarchy was specified for the object. If you are working with clocks, make sure create_clock was used to create the clock object before it is referenced.
+Finished Parsing XDC File [/tmp/fsaif_soc_fft/soc_fft_constr.xdc]
+Completed Processing XDC Constraints
+
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 2657.219 ; gain = 0.000 ; free physical = 53131 ; free virtual = 91075
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Constraint Validation Runtime : Time (s): cpu = 00:00:00.03 ; elapsed = 00:00:00.01 . Memory (MB): peak = 2657.254 ; gain = 0.000 ; free physical = 53131 ; free virtual = 91075
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:07 ; elapsed = 00:00:07 . Memory (MB): peak = 2657.254 ; gain = 713.250 ; free physical = 53131 ; free virtual = 91075
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7a35tcpg236-1
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:07 ; elapsed = 00:00:07 . Memory (MB): peak = 2665.223 ; gain = 721.219 ; free physical = 53131 ; free virtual = 91075
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying 'set_property' XDC Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished applying 'set_property' XDC Constraints : Time (s): cpu = 00:00:07 ; elapsed = 00:00:07 . Memory (MB): peak = 2665.223 ; gain = 721.219 ; free physical = 53131 ; free virtual = 91075
+---------------------------------------------------------------------------------
+INFO: [Synth 8-802] inferred FSM for state register 'mem_state_reg' in module 'picorv32'
+INFO: [Synth 8-802] inferred FSM for state register 'state_reg' in module 'mixed_fft_256_core'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                 iSTATE2 |                               00 |                               00
+                 iSTATE0 |                               01 |                               10
+                  iSTATE |                               10 |                               01
+                 iSTATE1 |                               11 |                               11
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'mem_state_reg' using encoding 'sequential' in module 'picorv32'
+INFO: [Synth 8-3971] The signal "mixed_dual_bank_memory_concurrent:/b1_sub0_reg" was recognized as a true dual port RAM template.
+INFO: [Synth 8-3971] The signal "mixed_dual_bank_memory_concurrent:/b1_sub1_reg" was recognized as a true dual port RAM template.
+INFO: [Synth 8-3971] The signal "mixed_dual_bank_memory_concurrent:/b0_sub0_reg" was recognized as a true dual port RAM template.
+INFO: [Synth 8-3971] The signal "mixed_dual_bank_memory_concurrent:/b0_sub1_reg" was recognized as a true dual port RAM template.
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                 IDLE_ST |                               00 |                               00
+                  RUN_ST |                               01 |                               01
+                FLUSH_ST |                               10 |                               10
+                 DONE_ST |                               11 |                               11
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'state_reg' using encoding 'sequential' in module 'mixed_fft_256_core'
+WARNING: [Synth 8-6841] Block RAM (mem_reg) originally specified as a Byte Wide Write Enable RAM cannot take advantage of ByteWide feature and is implemented with single write enable per RAM due to following reason.
+(address width (13) is more than optimal threshold of 12. Implementing using BWWE will require more logic and timing would be suboptimal. Please use attribute ram_decomp = power if BWWE is desired.)
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:08 ; elapsed = 00:00:08 . Memory (MB): peak = 2665.223 ; gain = 721.219 ; free physical = 53129 ; free virtual = 91074
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input   32 Bit       Adders := 7     
+	   3 Input   32 Bit       Adders := 1     
+	   2 Input   11 Bit       Adders := 7     
+	   2 Input   10 Bit       Adders := 1     
+	   3 Input    7 Bit       Adders := 6     
+	   2 Input    6 Bit       Adders := 6     
+	   3 Input    6 Bit       Adders := 4     
+	   2 Input    5 Bit       Adders := 5     
+	   2 Input    4 Bit       Adders := 59    
+	   3 Input    4 Bit       Adders := 16    
+	   2 Input    3 Bit       Adders := 11    
+	   2 Input    2 Bit       Adders := 42    
+	   3 Input    2 Bit       Adders := 6     
+	   2 Input    1 Bit       Adders := 12    
++---XORs : 
+	   2 Input     32 Bit         XORs := 1     
+	   2 Input      1 Bit         XORs := 12    
++---Registers : 
+	               36 Bit    Registers := 1     
+	               32 Bit    Registers := 16    
+	               24 Bit    Registers := 28    
+	               16 Bit    Registers := 11    
+	               11 Bit    Registers := 27    
+	                8 Bit    Registers := 1     
+	                6 Bit    Registers := 2     
+	                5 Bit    Registers := 6     
+	                4 Bit    Registers := 14    
+	                3 Bit    Registers := 1     
+	                2 Bit    Registers := 1     
+	                1 Bit    Registers := 104   
++---RAMs : 
+	             256K Bit	(8192 X 32 bit)          RAMs := 1     
+	               3K Bit	(128 X 24 bit)          RAMs := 4     
+	             1024 Bit	(32 X 32 bit)          RAMs := 1     
++---Muxes : 
+	   2 Input   32 Bit        Muxes := 31    
+	   6 Input   32 Bit        Muxes := 4     
+	   5 Input   32 Bit        Muxes := 1     
+	   4 Input   32 Bit        Muxes := 5     
+	   8 Input   32 Bit        Muxes := 1     
+	   3 Input   32 Bit        Muxes := 4     
+	 513 Input   24 Bit        Muxes := 1     
+	   2 Input   24 Bit        Muxes := 12    
+	   2 Input   16 Bit        Muxes := 11    
+	   3 Input   16 Bit        Muxes := 1     
+	   2 Input   11 Bit        Muxes := 10    
+	   4 Input    8 Bit        Muxes := 1     
+	   2 Input    8 Bit        Muxes := 18    
+	   6 Input    8 Bit        Muxes := 1     
+	   3 Input    8 Bit        Muxes := 1     
+	   2 Input    7 Bit        Muxes := 40    
+	   2 Input    6 Bit        Muxes := 9     
+	   4 Input    6 Bit        Muxes := 1     
+	   5 Input    4 Bit        Muxes := 1     
+	   2 Input    4 Bit        Muxes := 102   
+	   4 Input    4 Bit        Muxes := 1     
+	   2 Input    3 Bit        Muxes := 49    
+	   4 Input    3 Bit        Muxes := 6     
+	   4 Input    2 Bit        Muxes := 4     
+	   2 Input    2 Bit        Muxes := 45    
+	   2 Input    1 Bit        Muxes := 140   
+	   7 Input    1 Bit        Muxes := 1     
+	   3 Input    1 Bit        Muxes := 5     
+	   4 Input    1 Bit        Muxes := 19    
+	   6 Input    1 Bit        Muxes := 5     
+	  10 Input    1 Bit        Muxes := 1     
+	   8 Input    1 Bit        Muxes := 2     
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 90 (col length:60)
+BRAMs: 100 (col length: RAMB18 60 RAMB36 30)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+DSP Report: Generating DSP idx_a, operation Mode is: C+A*B.
+DSP Report: operator idx_a is absorbed into DSP idx_a.
+DSP Report: operator group_offset is absorbed into DSP idx_a.
+DSP Report: Generating DSP k, operation Mode is: A*B.
+DSP Report: operator k is absorbed into DSP k.
+DSP Report: Generating DSP m1/prod, operation Mode is: A*B.
+DSP Report: operator m1/prod is absorbed into DSP m1/prod.
+DSP Report: Generating DSP m2/prod, operation Mode is: A*B.
+DSP Report: operator m2/prod is absorbed into DSP m2/prod.
+DSP Report: Generating DSP m3/prod, operation Mode is: A*B.
+DSP Report: operator m3/prod is absorbed into DSP m3/prod.
+DSP Report: Generating DSP m4/prod, operation Mode is: A*B.
+DSP Report: operator m4/prod is absorbed into DSP m4/prod.
+DSP Report: Generating DSP m1/prod, operation Mode is: A*B.
+DSP Report: operator m1/prod is absorbed into DSP m1/prod.
+DSP Report: Generating DSP m2/prod, operation Mode is: A*B.
+DSP Report: operator m2/prod is absorbed into DSP m2/prod.
+DSP Report: Generating DSP m3/prod, operation Mode is: A*B.
+DSP Report: operator m3/prod is absorbed into DSP m3/prod.
+DSP Report: Generating DSP m4/prod, operation Mode is: A*B.
+DSP Report: operator m4/prod is absorbed into DSP m4/prod.
+WARNING: [Synth 8-7129] Port clk in module butterfly_wrapper_gated is either unconnected or has no load
+WARNING: [Synth 8-7129] Port rst in module mixed_dual_bank_memory_concurrent is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[31] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[30] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[29] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[28] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[27] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[26] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[25] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[24] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[23] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[22] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[21] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[20] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[19] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[18] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[17] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[16] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[15] in module picorv32 is either unconnected or has no load
+WARNING: [Synth 8-7129] Port irq[14] in module picorv32 is either unconnected or has no load
+INFO: [Common 17-14] Message 'Synth 8-7129' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+INFO: [Synth 8-3971] The signal "u_soc/\u_fft_wrapper/u_fft/core /mem/b1_sub0_reg" was recognized as a true dual port RAM template.
+INFO: [Synth 8-3971] The signal "u_soc/\u_fft_wrapper/u_fft/core /mem/b1_sub1_reg" was recognized as a true dual port RAM template.
+INFO: [Synth 8-3971] The signal "u_soc/\u_fft_wrapper/u_fft/core /mem/b0_sub0_reg" was recognized as a true dual port RAM template.
+INFO: [Synth 8-3971] The signal "u_soc/\u_fft_wrapper/u_fft/core /mem/b0_sub1_reg" was recognized as a true dual port RAM template.
+WARNING: [Synth 8-6841] Block RAM (mem_reg) originally specified as a Byte Wide Write Enable RAM cannot take advantage of ByteWide feature and is implemented with single write enable per RAM due to following reason.
+(address width (13) is more than optimal threshold of 12. Implementing using BWWE will require more logic and timing would be suboptimal. Please use attribute ram_decomp = power if BWWE is desired.)
+WARNING: [Synth 8-3332] Sequential element (FSM_sequential_mem_state_reg[1]) is unused and will be removed from module picorv32.
+WARNING: [Synth 8-3332] Sequential element (FSM_sequential_mem_state_reg[0]) is unused and will be removed from module picorv32.
+WARNING: [Synth 8-3332] Sequential element (FSM_sequential_state_reg[1]) is unused and will be removed from module mixed_fft_256_core.
+WARNING: [Synth 8-3332] Sequential element (FSM_sequential_state_reg[0]) is unused and will be removed from module mixed_fft_256_core.
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:10 ; elapsed = 00:00:10 . Memory (MB): peak = 2665.223 ; gain = 721.219 ; free physical = 53129 ; free virtual = 91074
+---------------------------------------------------------------------------------
+ Sort Area is  m1/prod_9 : 0 0 : 145 145 : Used 1 time 100
+ Sort Area is  m2/prod_b : 0 0 : 145 145 : Used 1 time 100
+ Sort Area is  m3/prod_c : 0 0 : 145 145 : Used 1 time 100
+ Sort Area is  m4/prod_d : 0 0 : 145 145 : Used 1 time 100
+ Sort Area is  m1/prod_4 : 0 0 : 41 41 : Used 1 time 100
+ Sort Area is  m2/prod_6 : 0 0 : 41 41 : Used 1 time 100
+ Sort Area is  m3/prod_7 : 0 0 : 41 41 : Used 1 time 100
+ Sort Area is  m4/prod_8 : 0 0 : 41 41 : Used 1 time 100
+ Sort Area is  idx_a_0 : 0 0 : 895 895 : Used 1 time 0
+ Sort Area is  k_2 : 0 0 : 863 863 : Used 1 time 0
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+DSP: Preliminary Mapping Report (see note below. The ' indicates corresponding REG is set)
++----------------------+-------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|Module Name           | DSP Mapping | A Size | B Size | C Size | D Size | P Size | AREG | BREG | CREG | DREG | ADREG | MREG | PREG | 
++----------------------+-------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|dit_fft_agu_streaming | C+A*B       | 11     | 11     | 11     | -      | 11     | 0    | 0    | 0    | -    | -     | 0    | 0    | 
+|dit_fft_agu_streaming | A*B         | 11     | 11     | -      | -      | 22     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|fp4_mul               | A*B         | 3      | 3      | -      | -      | 6      | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|fp4_mul               | A*B         | 3      | 3      | -      | -      | 6      | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|fp4_mul               | A*B         | 3      | 3      | -      | -      | 6      | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|fp4_mul               | A*B         | 3      | 3      | -      | -      | 6      | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|fp8_mul               | A*B         | 5      | 5      | -      | -      | 10     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|fp8_mul               | A*B         | 5      | 5      | -      | -      | 10     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|fp8_mul               | A*B         | 5      | 5      | -      | -      | 10     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|fp8_mul               | A*B         | 5      | 5      | -      | -      | 10     | 0    | 0    | -    | -    | -     | 0    | 0    | 
++----------------------+-------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+
+Note: The table above is a preliminary report that shows the DSPs inferred at the current stage of the synthesis flow. Some DSP may be reimplemented as non DSP primitives later in the synthesis flow. Multiple instantiated DSPs are reported only once.
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying XDC Timing Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Applying XDC Timing Constraints : Time (s): cpu = 00:00:12 ; elapsed = 00:00:12 . Memory (MB): peak = 2700.223 ; gain = 756.219 ; free physical = 53094 ; free virtual = 91039
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:12 ; elapsed = 00:00:12 . Memory (MB): peak = 2700.223 ; gain = 756.219 ; free physical = 53094 ; free virtual = 91039
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:12 ; elapsed = 00:00:12 . Memory (MB): peak = 2710.238 ; gain = 766.234 ; free physical = 53085 ; free virtual = 91030
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:14 ; elapsed = 00:00:14 . Memory (MB): peak = 2895.051 ; gain = 951.047 ; free physical = 52892 ; free virtual = 90837
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:14 ; elapsed = 00:00:14 . Memory (MB): peak = 2895.051 ; gain = 951.047 ; free physical = 52892 ; free virtual = 90837
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:14 ; elapsed = 00:00:14 . Memory (MB): peak = 2895.051 ; gain = 951.047 ; free physical = 52892 ; free virtual = 90837
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:14 ; elapsed = 00:00:14 . Memory (MB): peak = 2895.051 ; gain = 951.047 ; free physical = 52892 ; free virtual = 90837
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:14 ; elapsed = 00:00:14 . Memory (MB): peak = 2895.051 ; gain = 951.047 ; free physical = 52892 ; free virtual = 90837
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:14 ; elapsed = 00:00:14 . Memory (MB): peak = 2895.051 ; gain = 951.047 ; free physical = 52892 ; free virtual = 90837
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++-+-----+------+
+| |Cell |Count |
++-+-----+------+
++-+-----+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:14 ; elapsed = 00:00:14 . Memory (MB): peak = 2895.051 ; gain = 951.047 ; free physical = 52892 ; free virtual = 90837
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 40 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:13 ; elapsed = 00:00:13 . Memory (MB): peak = 2895.051 ; gain = 839.547 ; free physical = 52892 ; free virtual = 90837
+Synthesis Optimization Complete : Time (s): cpu = 00:00:14 ; elapsed = 00:00:14 . Memory (MB): peak = 2895.059 ; gain = 951.047 ; free physical = 52892 ; free virtual = 90837
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 2895.059 ; gain = 0.000 ; free physical = 52892 ; free virtual = 90837
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Parsing XDC File [/tmp/fsaif_soc_fft/soc_fft_constr.xdc]
+CRITICAL WARNING: [Vivado 12-4739] set_output_delay:No valid object(s) found for '-objects [all_outputs]'. [/tmp/fsaif_soc_fft/soc_fft_constr.xdc:3]
+Resolution: Check if the specified object(s) exists in the current design. If it does, ensure that the correct design hierarchy was specified for the object. If you are working with clocks, make sure create_clock was used to create the clock object before it is referenced.
+Finished Parsing XDC File [/tmp/fsaif_soc_fft/soc_fft_constr.xdc]
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+CRITICAL WARNING: [Project 1-486] Could not resolve non-primitive black box cell 'picorv32_fft_soc' instantiated as 'u_soc' [/home/digital-1/SRIP2026/Updated-FFT-Processor/risc-v-integration/soc_fft_top.v:58]
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 2895.059 ; gain = 0.000 ; free physical = 53055 ; free virtual = 91001
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Synth Design complete | Checksum: e6361433
+INFO: [Common 17-83] Releasing license: Synthesis
+76 Infos, 162 Warnings, 3 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:17 ; elapsed = 00:00:16 . Memory (MB): peak = 2895.086 ; gain = 1042.418 ; free physical = 53054 ; free virtual = 90999
+INFO: [Common 17-2834] synth_design peak Physical Memory [PSS] (MB): overall = 2080.986; main = 2080.986; forked = 352.192
+INFO: [Common 17-2834] synth_design peak Virtual Memory [VSS] (MB): overall = 4306.340; main = 2895.055; forked = 1641.113
+# if { [catch { opt_design -directive Explore } emsg] } {
+#     puts "WARNING: opt_design failed ($emsg) - this netlist may differ from the"
+#     puts "WARNING: power run's netlist. CHECK THE CHECKSUMS before believing"
+#     puts "WARNING: any power number derived from this SAIF."
+# }
+Command: opt_design -directive Explore
+INFO: [Vivado_Tcl 4-136] Directive used for opt_design is: Explore
+Attempting to get a license for feature 'Implementation' and/or device 'xc7a35t'
+INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7a35t'
+Running DRC as a precondition to command opt_design
+
+Starting DRC Task
+INFO: [DRC 23-27] Running DRC with 8 threads
+WARNING: [DRC 23-814] Not all possible (connectivity based) DRCs may have been run because this design is seen as Out of Context.
+INFO: [Project 1-461] DRC finished with 1 Errors
+INFO: [Project 1-462] Please refer to the DRC report (report_drc) for more information.
+
+Time (s): cpu = 00:00:00.24 ; elapsed = 00:00:00.23 . Memory (MB): peak = 2895.086 ; gain = 0.000 ; free physical = 53055 ; free virtual = 91000
+INFO: [Common 17-83] Releasing license: Implementation
+6 Infos, 1 Warnings, 0 Critical Warnings and 2 Errors encountered.
+opt_design failed
+WARNING: opt_design failed (ERROR: [Common 17-39] 'opt_design' failed due to earlier errors.
+) - this netlist may differ from the
+WARNING: power run's netlist. CHECK THE CHECKSUMS before believing
+WARNING: any power number derived from this SAIF.
+# if { [catch { write_verilog -mode funcsim -force $netlist_v } emsg] } {
+#     puts "ERROR: write_verilog -mode funcsim failed: $emsg"
+#     exit 1
+# }
+# if { ![file exists $netlist_v] } {
+#     puts "ERROR: netlist was not written to $netlist_v"
+#     exit 1
+# }
+# puts "INFO: funcsim netlist written ([file size $netlist_v] bytes)"
+INFO: funcsim netlist written (2953 bytes)
+# set here [pwd]
+# cd $work_dir
+# set glbl_v ""
+# if { [info exists ::env(XILINX_VIVADO)] } {
+#     set cand "$::env(XILINX_VIVADO)/data/verilog/src/glbl.v"
+#     if { [file exists $cand] } { set glbl_v $cand }
+# }
+# if { $glbl_v eq "" } {
+#     puts "WARNING: glbl.v not found via XILINX_VIVADO - elaborating without it."
+#     puts "WARNING: If the testbench times out or reports all-zero readback, the"
+#     puts "WARNING: flops never left X and this is the reason."
+# }
+# set vlog_files [list $netlist_v $tb_file]
+# if { $glbl_v ne "" } { lappend vlog_files $glbl_v }
+# set defs [list -d DUT_TOP=${top_module} -d FFT_N=${fft_n} -d FRAMES=${frames}]
+# if { [catch { eval exec xvlog -sv $defs [lrange $vlog_files 0 end] } emsg] } {
+#     puts "ERROR: xvlog failed:\n$emsg"
+#     cd $here
+#     exit 1
+# }
+# set tops [list $tb_module]
+# if { $glbl_v ne "" } { lappend tops glbl }
+# set xelab_args [list --relax -debug typical -timescale 1ns/1ps \
+#                      -L unisims_ver -L unimacro_ver -L secureip \
+#                      -snapshot ${tb_module}_fsnap]
+# if { [catch { eval exec xelab $xelab_args [lrange $tops 0 end] } emsg] } {
+#     puts "ERROR: xelab failed:\n$emsg"
+#     puts "ERROR: the -L library names are the usual suspect on a given install."
+#     puts "ERROR: Try dropping '-L secureip', or adding '-L xil_defaultlib'."
+#     cd $here
+#     exit 1
+# }
+ERROR: xelab failed:
+Vivado Simulator v2025.2
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+Running: /home/digital-1/2025.2/Vivado/bin/unwrapped/lnx64.o/xelab --relax -debug typical -timescale 1ns/1ps -L unisims_ver -L unimacro_ver -L secureip -snapshot tb_soc_power_fsnap tb_soc_power glbl 
+Multi-threading is on. Using 22 slave threads.
+Starting static elaboration
+Pass Through NonSizing Optimizer
+ERROR: [VRFC 10-2991] 'mem' is not declared under prefix 'u_soc' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/tb_soc_power.v:60]
+ERROR: [VRFC 10-2991] 'pcpi_valid' is not declared under prefix 'u_soc' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/tb_soc_power.v:65]
+ERROR: [VRFC 10-2991] 'pcpi_insn' is not declared under prefix 'u_soc' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/tb_soc_power.v:66]
+ERROR: [VRFC 10-2991] 'pcpi_ready' is not declared under prefix 'u_soc' [/home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/soc_fpga_work_impl/tb_soc_power.v:67]
+ERROR: [XSIM 43-3322] Static elaboration of top level Verilog design unit(s) in library work failed.
+child process exited abnormally
+ERROR: the -L library names are the usual suspect on a given install.
+ERROR: Try dropping '-L secureip', or adding '-L xil_defaultlib'.
+INFO: [Common 17-206] Exiting Vivado at Tue Oct  6 12:15:07 2026...
+
+===== STDERR =====
+ERROR: [DRC INBB-3] Black Box Instances: Cell 'u_soc' of type 'picorv32_fft_soc' has undefined contents and is considered a black box.  The contents of this cell must be defined for opt_design to complete successfully.
+ERROR: [Vivado_Tcl 4-78] Error(s) found during DRC. Opt_design not run.

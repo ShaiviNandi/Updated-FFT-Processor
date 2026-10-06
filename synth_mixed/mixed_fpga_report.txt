@@ -74,16 +74,16 @@ TABLE 4  ARE THE POWER NUMBERS TRUSTWORTHY?
 FFT size  Switching activity annotated  Design nets annotated      Dynamic power shift        Accepted on  Netlist checksums agree  Post-synthesis optimisation ran  Vectorless dynamic power
   points                      yes / no       percent of total  percent from vectorless  which test passed                 yes / no                         yes / no      watts, for reference
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-       2                           yes                     48                        -                  -                      yes                              yes                    0.0110
-       4                           yes                     53                        -                  -                      yes                              yes                    0.0290
-       8                           yes                     61                        -                  -                      yes                              yes                    0.0280
-      16                           yes                     45                        -                  -                      yes                              yes                    0.0300
-      32                           yes                     40                        -                  -                      yes                              yes                    0.0320
-      64                           yes                     40                        -                  -                      yes                              yes                    0.0320
-     128                           yes                     41                        -                  -                      yes                              yes                    0.0330
-     256                           yes                     41                        -                  -                      yes                              yes                    0.0330
-     512                           yes                     69                        -                  -                      yes                              yes                    0.0330
-    1024                           yes                     66                        -                  -                      yes                              yes                    0.0330
+       2                           yes                     48                       45               both                      yes                              yes                    0.0110
+       4                           yes                     53                       21               both                      yes                              yes                    0.0290
+       8                           yes                     61                       21               both                      yes                              yes                    0.0280
+      16                           yes                     45                        7               both                      yes                              yes                    0.0300
+      32                           yes                     40                        9               both                      yes                              yes                    0.0320
+      64                           yes                     40                       19               both                      yes                              yes                    0.0320
+     128                           yes                     41                       21               both                      yes                              yes                    0.0330
+     256                           yes                     41                       24               both                      yes                              yes                    0.0330
+     512                           yes                     69                       15               both                      yes                              yes                    0.0330
+    1024                           yes                     66                       12               both                      yes                              yes                    0.0330
   This matters more here than for the baselines: the gated wrapper is the only
   reason dynamic power depends on the chromosome at all, and that dependence is
   invisible without a real switching-activity annotation. A row with 'no' here

@@ -1,3 +1,4 @@
+
 ==============================================================================
 FP32 BASELINE - FPGA SYNTHESIS, POWER AND THROUGHPUT
 ==============================================================================
@@ -131,3 +132,8 @@ HOW THE DERIVED COLUMNS ARE COMPUTED
 WARNING  Switching activity was not annotated for FFT size(s) [8, 1024].
          Energy per transform and throughput per watt are omitted for
          those rows. Check the SAIF strip path and the activity-pass log.
+
+[fp32-fpga] table: /home/digital-1/SRIP2026/Updated-FFT-Processor/fp32_baseline/synth/fp32_fpga_report.txt
+[fp32-fpga] csv  : /home/digital-1/SRIP2026/Updated-FFT-Processor/fp32_baseline/synth/fp32_fpga_metrics.csv
+
+[log written to /home/digital-1/SRIP2026/Updated-FFT-Processor/fp32_baseline/synth/fp32_fpga_report.log]
