@@ -1,0 +1,9 @@
+Metric,Value
+synth_ok,1
+saif_pass_ok,0
+saif_checksum,
+pwr_checksum,b6685ee6
+checksum_match,0
+saif_power_shift,0.0
+saif_used,0
+saif_accepted_on,neither

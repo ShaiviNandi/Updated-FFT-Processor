@@ -1,0 +1,84 @@
+==============================================================================
+MIXED-PRECISION FP4/FP8 CORES - FPGA SYNTHESIS, POWER AND THROUGHPUT
+==============================================================================
+
+What this reports: area, achievable clock frequency and dynamic power for the
+NSGA-II-selected mixed-precision FFT cores on FPGA, regenerated with the
+gated butterfly wrapper, plus the throughput, energy and efficiency figures
+derived from them. Same Vivado scripts and same testbench as the FP16 and
+FP32 baselines, so the three are comparable by construction.
+
+Target FPGA device              : xc7a35tcpg236-1
+Clock period used for power/XDC : 35.7 ns (28.0 MHz constraint)
+Butterfly wrapper               : butterfly_wrapper_gated, PIPELINE_OPERANDS=0
+                                  (combinational operand isolation, no added latency)
+DSP inference for multipliers    : enabled
+Synthesis script                : vivado_synthesis_v2.tcl (unmodified)
+Switching-activity script       : generate_saif_funcsim.tcl (unmodified)
+Activity testbench              : tb_fft_power.v, strip path tb_fft_power/uut
+Minimum accepted SAIF coverage  : 10% of design nets
+
+The clock constraint above only sets the operating point at which dynamic
+power is reported. Energy per transform is frequency-invariant, so it is the
+same physical quantity whatever constraint is used.
+
+TABLE 1  DESIGN UNDER TEST
+FFT size               Solution ID                    Chromosome  FP8 multiply stages   FP8 add stages
+  points  as numbered in the sweep  one bit per stage: mult, add      of total stages  of total stages
+------------------------------------------------------------------------------------------------------
+     256                         8              0000111111111111               6 of 8           6 of 8
+  A 1 selects the FP8 datapath for that stage, a 0 selects FP4. Bits run
+  stage 0 first, multiply bit before add bit.
+
+TABLE 2  RESOURCE UTILISATION
+FFT size  Logic LUTs  LUTs used as memory  Flip-flops  Block RAM tiles  DSP slices
+  points       count                count       count            count       count
+----------------------------------------------------------------------------------
+     256        1276                   78         158                4          10
+
+TABLE 3  TIMING AND POWER
+FFT size  Maximum frequency  Critical path delay  Worst negative slack  Dynamic power  Static power  Total on-chip power
+  points                MHz                   ns                    ns          watts         watts                watts
+------------------------------------------------------------------------------------------------------------------------
+     256              28.10               35.588                 0.082         0.0090        0.0690               0.0780
+  Maximum frequency is 1 / critical path delay, not the constrained frequency.
+
+TABLE 4  ARE THE POWER NUMBERS TRUSTWORTHY?
+FFT size  Switching activity annotated  Design nets annotated      Dynamic power shift        Accepted on  Netlist checksums agree  Post-synthesis optimisation ran  Vectorless dynamic power
+  points                      yes / no       percent of total  percent from vectorless  which test passed                 yes / no                         yes / no      watts, for reference
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+     256                            no                      -                        0            neither                       no                              yes                    0.0090
+  This matters more here than for the baselines: the gated wrapper is the only
+  reason dynamic power depends on the chromosome at all, and that dependence is
+  invisible without a real switching-activity annotation. A row with 'no' here
+  carries no information about the precision schedule.
+
+TABLE 5  THROUGHPUT AND EFFICIENCY, COMPUTE ONLY (start of transform to done)
+FFT size  Cycles per transform             Throughput  Energy per transform   Throughput per watt  Throughput per 1000 logic LUTs
+  points          clock cycles  transforms per second            nanojoules  transforms per joule           transforms per second
+---------------------------------------------------------------------------------------------------------------------------------
+     256                  1123                 25,022                     -                     -                          19,609
+  Isolates the datapath, and is the column to compare against the FP16 and
+  FP32 baselines, because load and unload cost the same at every precision.
+
+TABLE 6  THROUGHPUT AND EFFICIENCY, END TO END (load + compute + unload)
+FFT size  Cycles per transform             Throughput  Energy per transform   Throughput per watt  Throughput per 1000 logic LUTs
+  points          clock cycles  transforms per second            nanojoules  transforms per joule           transforms per second
+---------------------------------------------------------------------------------------------------------------------------------
+     256                  2148                 13,082                     -                     -                          10,252
+  Compute cycles plus 4N + 1: load is N+1 cycles and unload is 3N, from the
+  load/unload loops in performance_evaluator.py's testbench. Pass
+  --cycles-file to substitute a measured table.
+
+HOW THE DERIVED COLUMNS ARE COMPUTED
+  Throughput (transforms/s)      = maximum frequency / cycles per transform
+  Energy per transform (nJ)      = dynamic power x cycles x clock period
+  Throughput per watt (transf/J) = 1 / energy per transform. These are the
+                                   same quantity, not a separate measurement.
+  Throughput per 1000 logic LUTs = throughput / (logic LUTs / 1000)
+
+WARNING  Switching activity was not annotated for FFT size(s) [256].
+         Energy per transform and throughput per watt are omitted there.
+
+WARNING  Netlist checksums disagree for FFT size(s) [256]. The activity
+         file describes a different netlist than the one annotated.

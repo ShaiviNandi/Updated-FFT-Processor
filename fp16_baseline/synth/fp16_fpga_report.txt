@@ -50,19 +50,28 @@ FFT size  Maximum frequency  Critical path delay  Worst negative slack  Dynamic 
   Maximum frequency is 1 / critical path delay, not the constrained frequency.
 
 TABLE 3  ARE THE POWER NUMBERS TRUSTWORTHY?
-FFT size  Switching activity annotated  Design nets annotated  Netlist checksums agree  Post-synthesis optimisation ran  Vectorless dynamic power
-  points                      yes / no       percent of total                 yes / no                         yes / no      watts, for reference
--------------------------------------------------------------------------------------------------------------------------------------------------
-       2                           yes                     37                      yes                              yes                    0.0690
-       4                            no                     10                      yes                              yes                    0.0830
-       8                           yes                     10                      yes                              yes                    0.0860
-      16                           yes                     11                      yes                              yes                    0.0880
-      32                           yes                     13                      yes                              yes                    0.0920
-      64                           yes                     13                      yes                              yes                    0.0940
-     128                           yes                     15                      yes                              yes                    0.0950
-     256                           yes                     15                      yes                              yes                    0.0970
-     512                           yes                     15                      yes                              yes                    0.0970
-    1024                           yes                     15                      yes                              yes                    0.1140
+FFT size  Switching activity annotated  Design nets annotated      Dynamic power shift        Accepted on  Netlist checksums agree  Post-synthesis optimisation ran  Vectorless dynamic power
+  points                      yes / no       percent of total  percent from vectorless  which test passed                 yes / no                         yes / no      watts, for reference
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+       2                           yes                     37                        -                  -                      yes                              yes                    0.0690
+       4                            no                     10                        -                  -                      yes                              yes                    0.0830
+       8                           yes                     10                        -                  -                      yes                              yes                    0.0860
+      16                           yes                     11                        -                  -                      yes                              yes                    0.0880
+      32                           yes                     13                        -                  -                      yes                              yes                    0.0920
+      64                           yes                     13                        -                  -                      yes                              yes                    0.0940
+     128                           yes                     15                        -                  -                      yes                              yes                    0.0950
+     256                           yes                     15                        -                  -                      yes                              yes                    0.0970
+     512                           yes                     15                        -                  -                      yes                              yes                    0.0970
+    1024                           yes                     15                        -                  -                      yes                              yes                    0.1140
+  A row is trusted if it clears EITHER test. 'Design nets annotated' is
+  Vivado's own matched-net count; 'Dynamic power shift' is how far dynamic
+  power moved from the vectorless baseline. Coverage falls structurally as the
+  datapath widens -- a wide multiplier's interior is most of its nets and
+  synthesis never names them -- so coverage is not comparable across
+  precisions and cannot be the only test. The power shift catches those rows;
+  coverage catches the converse case where the SAIF annotated properly but
+  power happened not to move. 'Accepted on' says which one applied.
+  
   'Switching activity annotated' is Vivado's own count of design nets matched by
   the activity file, tested against the coverage floor above. Where it reads 'no',
   energy and throughput-per-watt are left blank in the tables below rather than

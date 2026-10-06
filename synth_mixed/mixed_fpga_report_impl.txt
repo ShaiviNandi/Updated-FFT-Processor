@@ -1,0 +1,132 @@
+==============================================================================
+MIXED-PRECISION FP4/FP8 CORES - FPGA SYNTHESIS, POWER AND THROUGHPUT
+==============================================================================
+
+What this reports: area, achievable clock frequency and dynamic power for the
+NSGA-II-selected mixed-precision FFT cores on FPGA, regenerated with the
+gated butterfly wrapper, plus the throughput, energy and efficiency figures
+derived from them. Same Vivado scripts and same testbench as the FP16 and
+FP32 baselines, so the three are comparable by construction.
+
+Target FPGA device              : xc7a35tcpg236-1
+Clock period used for power/XDC : 10.0 ns (100.0 MHz constraint)
+Butterfly wrapper               : butterfly_wrapper_gated, PIPELINE_OPERANDS=0
+                                  (combinational operand isolation, no added latency)
+DSP inference for multipliers    : enabled
+Synthesis script                : vivado_synthesis_v2.tcl (unmodified)
+Switching-activity script       : generate_saif_funcsim.tcl (unmodified)
+Activity testbench              : tb_fft_power.v, strip path tb_fft_power/uut
+Minimum accepted SAIF coverage  : 10% of design nets
+
+The clock constraint above only sets the operating point at which dynamic
+power is reported. Energy per transform is frequency-invariant, so it is the
+same physical quantity whatever constraint is used.
+
+TABLE 1  DESIGN UNDER TEST
+FFT size               Solution ID                    Chromosome  FP8 multiply stages   FP8 add stages
+  points  as numbered in the sweep  one bit per stage: mult, add      of total stages  of total stages
+------------------------------------------------------------------------------------------------------
+       2                         1                            01               0 of 1           1 of 1
+       4                         4                          0100               0 of 2           1 of 2
+       8                         1                        000001               0 of 3           1 of 3
+      16                        19                      10101111               4 of 4           2 of 4
+      32                         7                    0000111111               3 of 5           3 of 5
+      64                         8                  000011111111               4 of 6           4 of 6
+     128                         5                00001111111111               5 of 7           5 of 7
+     256                         8              0000111111111111               6 of 8           6 of 8
+     512                         8            000011111111111100               6 of 9           6 of 9
+    1024                         8          00001111111111110000              6 of 10          6 of 10
+  A 1 selects the FP8 datapath for that stage, a 0 selects FP4. Bits run
+  stage 0 first, multiply bit before add bit.
+
+TABLE 2  RESOURCE UTILISATION
+FFT size  Logic LUTs  LUTs used as memory  Flip-flops  Block RAM tiles  DSP slices
+  points       count                count       count            count       count
+----------------------------------------------------------------------------------
+       2         738                   39         228                0           4
+       4         805                   43         112                4           6
+       8         853                   46         119                4           6
+      16        1252                   69         140                4          10
+      32        1322                   73         149                4          10
+      64        1359                   74         150                4          10
+     128        1381                   77         157                4          10
+     256        1392                   78         158                4          10
+     512        1424                   80         163                4          10
+    1024        1452                   82         166                4          10
+
+TABLE 3  TIMING AND POWER
+FFT size  Maximum frequency  Critical path delay  Worst negative slack  Dynamic power  Static power  Total on-chip power
+  points                MHz                   ns                    ns          watts         watts                watts
+------------------------------------------------------------------------------------------------------------------------
+       2              46.10               21.691               -11.691         0.0060        0.0680               0.0750
+       4              40.03               24.983               -14.983         0.0230        0.0690               0.0910
+       8              39.99               25.007               -15.007         0.0220        0.0690               0.0910
+      16              28.61               34.952               -24.952         0.0320        0.0690               0.1000
+      32              28.45               35.151               -25.151         0.0350        0.0690               0.1040
+      64              28.44               35.161               -25.161         0.0380        0.0690               0.1060
+     128              28.45               35.151               -25.151         0.0400        0.0690               0.1090
+     256              28.44               35.161               -25.161         0.0410        0.0690               0.1100
+     512              28.44               35.161               -25.161         0.0280        0.0690               0.0970
+    1024              28.44               35.161               -25.161         0.0290        0.0690               0.0980
+  Maximum frequency is 1 / critical path delay, not the constrained frequency.
+
+TABLE 4  ARE THE POWER NUMBERS TRUSTWORTHY?
+FFT size  Switching activity annotated  Design nets annotated      Dynamic power shift        Accepted on  Netlist checksums agree  Post-synthesis optimisation ran  Vectorless dynamic power
+  points                      yes / no       percent of total  percent from vectorless  which test passed                 yes / no                         yes / no      watts, for reference
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+       2                           yes                     48                       45               both                      yes                              yes                    0.0110
+       4                           yes                     53                       21               both                      yes                              yes                    0.0290
+       8                           yes                     61                       21               both                      yes                              yes                    0.0280
+      16                           yes                     45                        7               both                      yes                              yes                    0.0300
+      32                           yes                     40                        9               both                      yes                              yes                    0.0320
+      64                           yes                     40                       19               both                      yes                              yes                    0.0320
+     128                           yes                     41                       21               both                      yes                              yes                    0.0330
+     256                           yes                     41                       24               both                      yes                              yes                    0.0330
+     512                           yes                     69                       15               both                      yes                              yes                    0.0330
+    1024                           yes                     66                       12               both                      yes                              yes                    0.0330
+  This matters more here than for the baselines: the gated wrapper is the only
+  reason dynamic power depends on the chromosome at all, and that dependence is
+  invisible without a real switching-activity annotation. A row with 'no' here
+  carries no information about the precision schedule.
+
+TABLE 5  THROUGHPUT AND EFFICIENCY, COMPUTE ONLY (start of transform to done)
+FFT size  Cycles per transform             Throughput  Energy per transform   Throughput per watt  Throughput per 1000 logic LUTs
+  points          clock cycles  transforms per second            nanojoules  transforms per joule           transforms per second
+---------------------------------------------------------------------------------------------------------------------------------
+       2                    16              2,881,379                  0.96         1,041,666,667                       3,904,308
+       4                    31              1,291,201                  7.13           140,252,454                       1,603,976
+       8                    51                784,094                 11.22            89,126,560                         919,219
+      16                    83                344,707                 26.56            37,650,602                         275,325
+      32                   143                198,942                 50.05            19,980,020                         150,486
+      64                   267                106,519                101.46             9,856,101                          78,381
+     128                   535                 53,175                214.00             4,672,897                          38,505
+     256                  1123                 25,326                460.43             2,171,883                          18,194
+     512                  2415                 11,777                676.20             1,478,852                           8,270
+    1024                  5243                  5,424               1520.47               657,691                           3,736
+  Isolates the datapath, and is the column to compare against the FP16 and
+  FP32 baselines, because load and unload cost the same at every precision.
+
+TABLE 6  THROUGHPUT AND EFFICIENCY, END TO END (load + compute + unload)
+FFT size  Cycles per transform             Throughput  Energy per transform   Throughput per watt  Throughput per 1000 logic LUTs
+  points          clock cycles  transforms per second            nanojoules  transforms per joule           transforms per second
+---------------------------------------------------------------------------------------------------------------------------------
+       2                    25              1,844,083                  1.50           666,666,667                       2,498,757
+       4                    48                833,900                 11.04            90,579,710                       1,035,901
+       8                    84                476,057                 18.48            54,112,554                         558,098
+      16                   148                193,315                 47.36            21,114,865                         154,405
+      32                   272                104,591                 95.20            10,504,202                          79,116
+      64                   524                 54,276                199.12             5,022,097                          39,938
+     128                  1048                 27,146                419.20             2,385,496                          19,657
+     256                  2148                 13,241                880.68             1,135,486                           9,512
+     512                  4464                  6,371               1249.92               800,051                           4,474
+    1024                  9340                  3,045               2708.60               369,194                           2,097
+  Compute cycles plus 4N + 1: load is N+1 cycles and unload is 3N, from the
+  load/unload loops in performance_evaluator.py's testbench. Pass
+  --cycles-file to substitute a measured table.
+
+HOW THE DERIVED COLUMNS ARE COMPUTED
+  Throughput (transforms/s)      = maximum frequency / cycles per transform
+  Energy per transform (nJ)      = dynamic power x cycles x clock period
+  Throughput per watt (transf/J) = 1 / energy per transform. These are the
+                                   same quantity, not a separate measurement.
+  Throughput per 1000 logic LUTs = throughput / (logic LUTs / 1000)

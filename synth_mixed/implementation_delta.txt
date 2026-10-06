@@ -1,0 +1,151 @@
+==============================================================================
+POST-SYNTHESIS vs POST-ROUTE
+==============================================================================
+
+Same netlist, same Vivado invocation: vivado_implement.tcl sources
+vivado_synthesis_v2.tcl unmodified, then places, phys-opts and routes the
+design that returns. The difference between the two columns is
+implementation only -- nothing is re-synthesised in between.
+
+
+TABLE 1  DID IMPLEMENTATION COMPLETE?
+Precision track  FFT size    Placed  Physically optimised    Routed  Elapsed  Error, if any
+                   points  yes / no              yes / no  yes / no  seconds               
+-------------------------------------------------------------------------------------------
+           FP16         2       yes                   yes       yes       87              -
+           FP16         4       yes                   yes       yes      113              -
+           FP16         8       yes                   yes       yes      104              -
+           FP16        16       yes                   yes       yes      104              -
+           FP16        32       yes                   yes       yes      103              -
+           FP16        64       yes                   yes       yes      102              -
+           FP16       128       yes                   yes       yes       94              -
+           FP16       256       yes                   yes       yes      108              -
+           FP16       512       yes                   yes       yes      116              -
+           FP16      1024       yes                   yes       yes      101              -
+           FP32         2       yes                   yes       yes      123              -
+           FP32         4       yes                   yes       yes      148              -
+           FP32         8       yes                   yes       yes      159              -
+           FP32        16       yes                   yes       yes      137              -
+           FP32        32       yes                   yes       yes      142              -
+           FP32        64       yes                   yes       yes      143              -
+           FP32       128       yes                   yes       yes      172              -
+           FP32       256       yes                   yes       yes      153              -
+           FP32       512       yes                   yes       yes      179              -
+           FP32      1024       yes                   yes       yes      140              -
+          Mixed         2       yes                   yes       yes       57              -
+          Mixed         4       yes                   yes       yes       80              -
+          Mixed         8       yes                   yes       yes       82              -
+          Mixed        16       yes                   yes       yes      126              -
+          Mixed        32       yes                   yes       yes       85              -
+          Mixed        64       yes                   yes       yes       96              -
+          Mixed       128       yes                   yes       yes       97              -
+          Mixed       256       yes                   yes       yes      104              -
+          Mixed       512       yes                   yes       yes       89              -
+          Mixed      1024       yes                   yes       yes      104              -
+  A design that did not route contributes no timing or power comparison; its
+  cells below are blank rather than filled from the synthesis estimate.
+
+TABLE 2  CRITICAL PATH AND ACHIEVABLE FREQUENCY
+Precision track  FFT size  Critical path, post-synthesis  Critical path, post-route  Change in critical path  Maximum frequency, post-synthesis  Maximum frequency, post-route  Change in maximum frequency
+                   points                             ns                         ns                  percent                                MHz                            MHz                      percent
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+           FP16         2                         23.912                     21.558                    -9.84                              41.82                          46.39                       +10.92
+           FP16         4                         24.320                     22.957                    -5.60                              41.12                          43.56                        +5.94
+           FP16         8                         24.320                     22.413                    -7.84                              41.12                          44.62                        +8.51
+           FP16        16                         24.320                     22.103                    -9.12                              41.12                          45.24                       +10.03
+           FP16        32                         24.320                     22.627                    -6.96                              41.12                          44.19                        +7.48
+           FP16        64                         24.320                     22.567                    -7.21                              41.12                          44.31                        +7.77
+           FP16       128                         24.320                     22.645                    -6.89                              41.12                          44.16                        +7.40
+           FP16       256                         24.320                     23.255                    -4.38                              41.12                          43.00                        +4.58
+           FP16       512                         24.320                     22.704                    -6.64                              41.12                          44.05                        +7.12
+           FP16      1024                         24.320                     22.944                    -5.66                              41.12                          43.58                        +6.00
+           FP32         2                         35.560                     31.351                   -11.84                              28.12                          31.90                       +13.43
+           FP32         4                         35.918                     30.785                   -14.29                              27.84                          32.48                       +16.67
+           FP32         8                         35.917                     30.258                   -15.76                              27.84                          33.05                       +18.70
+           FP32        16                         35.917                     30.814                   -14.21                              27.84                          32.45                       +16.56
+           FP32        32                         35.917                     30.645                   -14.68                              27.84                          32.63                       +17.20
+           FP32        64                         35.917                     31.003                   -13.68                              27.84                          32.25                       +15.85
+           FP32       128                         35.917                     29.847                   -16.90                              27.84                          33.50                       +20.34
+           FP32       256                         35.917                     31.086                   -13.45                              27.84                          32.17                       +15.54
+           FP32       512                         35.917                     29.183                   -18.75                              27.84                          34.27                       +23.08
+           FP32      1024                         35.917                     31.324                   -12.79                              27.84                          31.92                       +14.66
+          Mixed         2                         21.691                     19.548                    -9.88                              46.10                          51.16                       +10.96
+          Mixed         4                         24.983                     21.357                   -14.51                              40.03                          46.82                       +16.98
+          Mixed         8                         25.007                     21.583                   -13.69                              39.99                          46.33                       +15.86
+          Mixed        16                         34.952                     30.491                   -12.76                              28.61                          32.80                       +14.63
+          Mixed        32                         35.151                     32.397                    -7.83                              28.45                          30.87                        +8.50
+          Mixed        64                         35.161                     31.747                    -9.71                              28.44                          31.50                       +10.75
+          Mixed       128                         35.151                     32.257                    -8.23                              28.45                          31.00                        +8.97
+          Mixed       256                         35.161                     31.862                    -9.38                              28.44                          31.39                       +10.35
+          Mixed       512                         35.161                     31.689                    -9.87                              28.44                          31.56                       +10.96
+          Mixed      1024                         35.161                     31.570                   -10.21                              28.44                          31.68                       +11.37
+  A positive change in critical path means routing made the design slower,
+  so the post-synthesis frequency in the paper was optimistic by that much.
+
+TABLE 3  AREA AND DYNAMIC POWER
+Precision track  FFT size  Logic LUTs, post-synthesis  Logic LUTs, post-route  Change in logic LUTs  Dynamic power, post-synthesis  Dynamic power, post-route  Change in dynamic power  Switching activity annotated
+                   points                       count                   count               percent                          watts                      watts                  percent                      yes / no
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+           FP16         2                        2470                    2665                 +7.89                         0.0240                     0.0250                    +4.17                           yes
+           FP16         4                        2911                    3161                 +8.59                         0.0500                     0.0560                   +12.00                           yes
+           FP16         8                        2919                    3139                 +7.54                         0.0660                     0.0730                   +10.61                           yes
+           FP16        16                        2901                    3091                 +6.55                         0.0780                     0.0870                   +11.54                           yes
+           FP16        32                        3031                    3265                 +7.72                         0.0860                     0.0950                   +10.47                           yes
+           FP16        64                        3055                    3304                 +8.15                         0.0930                     0.1030                   +10.75                           yes
+           FP16       128                        3132                    3351                 +6.99                         0.0950                     0.1040                    +9.47                            no
+           FP16       256                        3143                    3418                 +8.75                         0.0980                     0.1100                   +12.24                           yes
+           FP16       512                        3126                    3408                 +9.02                         0.0980                     0.1110                   +13.27                           yes
+           FP16      1024                        3179                    3429                 +7.86                         0.1000                     0.1180                   +18.00                           yes
+           FP32         2                        5270                    5573                 +5.75                         0.0430                     0.0450                    +4.65                           yes
+           FP32         4                        5925                    6398                 +7.98                         0.1040                     0.1180                   +13.46                           yes
+           FP32         8                        6036                    6591                 +9.19                         0.1340                     0.1600                   +19.40                           yes
+           FP32        16                        6044                    6516                 +7.81                         0.1540                     0.1810                   +17.53                           yes
+           FP32        32                        6080                    6586                 +8.32                         0.1650                     0.1940                   +17.58                           yes
+           FP32        64                        6112                    6622                 +8.34                         0.1740                     0.1980                   +13.79                           yes
+           FP32       128                        6183                    6813                +10.19                         0.1770                     0.2130                   +20.34                           yes
+           FP32       256                        6227                    6788                 +9.01                         0.1810                     0.2110                   +16.57                           yes
+           FP32       512                        6305                    6900                 +9.44                         0.2070                     0.2360                   +14.01                           yes
+           FP32      1024                        6528                    7031                 +7.71                         0.2100                     0.2360                   +12.38                           yes
+          Mixed         2                         738                     786                 +6.50                         0.0060                     0.0070                   +16.67                           yes
+          Mixed         4                         805                     874                 +8.57                         0.0230                     0.0240                    +4.35                           yes
+          Mixed         8                         853                     934                 +9.50                         0.0220                     0.0230                    +4.55                           yes
+          Mixed        16                        1252                    1510                +20.61                         0.0320                     0.0370                   +15.62                           yes
+          Mixed        32                        1322                    1407                 +6.43                         0.0350                     0.0390                   +11.43                           yes
+          Mixed        64                        1359                    1472                 +8.31                         0.0380                     0.0430                   +13.16                           yes
+          Mixed       128                        1381                    1468                 +6.30                         0.0400                     0.0430                    +7.50                           yes
+          Mixed       256                        1392                    1553                +11.57                         0.0410                     0.0460                   +12.20                           yes
+          Mixed       512                        1424                    1517                 +6.53                         0.0280                     0.0300                    +7.14                           yes
+          Mixed      1024                        1452                    1632                +12.40                         0.0290                     0.0310                    +6.90                           yes
+  The post-route power column is the more accurate of the two: report_power
+  there works from real routed net capacitance instead of an estimate. It is
+  only meaningful where switching activity was annotated.
+
+TABLE 4  SPREAD OF THE CHANGE, BY TRACK
+Precision track           Quantity  Designs compared  Smallest change  Median change  Largest change
+                                               count          percent        percent         percent
+----------------------------------------------------------------------------------------------------
+           FP16      critical path                10            -9.84          -6.92           -4.38
+           FP16  maximum frequency                10            +4.58          +7.44          +10.92
+           FP16         logic LUTs                10            +6.55          +7.88           +9.02
+           FP16      dynamic power                10            +4.17         +11.14          +18.00
+           FP32      critical path                10           -18.75         -14.25          -11.84
+           FP32  maximum frequency                10           +13.43         +16.62          +23.08
+           FP32         logic LUTs                10            +5.75          +8.33          +10.19
+           FP32      dynamic power                10            +4.65         +15.29          +20.34
+          Mixed      critical path                10           -14.51          -9.88           -7.83
+          Mixed  maximum frequency                10            +8.50         +10.96          +16.98
+          Mixed         logic LUTs                10            +6.30          +8.44          +20.61
+          Mixed      dynamic power                10            +4.35          +9.46          +16.67
+  This is the table that settles it. Compare the median critical-path row
+  across the three tracks: if they agree, the error is systematic and
+  largely cancels out of the ratio tables, and the post-synthesis numbers
+  can stand with a footnote quoting this spread. If they disagree, the
+  comparison has to be rebuilt on the post-route numbers, because the
+  tracks are not degrading alike.
+
+VERDICT INPUT
+  Median critical-path change per track: FP16 -6.92 %, FP32 -14.25 %, Mixed -9.88 %
+  Spread between tracks: 7.33 percentage points.
+  Small spread -> the ratio tables are safe; quote the median as the
+  uncertainty on any absolute frequency. Large spread -> rebuild the
+  comparison on post-route numbers.

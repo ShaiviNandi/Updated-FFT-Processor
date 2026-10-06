@@ -1,0 +1,29 @@
+==============================================================================
+CLOCK PERIOD EACH DESIGN ACTUALLY CLOSES AT
+==============================================================================
+
+The reports constrain at 10 ns, which every design misses, so every
+worst-slack figure there is negative and every frequency is an
+extrapolation of (10 ns - worst slack). This table bisects the constraint
+until worst slack crosses zero, so the closing period is measured and its
+slack is positive.
+
+Timing only. Do not take power or energy from these runs: changing the
+constraint changes the operating point, so their dynamic power is not
+comparable with the 10 ns figures in the reports.
+
+Precision track  FFT size  Closing clock period  Worst slack at that period  Measured maximum frequency  Extrapolated critical path  Extrapolated maximum frequency  Extrapolation error  Synthesis runs used
+                   points      ns, meets timing                ns, positive                         MHz      ns, from the 10 ns run                             MHz              percent                count
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  FP16 baseline       256                 26.32                      +0.177                       37.99                      24.320                           41.12                +8.22                    7
+  FP32 baseline       256                 37.17                      +0.125                       26.90                      35.917                           27.84                +3.49                    6
+  Mixed FP4/FP8       256                 35.67                      +0.082                       28.03                      35.161                           28.44                +1.45                    4
+
+WAS THE EXTRAPOLATION SOUND?
+  3 design(s) compared.
+  Error of (10 ns - worst slack) against the measured closing period:
+    smallest +1.45 %   median +3.49 %   largest +8.22 %
+  A small spread means the extrapolated frequencies in the reports are
+  sound and can be quoted with this as their uncertainty. A large or
+  one-sided error means the reported frequencies need replacing with
+  the measured column above.
