@@ -316,7 +316,12 @@ def main():
     ap.add_argument("--csv", default=None, help="also write the joined rows as CSV")
     args = ap.parse_args()
 
-    log_path = os.path.splitext(os.path.abspath(args.out))[0] + ".log"
+    # Hostname in the filename, deliberately: these logs are committed so that
+    # digital-1's results can be read from any machine, and two machines writing
+    # the same path is what turned a pull into an add/add merge conflict.
+    import socket
+    _host = re.sub(r"[^A-Za-z0-9_-]", "", socket.gethostname().split(".")[0]) or "host"
+    log_path = os.path.splitext(os.path.abspath(args.out))[0] + f".{_host}.log"
     with _Tee(log_path):
         _run(args)
 

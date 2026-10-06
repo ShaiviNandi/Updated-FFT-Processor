@@ -839,7 +839,9 @@ def main():
     ap.add_argument("--report-only", action="store_true")
     args = ap.parse_args()
 
-    log_path = os.path.splitext(os.path.abspath(args.out))[0] + ".log"
+    import socket
+    _host = re.sub(r"[^A-Za-z0-9_-]", "", socket.gethostname().split(".")[0]) or "host"
+    log_path = os.path.splitext(os.path.abspath(args.out))[0] + f".{_host}.log"
     with _Tee(log_path):
         _run(args, cfg)
 

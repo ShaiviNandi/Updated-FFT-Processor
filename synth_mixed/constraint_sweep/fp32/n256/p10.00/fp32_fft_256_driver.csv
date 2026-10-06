@@ -1,9 +1,0 @@
-Metric,Value
-synth_ok,1
-saif_pass_ok,0
-saif_checksum,
-pwr_checksum,9c87964a
-checksum_match,0
-saif_power_shift,0.0
-saif_used,0
-saif_accepted_on,neither

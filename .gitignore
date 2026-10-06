@@ -53,10 +53,32 @@ smoke*.log
 
 # Driver scratch: staged sources, per-design Vivado logs, funcsim netlists.
 # The committed record is the report .txt and the metrics .csv, not the workdirs.
+#
+# Every directory a driver writes per-probe or per-design scratch into belongs
+# here. constraint_sweep/ was the gap that let Vivado logs and staged copies of
+# verilog_sources into the index, where they then produced merge conflicts
+# between the two machines.
 **/fpga_work/
 **/fpga_work_impl/
 **/synth_work/
 synth_mixed/fpga_work*/
+synth_mixed/constraint_sweep/
+synth_mixed/soc_fpga_work*/
+sim_soc_perf/
+sim/
+
+# Run logs are per-machine and per-run. They are tracked, because the whole
+# point is to read digital-1's results from anywhere -- but the filename carries
+# the hostname, so two machines never write the same path and can never conflict.
+# These bare names are the pre-hostname ones and are no longer produced:
+synth_mixed/three_way_comparison.log
+synth_mixed/mixed_fpga_report.log
+synth_mixed/closing_period.log
+synth_mixed/implementation_delta.log
+synth_mixed/soc_throughput.log
+synth_mixed/soc_fpga_report.log
+fp16_baseline/synth/fp16_fpga_report.log
+fp32_baseline/synth/fp32_fpga_report.log
 
 # ---- generated RTL ----------------------------------------------------------
 # generated_designs/ accumulates one file per evaluation (4227 of them) and is
