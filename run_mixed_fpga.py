@@ -717,6 +717,42 @@ def load_cycles_file(path):
     return out
 
 
+def apply_saif_gate(row, min_coverage, min_power_shift):
+    """Evaluate the two acceptance tests from the per-design CSVs.
+
+    This lives in the REPORT layer, not only in synth_one, because --report-only
+    never re-runs synthesis and so never rewrites the sidecar. Both inputs the
+    gate needs -- dynamic power and the vectorless baseline -- are already in
+    Vivado's own metrics CSV, so the shift is computable from data on disk and a
+    re-synthesis is not required to populate it.
+
+    A value already present from synth_one is left alone; only gaps are filled.
+    """
+    def f(k):
+        try:
+            return float(row.get(k))
+        except (TypeError, ValueError):
+            return None
+
+    shift = f("saif_power_shift")
+    if shift is None:
+        pdyn, pvl = f("dynamic_power_w"), f("dynamic_power_vectorless_w")
+        if pdyn is not None and pvl not in (None, 0.0):
+            shift = abs(pdyn - pvl) / abs(pvl)
+            row["saif_power_shift"] = round(shift, 4)
+
+    cov = f("saif_coverage")
+    by_cov = cov is not None and cov >= min_coverage
+    by_shift = shift is not None and shift >= min_power_shift
+    if cov is None and shift is None:
+        return row
+    if not row.get("saif_accepted_on"):
+        row["saif_accepted_on"] = ("both" if (by_cov and by_shift) else
+                                   "coverage" if by_cov else
+                                   "power shift" if by_shift else "neither")
+    row["saif_used"] = 1 if (by_cov or by_shift) else 0
+    return row
+
 def build_report(sel, args, cfg):
     override = load_cycles_file(args.cycles_file)
     rows = []
@@ -741,7 +777,9 @@ def build_report(sel, args, cfg):
                   "saif_coverage", "saif_power_shift", "saif_accepted_on",
                   "saif_nets_matched", "saif_nets_total"):
             r[k] = m.get(k, "")
+        apply_saif_gate(r, args.min_coverage, args.min_power_shift)
         for tag, c in (("compute", ex), ("e2e", e2e)):
+            m["saif_used"] = r.get("saif_used", m.get("saif_used"))
             for k, v in derive(m, c, args.clock_period).items():
                 r[f"{tag}_{k}"] = v
         rows.append(r)
@@ -934,6 +972,61 @@ def build_report(sel, args, cfg):
     log(f"csv  : {args.csv}")
 
 
+# ---------------------------------------------------------------------------
+class _Tee:
+    """Duplicate everything printed to a log file beside the report.
+
+    Terminal scrollback is not a record: a run whose output is only on screen is
+    lost the moment the window closes, and several results in this project were.
+    Every script writes its own console log next to its outputs so the full run,
+    warnings included, survives without anyone having to copy text out.
+    """
+
+    def __init__(self, path):
+        self.path = path
+        self.stream = None
+        self.stdout = None
+
+    def __enter__(self):
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(self.path)), exist_ok=True)
+            self.stream = open(self.path, "w", encoding="utf-8")
+        except OSError:
+            return self          # logging must never break the run
+        self.stdout = sys.stdout
+        sys.stdout = self
+        return self
+
+    def __exit__(self, *exc):
+        if self.stdout is not None:
+            sys.stdout = self.stdout
+        if self.stream is not None:
+            try:
+                self.stream.write(f"\n[log written to {self.path}]\n")
+                self.stream.close()
+            except OSError:
+                pass
+        return False
+
+    def write(self, s):
+        if self.stdout is not None:
+            self.stdout.write(s)
+        if self.stream is not None:
+            try:
+                self.stream.write(s)
+            except OSError:
+                pass
+
+    def flush(self):
+        for t in (self.stdout, self.stream):
+            try:
+                if t is not None:
+                    t.flush()
+            except OSError:
+                pass
+
+
+
 def main():
     cfg = read_globals()
     ap = argparse.ArgumentParser(
@@ -1011,6 +1104,13 @@ def main():
                          "design on top of synthesis.")
     ap.add_argument("--report-only", action="store_true")
     args = ap.parse_args()
+
+    log_path = os.path.splitext(os.path.abspath(args.out))[0] + ".log"
+    with _Tee(log_path):
+        _run(args, cfg)
+
+
+def _run(args, cfg):
     cfg["vivado"] = args.vivado
 
     if args.implement:

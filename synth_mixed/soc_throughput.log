@@ -1,0 +1,60 @@
+[soc-throughput] N=256 chromosome 0000111111111111 (solution 8) -- the design the paper reports
+[soc-throughput] regenerated gated core as mixed_fft_256_top.v
+[soc-throughput] firmware: 35 instructions, 11 test vectors
+[soc-throughput] rewrote the twiddle path in the LOCAL copy of twiddle_rom.v (the repository's own copy carries an absolute digital-1 path)
+[soc-throughput] compiled
+
+==============================================================================
+FFT THROUGHPUT THROUGH THE RISC-V PCPI INTERFACE
+==============================================================================
+
+FFT size            : 256 points
+Chromosome          : 0000111111111111 (solution 8, gated)
+Frames measured     : 11 of 11
+Simulation clock    : 10.0 ns
+Frequency quoted at : 31.39 MHz (the FFT core standalone, NOT the SoC)
+
+Measured in simulation, not modelled. One 16-bit sample crosses PCPI per
+custom instruction, so a transform costs 256 loads and 256 stores on top
+of the computation.
+
+Measurement basis                                 Cycles per transform  Throughput             What it counts                                        
+which cycles are counted                          clock cycles          transforms per second  definition                                            
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+Datapath only (FFT core computing)                1,109                 28,305                 the CPU stalled in FFTWAIT; compare against ExecCycles
+Accelerator occupied (datapath + PCPI transfers)  4,187                 7,497                  cycles a custom-0 instruction holds the CPU           
+End to end (application)                          17,028                1,843                  reset to last result in memory, CPU loops included    
+
+WHERE THE CYCLES GO, PER TRANSFORM
+  Stage                                     clock cycles   percent of end to end
+  FFT datapath                                     1,109                     6.5
+  Sample loads                                     1,536                     9.0
+  Result stores                                    1,536                     9.0
+  Start instruction                                    6                     0.0
+  CPU loop overhead outside the extension         12,841                    75.4
+
+  Data movement across PCPI costs 3,078 cycles against 1,109 for the
+  computation itself -- a ratio of 2.78 to 1.
+  The datapath is 6.5 % of end-to-end time, so 93.5 % is
+  spent getting samples in and out.
+
+WHAT THE FREQUENCY FIGURE IS, AND IS NOT
+  The throughput column converts cycles to transforms per second using the
+  FFT CORE's maximum frequency, measured standalone. The SoC as a whole has
+  never been synthesised: picorv32, the memory and the PCPI handshake all add
+  paths of their own, and the real SoC frequency is whichever of those is
+  slowest -- plausibly lower than the core's. Treat the cycle counts as the
+  measured result and the transforms-per-second column as the core's frequency
+  applied to them. To make it a measurement, synthesise picorv32_fft_soc.v
+  through the same flow and quote that frequency instead.
+
+CROSS-CHECK
+  The datapath row is measured from inside the SoC. The core-level tables
+  measure the same quantity standalone as ExecCycles. They should agree to
+  within the few cycles FFTWAIT misses while the start instruction retires.
+  If they diverge by more than that, one of the two is wrong.
+
+[soc-throughput] table: /mnt/user-data/uploads/Updated-FFT-Processor/synth_mixed/soc_throughput.txt
+[soc-throughput] csv  : /mnt/user-data/uploads/Updated-FFT-Processor/synth_mixed/soc_throughput.csv
+
+[log written to /mnt/user-data/uploads/Updated-FFT-Processor/synth_mixed/soc_throughput.log]

@@ -108,6 +108,20 @@ def read_metrics(d):
     return out
 
 
+def read_impl_metrics(d):
+    """The post-route CSV a probe leaves behind, but only if it routed. Returns
+    None when the probe was post-synthesis only, so the caller falls back."""
+    hits = glob.glob(os.path.join(d, "*_metrics_impl.csv"))
+    if len(hits) != 1:
+        return None
+    out = {}
+    with open(hits[0], newline="", encoding="utf-8") as f:
+        for r in csv_mod.reader(f):
+            if len(r) == 2 and r[0] != "Metric":
+                out[r[0]] = r[1]
+    return out if str(out.get("route_ran")) == "1" else None
+
+
 def probe(track, n, period, work, vivado, timeout, extra):
     """Synthesise once at `period` ns. Returns (wns, crit, fmax, luts) or None."""
     d = os.path.join(work, f"p{period:.2f}")
@@ -129,6 +143,18 @@ def probe(track, n, period, work, vivado, timeout, extra):
         log(f"    probe at {period:.2f} ns produced no metrics CSV"
             + ("\n      " + "\n      ".join(tail) if tail else ""))
         return None
+
+    # When --implement is forwarded via --driver-arg, the design was placed and
+    # routed and the routed slack is the one that matters. Vivado's own metrics
+    # CSV is written by v2 BEFORE place and route, so bisecting on it would find
+    # the post-synthesis closing period even though routing had happened. Prefer
+    # the routed figures whenever they exist and the design actually routed.
+    impl = read_impl_metrics(d)
+    if impl is not None:
+        return (fnum(impl.get("impl_wns_ns")),
+                fnum(impl.get("impl_critical_path_delay_ns")),
+                fnum(impl.get("impl_fmax_mhz")),
+                fnum(impl.get("impl_lut_count")))
     return (fnum(m.get("wns_ns")), fnum(m.get("critical_path_delay_ns")),
             fnum(m.get("fmax_mhz")), fnum(m.get("lut_count")))
 
@@ -218,7 +244,7 @@ def render(rows, args):
         return dash if v is None else fmt.format(v)
 
     COLS = [
-        ("Precision track", "", lambda r: r["_track"]),
+        ("Precision track", "FP16 / FP32 / mixed", lambda r: r["_track"]),
         ("FFT size", "points", lambda r: str(r["N"])),
         ("Closing clock period", "ns, meets timing",
          lambda r: g(r, "closing_period_ns", "{:.2f}")),
@@ -249,6 +275,11 @@ def render(rows, args):
          "extrapolation of (10 ns - worst slack). This table bisects the constraint",
          "until worst slack crosses zero, so the closing period is measured and its",
          "slack is positive.",
+         "",
+         "Stage: whichever the probes ran. Forward --driver-arg --implement to",
+         "bisect on POST-ROUTE slack; without it the bisection uses the",
+         "post-synthesis estimate, which on this device has been measured 4-16 %",
+         "pessimistic and non-uniformly so across the three tracks.",
          "",
          "Timing only. Do not take power or energy from these runs: changing the",
          "constraint changes the operating point, so their dynamic power is not",
@@ -299,6 +330,61 @@ def render(rows, args):
     log(f"csv  : {csv_path}")
 
 
+# ---------------------------------------------------------------------------
+class _Tee:
+    """Duplicate everything printed to a log file beside the report.
+
+    Terminal scrollback is not a record: a run whose output is only on screen is
+    lost the moment the window closes, and several results in this project were.
+    Every script writes its own console log next to its outputs so the full run,
+    warnings included, survives without anyone having to copy text out.
+    """
+
+    def __init__(self, path):
+        self.path = path
+        self.stream = None
+        self.stdout = None
+
+    def __enter__(self):
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(self.path)), exist_ok=True)
+            self.stream = open(self.path, "w", encoding="utf-8")
+        except OSError:
+            return self          # logging must never break the run
+        self.stdout = sys.stdout
+        sys.stdout = self
+        return self
+
+    def __exit__(self, *exc):
+        if self.stdout is not None:
+            sys.stdout = self.stdout
+        if self.stream is not None:
+            try:
+                self.stream.write(f"\n[log written to {self.path}]\n")
+                self.stream.close()
+            except OSError:
+                pass
+        return False
+
+    def write(self, s):
+        if self.stdout is not None:
+            self.stdout.write(s)
+        if self.stream is not None:
+            try:
+                self.stream.write(s)
+            except OSError:
+                pass
+
+    def flush(self):
+        for t in (self.stdout, self.stream):
+            try:
+                if t is not None:
+                    t.flush()
+            except OSError:
+                pass
+
+
+
 def main():
     ap = argparse.ArgumentParser(
         description="Bisect the clock constraint until worst slack crosses zero")
@@ -322,6 +408,13 @@ def main():
     ap.add_argument("--work-dir", default=DEFAULT_WORK)
     ap.add_argument("--out", default=DEFAULT_OUT)
     args = ap.parse_args()
+
+    log_path = os.path.splitext(os.path.abspath(args.out))[0] + ".log"
+    with _Tee(log_path):
+        _run(args)
+
+
+def _run(args):
 
     tracks = list(TRACKS) if args.track == "all" else [args.track]
     for t in tracks:

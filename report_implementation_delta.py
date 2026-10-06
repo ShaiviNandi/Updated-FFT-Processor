@@ -42,6 +42,7 @@ import argparse
 import csv as csv_mod
 import glob
 import os
+import sys
 import re
 import statistics
 
@@ -101,11 +102,73 @@ def render(title, cols, rows, notes=()):
     return L
 
 
+# ---------------------------------------------------------------------------
+class _Tee:
+    """Duplicate everything printed to a log file beside the report.
+
+    Terminal scrollback is not a record: a run whose output is only on screen is
+    lost the moment the window closes, and several results in this project were.
+    Every script writes its own console log next to its outputs so the full run,
+    warnings included, survives without anyone having to copy text out.
+    """
+
+    def __init__(self, path):
+        self.path = path
+        self.stream = None
+        self.stdout = None
+
+    def __enter__(self):
+        try:
+            os.makedirs(os.path.dirname(os.path.abspath(self.path)), exist_ok=True)
+            self.stream = open(self.path, "w", encoding="utf-8")
+        except OSError:
+            return self          # logging must never break the run
+        self.stdout = sys.stdout
+        sys.stdout = self
+        return self
+
+    def __exit__(self, *exc):
+        if self.stdout is not None:
+            sys.stdout = self.stdout
+        if self.stream is not None:
+            try:
+                self.stream.write(f"\n[log written to {self.path}]\n")
+                self.stream.close()
+            except OSError:
+                pass
+        return False
+
+    def write(self, s):
+        if self.stdout is not None:
+            self.stdout.write(s)
+        if self.stream is not None:
+            try:
+                self.stream.write(s)
+            except OSError:
+                pass
+
+    def flush(self):
+        for t in (self.stdout, self.stream):
+            try:
+                if t is not None:
+                    t.flush()
+            except OSError:
+                pass
+
+
+
 def main():
     ap = argparse.ArgumentParser(
         description="Post-synthesis vs post-route comparison across the three tracks")
     ap.add_argument("--out", default=DEFAULT_OUT)
     args = ap.parse_args()
+
+    log_path = os.path.splitext(os.path.abspath(args.out))[0] + ".log"
+    with _Tee(log_path):
+        _run(args)
+
+
+def _run(args):
 
     data = {name: collect(d) for name, d in TRACKS}
     missing = [(n, d) for n, d in TRACKS if not data[n]]
@@ -146,20 +209,20 @@ def main():
         L.append("")
 
     L += render("TABLE 1  DID IMPLEMENTATION COMPLETE?", [
-        ("Precision track", "", lambda r: r["_track"]),
+        ("Precision track", "FP16 / FP32 / mixed", lambda r: r["_track"]),
         ("FFT size", "points", lambda r: str(r["_N"])),
         ("Placed", "yes / no", lambda r: yn(r, "place_ran")),
         ("Physically optimised", "yes / no", lambda r: yn(r, "phys_opt_ran")),
         ("Routed", "yes / no", lambda r: yn(r, "route_ran")),
         ("Elapsed", "seconds", lambda r: g(r, "impl_elapsed_s", "{:.0f}")),
-        ("Error, if any", "", lambda r: (r.get("impl_error") or "").strip('"') or "-"),
+        ("Error, if any", "Vivado message", lambda r: (r.get("impl_error") or "").strip('"') or "-"),
     ], rows, notes=[
         "A design that did not route contributes no timing or power comparison; its",
         "cells below are blank rather than filled from the synthesis estimate.",
     ])
 
     L += render("TABLE 2  CRITICAL PATH AND ACHIEVABLE FREQUENCY", [
-        ("Precision track", "", lambda r: r["_track"]),
+        ("Precision track", "FP16 / FP32 / mixed", lambda r: r["_track"]),
         ("FFT size", "points", lambda r: str(r["_N"])),
         ("Critical path, post-synthesis", "ns", lambda r: g(r, "synth_critical_path_delay_ns", "{:.3f}")),
         ("Critical path, post-route", "ns", lambda r: g(r, "impl_critical_path_delay_ns", "{:.3f}")),
@@ -173,7 +236,7 @@ def main():
     ])
 
     L += render("TABLE 3  AREA AND DYNAMIC POWER", [
-        ("Precision track", "", lambda r: r["_track"]),
+        ("Precision track", "FP16 / FP32 / mixed", lambda r: r["_track"]),
         ("FFT size", "points", lambda r: str(r["_N"])),
         ("Logic LUTs, post-synthesis", "count", lambda r: g(r, "synth_lut_count", "{:.0f}")),
         ("Logic LUTs, post-route", "count", lambda r: g(r, "impl_lut_count", "{:.0f}")),
@@ -209,8 +272,8 @@ def main():
 
     if summary:
         L += render("TABLE 4  SPREAD OF THE CHANGE, BY TRACK", [
-            ("Precision track", "", lambda r: r["track"]),
-            ("Quantity", "", lambda r: r["what"]),
+            ("Precision track", "FP16 / FP32 / mixed", lambda r: r["track"]),
+            ("Quantity", "figure of merit", lambda r: r["what"]),
             ("Designs compared", "count", lambda r: str(r["n"])),
             ("Smallest change", "percent", lambda r: "{:+.2f}".format(r["min"])),
             ("Median change", "percent", lambda r: "{:+.2f}".format(r["med"])),
