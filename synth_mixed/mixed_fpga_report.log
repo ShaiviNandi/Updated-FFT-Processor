@@ -1,0 +1,42 @@
+[mixed-fpga] all scored candidates (141 rows): /sessions/rcw-01nlew7vonvhsuilm4pudjwr/mnt/Updated-FFT-Processor/synth_mixed/mixed_all_candidates.csv
+
+==============================================================================
+BEST BALANCED MIXED-PRECISION DESIGN PER FFT SIZE
+==============================================================================
+
+Source: results/fft_<N>/all_solutions_fft<N>_fixed.csv
+Filter: SQNR at least 15 dB. meets_timing is NOT applied: it records crit_delay <= 80 ns,
+which every design in results/ satisfies, so it excludes nothing.
+Objective: minimise the Euclidean distance to the ideal corner (lowest
+power, smallest area, shortest critical path, highest SQNR) after min-max
+normalising each objective over the solutions that pass the filters:
+
+    balance score = sqrt( power^2 + area^2 + delay^2 + (1 - SQNR)^2 )
+                    with every term min-max normalised to [0, 1]
+
+Normalisation is per size and over the passing set, so the balance score
+ranks designs within one FFT size and must not be compared across sizes.
+
+One design per size is reported below. Every candidate that passed the
+filters is stored with its score and rank in mixed_all_candidates.csv, so
+the whole front is on record; measure any other point with --chromosome.
+
+FFT size               Solution ID                    Chromosome      Precision mix                    Balance score   Power        Area  Critical path delay   SQNR  Compute cycles      Candidates considered
+  points  as numbered in the sweep  one bit per stage: mult, add  mixed or fallback  distance to ideal, lower better   watts  logic LUTs                   ns     dB    clock cycles  solutions passing filters
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+       2                         1                            01              mixed                           1.1180  0.0060         738               21.691  41.48              16                          2
+       4                         4                          0100              mixed                           0.2040  0.0230         805               24.983  74.22              31                         14
+       8                         1                        000001              mixed                           0.8013  0.0220         853               25.007  25.91              51                         16
+      16                        19                      10101111              mixed                           0.9109  0.0320        1252               34.952  23.64              83                         16
+      32                         7                    0000111111              mixed                           0.3515  0.0350        1322               35.151  23.92             143                          8
+      64                         8                  000011111111              mixed                           0.3341  0.0380        1359               35.161  23.49             267                          7
+     128                         5                00001111111111              mixed                           0.8677  0.0400        1381               35.151  23.19             535                         24
+     256                         8              0000111111111111              mixed                           0.8572  0.0410        1392               35.161  23.17            1123                         22
+     512                         8            000011111111111100              mixed                           0.8066  0.0280        1424               35.161  17.29            2415                         19
+    1024                         8          00001111111111110000              mixed                           0.5373  0.0290        1452               35.161  16.80            5243                         13
+
+[mixed-fpga] selection table: /sessions/rcw-01nlew7vonvhsuilm4pudjwr/mnt/Updated-FFT-Processor/synth_mixed/mixed_selected_chromosomes.csv
+[mixed-fpga] cross-check mirrors optimal_designs.py exactly, meets_timing filter included; the driver itself omits it. A disagreement therefore means that filter has stopped being inert and is now load-bearing.
+[mixed-fpga] selection cross-check against optimal_designs.py: all chromosomes agree
+
+[log written to /sessions/rcw-01nlew7vonvhsuilm4pudjwr/mnt/Updated-FFT-Processor/synth_mixed/mixed_fpga_report.log]
