@@ -1,57 +1,5 @@
 #!/usr/bin/env python3
-"""
-Find the clock period each design actually closes at
-===================================================
-Every design in this project reports NEGATIVE slack, because the flow constrains
-at POWER_CLOCK_NS = 10 ns while the real paths are 24-36 ns. That is not a
-defect: 10 ns is the operating point chosen so report_power has enough
-significant figures (at CLOCK_PERIOD = 80 ns dynamic power collapses to
-0.006-0.009 W and rounds away), and `critical_path_delay = clock_period - WNS`
-is computed FROM that negative slack.
-
-What it costs is the ability to say any design closes timing. This script buys
-that back: it bisects the `create_clock` period per design until worst slack
-crosses zero, and reports the tightest period that still meets timing with
-POSITIVE slack -- measured, not extrapolated.
-
-It also answers a second question for free. The whole project's f_max comes from
-extrapolating `10 - WNS` at a constraint missed by 250 %. Comparing the closing
-period found here against that extrapolation, across every design, says how much
-the extrapolation is worth. One earlier same-chromosome pair put it at 1.9 %;
-this measures it properly.
-
-HOW IT WORKS
-  For each size it calls the track's own FPGA driver with --no-saif (one Vivado
-  pass instead of two, since timing needs no switching activity) and
-  --clock-period P, into a throwaway output directory, then reads `wns_ns` from
-  the metrics CSV. Bisection: the first probe is the delay already measured at
-  10 ns, then the interval is widened or narrowed until it brackets WNS = 0 to
-  within --tolerance.
-
-  Nothing existing is modified or overwritten -- every probe writes into
-  <work>/p<period>/ under --work-dir, which defaults to a sweep directory of its
-  own.
-
-WHAT NOT TO DO WITH THE RESULT
-  Do NOT take power or energy from these runs. Changing the constraint changes
-  the operating point, so a swept run's dynamic power is not comparable with the
-  10 ns numbers in the reports. Timing only. (Energy per transform is
-  frequency-invariant, but only when the same power measurement is used for
-  both.)
-
-Usage (from the repository root):
-    python3 sweep_timing_constraint.py --track mixed --sizes 256
-    python3 sweep_timing_constraint.py --track fp16
-    python3 sweep_timing_constraint.py --track all --sizes 64 256 1024
-
-Budget: one Vivado synthesis per probe, typically 4-6 probes per design, roughly
-60-100 s each. One size on one track is a few minutes; all ten sizes on all
-three tracks is several hours. Start with one size.
-
-STATUS: NOT RUN AGAINST VIVADO. The bisection logic is unit-tested against a
-  simulated design whose true period is known; the driver invocation reuses the
-  same argument names the three drivers already accept.
-"""
+"""Bisect the clock constraint until worst slack crosses zero."""
 
 import argparse
 import csv as csv_mod
@@ -95,11 +43,27 @@ def fnum(v):
     return f if f == f and abs(f) != float("inf") else None
 
 
-def read_metrics(d):
-    """The single *_metrics.csv a one-size probe leaves behind, as a dict."""
+def read_metrics(d, why=None):
+    """The single *_metrics.csv a one-size probe leaves behind, as a dict.
+
+    `why` collects the reason on failure. A probe directory holding TWO
+    per-design CSVs is the dangerous case: it means a previous run with a
+    different chromosome left its results here, and silently picking one would
+    report the wrong design's timing. That is why this returns None on >1
+    rather than taking hits[0] -- but the caller must say which case it was,
+    because "none" and "two" need opposite fixes.
+    """
     hits = [p for p in glob.glob(os.path.join(d, "*_metrics.csv"))
             if not p.endswith("_driver.csv")]
     if len(hits) != 1:
+        if why is not None:
+            why.append(
+                f"no *_metrics.csv in {d} -- the driver wrote nothing"
+                if not hits else
+                "STALE PROBE DIRECTORY: " + str(len(hits)) + " per-design CSVs in "
+                f"{d} ({', '.join(sorted(os.path.basename(h) for h in hits))}). "
+                "A previous probe with a different chromosome left its results "
+                "here. Delete the directory or pass a --work-dir of its own.")
         return None
     out = {}
     with open(hits[0], newline="", encoding="utf-8") as f:
@@ -127,6 +91,13 @@ def probe(track, n, period, work, vivado, timeout, extra):
     """Synthesise once at `period` ns. Returns (wns, crit, fmax, luts) or None."""
     d = os.path.join(work, f"p{period:.2f}")
     os.makedirs(d, exist_ok=True)
+    for stale in glob.glob(os.path.join(d, "*_metrics.csv")) \
+               + glob.glob(os.path.join(d, "*_metrics_impl.csv")) \
+               + glob.glob(os.path.join(d, "*_driver.csv")):
+        try:
+            os.remove(stale)
+        except OSError:
+            pass
     cmd = [sys.executable, os.path.join(REPO_ROOT, TRACKS[track]["driver"]),
            "--sizes", str(n), "--no-saif",
            "--clock-period", f"{period:.3f}",
@@ -138,18 +109,21 @@ def probe(track, n, period, work, vivado, timeout, extra):
         cmd += ["--vivado", vivado]
     cmd += extra
     r = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO_ROOT)
-    m = read_metrics(d)
+    why = []
+    m = read_metrics(d, why)
     if m is None:
-        tail = (r.stdout or "").strip().splitlines()[-4:]
-        log(f"    probe at {period:.2f} ns produced no metrics CSV"
-            + ("\n      " + "\n      ".join(tail) if tail else ""))
+        log(f"    probe at {period:.2f} ns produced no usable metrics")
+        for line in why:
+            log(f"      {line}")
+        err = (r.stderr or "").strip().splitlines()[-6:]
+        if err:
+            log("      driver stderr:")
+            for line in err:
+                log(f"        {line}")
+        if r.returncode != 0:
+            log(f"      driver exit status {r.returncode}")
         return None
 
-    # When --implement is forwarded via --driver-arg, the design was placed and
-    # routed and the routed slack is the one that matters. Vivado's own metrics
-    # CSV is written by v2 BEFORE place and route, so bisecting on it would find
-    # the post-synthesis closing period even though routing had happened. Prefer
-    # the routed figures whenever they exist and the design actually routed.
     impl = read_impl_metrics(d)
     if impl is not None:
         return (fnum(impl.get("impl_wns_ns")),
@@ -170,8 +144,6 @@ def find_closing_period(track, n, work, args):
     extra = list(args.driver_arg or [])
     os.makedirs(work, exist_ok=True)
 
-    # Probe 1: the delay the 10 ns run already extrapolated. If the
-    # extrapolation is any good this is close to the answer.
     first = probe(track, n, args.start, work, args.vivado, args.timeout, extra)
     if first is None:
         return {"N": n, "note": "first probe failed"}
@@ -186,10 +158,6 @@ def find_closing_period(track, n, work, args):
     if wns0 is not None and wns0 >= 0:
         # The start period already meets timing, so it is a valid upper bound.
         ok, ok_wns = args.start, wns0
-    # A failing start period is deliberately NOT used as the lower bound. At 10 ns
-    # against a ~35 ns path it sits 25 ns below the answer, and bisecting from
-    # there burns four probes walking up an interval the first probe has already
-    # localised to within a couple of percent.
 
     probes = 1
     period = guess
@@ -215,11 +183,6 @@ def find_closing_period(track, n, work, args):
                 break
             period = (ok + fail) / 2.0
         else:
-            # Not yet bracketed. The first probe is the extrapolated delay, which
-            # earlier measurement put within ~2 % of the truth, so step in small
-            # additive increments rather than scaling: a multiplicative jump
-            # overshoots by more than the whole interval of interest and spends
-            # probes bisecting back down.
             step = max(2.0 * args.tolerance, 0.01 * period)
             period = (period + step) if ok is None else (period - step)
             if period <= 0:
@@ -271,16 +234,8 @@ def render(rows, args):
     L = ["=" * 78,
          "CLOCK PERIOD EACH DESIGN ACTUALLY CLOSES AT",
          "=" * 78, "",
-         "The reports constrain at 10 ns, which every design misses, so every",
-         "worst-slack figure there is negative and every frequency is an",
-         "extrapolation of (10 ns - worst slack). This table bisects the constraint",
-         "until worst slack crosses zero, so the closing period is measured and its",
-         "slack is positive.",
          "",
-         "Stage: whichever the probes ran. Forward --driver-arg --implement to",
-         "bisect on POST-ROUTE slack; without it the bisection uses the",
          "post-synthesis estimate, which on this device has been measured 4-16 %",
-         "pessimistic and non-uniformly so across the three tracks.",
          "",
          "Timing only. Do not take power or energy from these runs: changing the",
          "constraint changes the operating point, so their dynamic power is not",
@@ -302,11 +257,8 @@ def render(rows, args):
               f"  {len(errs)} design(s) compared.",
               f"  Error of (10 ns - worst slack) against the measured closing period:",
               f"    smallest {min(errs):+.2f} %   median {med:+.2f} %   largest {max(errs):+.2f} %",
-              "  A small spread means the extrapolated frequencies in the reports are",
-              "  sound and can be quoted with this as their uncertainty. A large or",
-              "  one-sided error means the reported frequencies need replacing with",
               "  the measured column above."]
-    notes = [r for r in rows if r.get("note")]
+    notes=[]
     if notes:
         L.append("")
         for r in notes:
@@ -385,7 +337,6 @@ class _Tee:
                 pass
 
 
-
 def main():
     ap = argparse.ArgumentParser(
         description="Bisect the clock constraint until worst slack crosses zero")
@@ -410,9 +361,6 @@ def main():
     ap.add_argument("--out", default=DEFAULT_OUT)
     args = ap.parse_args()
 
-    # Hostname in the filename, deliberately: these logs are committed so that
-    # digital-1's results can be read from any machine, and two machines writing
-    # the same path is what turned a pull into an add/add merge conflict.
     import socket
     _host = re.sub(r"[^A-Za-z0-9_-]", "", socket.gethostname().split(".")[0]) or "host"
     log_path = os.path.splitext(os.path.abspath(args.out))[0] + f".{_host}.log"

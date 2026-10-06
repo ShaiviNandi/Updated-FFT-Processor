@@ -1,44 +1,5 @@
 #!/usr/bin/env python3
-"""
-Three-way comparison: FP16 baseline vs FP32 baseline vs mixed FP4/FP8
-=====================================================================
-Joins the three FPGA metric CSVs into one table per figure of merit, with the
-mixed core's advantage expressed as a ratio. It measures nothing itself: run the
-three drivers first, then this.
-
-    python3 fp16_baseline/synth/run_fp16_fpga.py
-    python3 fp32_baseline/synth/run_fp32_fpga.py
-    python3 run_mixed_fpga.py
-    python3 compare_precision_tracks.py
-
-Every ratio is oriented so that ABOVE 1.00 MEANS THE MIXED CORE WINS, and below
-1.00 means the baseline does. The header of each ratio column names the
-direction explicitly, because the three quantities do not all improve in the
-same direction:
-
-    area ratio       = baseline logic LUTs / mixed logic LUTs
-    frequency ratio  = mixed max frequency / baseline max frequency
-    energy ratio     = baseline energy per transform / mixed energy per transform
-    throughput ratio = mixed throughput / baseline throughput
-    per-watt ratio   = mixed throughput per watt / baseline's
-    per-area ratio   = mixed throughput per kLUT / baseline's
-
-A ratio is printed only where both sides have the number. Energy is omitted for
-any design whose switching activity was not annotated (saif_used = 0), so a
-blank energy ratio means one of the two runs is untrustworthy, not that the
-designs are equal -- check the validity table in that track's own report.
-
-COMPARABILITY
-  All three tracks go through the same unmodified vivado_synthesis_v2.tcl and
-  generate_saif_funcsim.tcl, the same part, the same clock constraint, and the
-  same register-array memory (Vivado infers BRAM). They differ in the activity
-  testbench, because the three tops have different data widths; the stimulus
-  pattern is the same in each.
-
-  The cycle denominator must match across the three columns or the throughput
-  comparison is meaningless. This script uses the compute-only count by default
-  and --cycles e2e for end-to-end; it refuses to mix them.
-"""
+"""Three-way FPGA comparison: FP16, FP32 and mixed FP4/FP8."""
 
 import argparse
 import csv as csv_mod
@@ -291,7 +252,6 @@ class _Tee:
                 pass
 
 
-
 def main():
     ap = argparse.ArgumentParser(
         description="Join the FP16, FP32 and mixed FPGA metrics into one table")
@@ -316,9 +276,6 @@ def main():
     ap.add_argument("--csv", default=None, help="also write the joined rows as CSV")
     args = ap.parse_args()
 
-    # Hostname in the filename, deliberately: these logs are committed so that
-    # digital-1's results can be read from any machine, and two machines writing
-    # the same path is what turned a pull into an add/add merge conflict.
     import socket
     _host = re.sub(r"[^A-Za-z0-9_-]", "", socket.gethostname().split(".")[0]) or "host"
     log_path = os.path.splitext(os.path.abspath(args.out))[0] + f".{_host}.log"
@@ -356,10 +313,6 @@ def _run(args):
     def f(v, fmt="{:.2f}", dash="-"):
         return dash if v is None else fmt.format(v)
 
-    # Post-route rows hold routed area, frequency and power but none of the
-    # derived columns, so recompute those here from the same cycle counts the
-    # post-synthesis path uses. Cycles are a property of the FSM and do not
-    # change with implementation.
     if args.source == "post-route":
         cyc_src = {}
         for name, mpath, _ in TRACKS:
@@ -372,9 +325,6 @@ def _run(args):
                     row.setdefault(key, base.get(key, ""))
                     derive_from(row, fnum(row.get(key)), args.clock_period, t)
 
-    # A post-synthesis roll-up written before the gate changed has blank energy
-    # columns for rows the gate now accepts. Both powers and the cycle counts are
-    # in the roll-up, so recompute rather than asking for a driver re-run.
     if args.source == "post-synth":
         for name in data:
             for row in data[name].values():
@@ -418,8 +368,6 @@ def _run(args):
          "Cycle denominator: %s" % ("compute only (start of transform to done)"
                                     if tag == "compute"
                                     else "end to end (load + compute + unload)"),
-         "All three tracks: same Vivado scripts, same device, same clock constraint,",
-         "same register-array memory. Ratios above 1.00 favour the mixed core.",
          "",
          ("Source: POST-ROUTE (placed, physically optimised and routed). Area, "
           "frequency and" if args.source == "post-route" else
@@ -469,10 +417,7 @@ def _run(args):
          lambda r: f(ratio(r["thr"]["Mixed"], r["thr"]["FP16"]))),
         ("Throughput ratio vs FP32", "x faster for mixed",
          lambda r: f(ratio(r["thr"]["Mixed"], r["thr"]["FP32"]))),
-    ], "TABLE 3  THROUGHPUT", notes=[
-        "Cycle counts differ between tracks only through the pipeline depth of each",
-        "butterfly, so most of any throughput gap comes from maximum frequency.",
-    ])
+    ], "TABLE 3  THROUGHPUT", notes=[])
 
     L += render(rows, [
         ("FFT size", "points", lambda r: str(r["N"])),
@@ -486,10 +431,7 @@ def _run(args):
          lambda r: f(ratio(r["energy"]["FP16"], r["energy"]["Mixed"]))),
         ("Energy ratio vs FP32", "x lower for mixed",
          lambda r: f(ratio(r["energy"]["FP32"], r["energy"]["Mixed"]))),
-    ], "TABLE 4  POWER AND ENERGY PER TRANSFORM", notes=[
-        "Energy is blank wherever that track's switching activity was not annotated.",
-        "It is never filled in from vectorless power, which barely varies by design.",
-    ])
+    ], "TABLE 4  POWER AND ENERGY PER TRANSFORM", notes=[])
 
     L += render(rows, [
         ("FFT size", "points", lambda r: str(r["N"])),
@@ -503,10 +445,7 @@ def _run(args):
          lambda r: f(ratio(r["tpw"]["Mixed"], r["tpw"]["FP16"]))),
         ("Per-watt ratio vs FP32", "x better for mixed",
          lambda r: f(ratio(r["tpw"]["Mixed"], r["tpw"]["FP32"]))),
-    ], "TABLE 5  ENERGY EFFICIENCY", notes=[
-        "Throughput per watt is 1 / energy per transform, so this table and the energy",
-        "ratios above carry the same information in the units reviewers ask for.",
-    ])
+    ], "TABLE 5  ENERGY EFFICIENCY", notes=[])
 
     L += render(rows, [
         ("FFT size", "points", lambda r: str(r["N"])),
@@ -533,20 +472,8 @@ def _run(args):
         ("Accuracy lost vs FP32", "dB", lambda r: f(
             None if r["sqnr"]["FP32"] is None or r["sqnr"]["Mixed"] is None
             else r["sqnr"]["FP32"] - r["sqnr"]["Mixed"])),
-    ], "TABLE 7  ACCURACY - WHAT THE EFFICIENCY COSTS", notes=[
-        "This is the column that decides whether the efficiency ratios above are a",
-        "real win. The two baselines' SQNR is measured with the mixed evaluator's own",
-        "methodology and signal set; the mixed figure is the sweep's, from the",
-        "selection table. Both credit a bit-exact signal as 100 dB, so a baseline",
-        "average near 100 dB means most signals were exact, not that the average is",
-        "physically meaningful.",
-    ])
+    ], "TABLE 7  ACCURACY - WHAT THE EFFICIENCY COSTS", notes=[])
 
-    L += ["", "READING THE RATIOS",
-          "  Above 1.00  the mixed core is better on that figure of merit.",
-          "  Below 1.00  the baseline is better.",
-          "  A dash      one of the two numbers is missing or untrustworthy; it is",
-          "              never a 1.00 and never an assumption of equality."]
 
     text = "\n".join(L) + "\n"
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)

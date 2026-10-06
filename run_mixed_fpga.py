@@ -1,96 +1,5 @@
 #!/usr/bin/env python3
-"""
-Mixed-Precision FFT  --  FPGA PPA + Throughput, gated wrapper
-=============================================================
-The third row of the paper's comparison table, produced by exactly the flow the
-two baselines use: `vivado_synthesis_v2.tcl` + `generate_saif_funcsim.tcl`,
-unmodified, with `tb/tb_fft_power.v` and SAIF_STRIP_PATH='tb_fft_power/uut'.
-
-WHY THIS EXISTS RATHER THAN REUSING generated_cores/
-  The cores in `generated_cores/` cannot be the mixed row:
-
-    1. They instantiate the UNGATED `butterfly_wrapper`. The current
-       `fft_template_generator.py` instantiates
-       `butterfly_wrapper_gated #(.PIPELINE_OPERANDS(0))`. In the ungated
-       wrapper both the FP4 and the FP8 datapath switch every cycle and the
-       result is muxed, so dynamic power is constant by construction and the
-       per-chromosome precision schedule is invisible to report_power. Every
-       energy number in the 2026-09-24 sweep comes from the gated wrapper;
-       measuring the ungated cores would put a different architecture in the
-       comparison than the one the paper optimises.
-    2. Their chromosomes come from `best_chromosomes.csv`, dated 2026-07-06 and
-       selected from the UNFIXED `all_solutions_fft<N>.csv`, whose sqnr_dB
-       column is the mirrored-parabola artefact that `fix_sqnr.py` documents and
-       repairs. A selection whose SQNR term is wrong is not the balanced
-       optimum.
-
-  So this driver re-selects from `all_solutions_fft<N>_fixed.csv`, regenerates
-  with the current (gated) generator into a SEPARATE directory, and leaves
-  `generated_cores/` untouched.
-
-SELECTION  (identical arithmetic to optimal_designs.py)
-  Per size, over the solutions that satisfy sqnr_dB >= --sqnr-floor, preferring
-  the truly mixed subset (a chromosome containing both a 0 and a 1) and falling
-  back to the whole filtered set if none is mixed:
-
-      norm_x       = (x - min) / (max - min)          over that same subset
-                     (0.5 if max == min)
-      balance_score = sqrt(  norm_power_W**2
-                           + norm_area_LUTs**2
-                           + norm_crit_delay_ns**2
-                           + (1 - norm_sqnr_dB)**2 )
-
-  i.e. Euclidean distance to the ideal corner (min power, min area, min delay,
-  max SQNR) in the min-max normalised objective box; lowest wins. Note that the
-  normalisation is per-size and over the filtered set, so balance_score is a
-  within-size ranking, never comparable across sizes.
-
-  optimal_designs.py additionally filters on meets_timing == 1. That column is
-  written as (crit_delay_ns <= REFERENCE_CLOCK_PERIOD_NS), i.e. <= 80 ns, and
-  every design in results/ has a critical path of 12-37 ns -- so it is 1 for all
-  260 rows across all ten sizes and excludes nothing. This driver omits it by
-  default rather than carry a filter that implies a timing check it is not
-  performing; --require-meets-timing puts it back. The pandas cross-check below
-  keeps it, so if the two ever disagree, that filter has become load-bearing.
-
-  This is deliberately re-implemented in the standard library rather than pandas
-  so the driver has no third-party dependency on the synthesis host. Run with
-  --verify-selection to re-derive the same table with pandas exactly as
-  optimal_designs.py does and assert the chromosomes agree.
-
-CYCLES
-  ExecCycles comes from the solutions CSV (`avg_exec_cycles`) -- the same
-  compute-only, start-to-done count the baselines report. The gated wrapper at
-  PIPELINE_OPERANDS=0 is pure combinational operand isolation with no added
-  register stage, so it cannot change the cycle count; at PIPELINE_OPERANDS=1 it
-  would, and this driver refuses that parameter for exactly that reason.
-
-  End-to-end cycles are ExecCycles + 4N + 1. Load is N+1 cycles and unload is 3N
-  cycles, read off the load/unload loops in performance_evaluator.py's generated
-  testbench (one posedge per sample plus a trailing one; three posedges per
-  sample), which is also what the FP16 and FP32 evaluators measure directly
-  (N=8: 9 and 24; N=64: 65 and 192). Pass --cycles-file to override with a
-  measured table instead.
-
-Usage (from the repository root):
-    python3 run_mixed_fpga.py --select-only                  # just the table
-    python3 run_mixed_fpga.py --sizes 256
-    python3 run_mixed_fpga.py                                # all 10
-    python3 run_mixed_fpga.py --use-dsp 0                    # LUT-only area
-    python3 run_mixed_fpga.py --report-only                  # re-tabulate
-
-Outputs:
-    synth_mixed/mixed_selected_chromosomes.csv   the selection table
-    synth_mixed/mixed_fpga_report.txt            the PPA + throughput tables
-    synth_mixed/mixed_fpga_metrics.csv           one row per size
-    generated_cores_gated/<design>/              the regenerated RTL
-    synth_mixed/fpga_work/<design>/              per-design Vivado CSVs + logs
-
-STATUS: NOT RUN AGAINST VIVADO. The selection arithmetic and the report
-  rendering are exercised; the two Vivado passes are the same invocations
-  objectiveEvaluationFFT.py makes, but this driver's own command construction
-  has not been executed against a real install.
-"""
+"""Mixed-precision FP4/FP8 FFT cores: FPGA area, timing, power and throughput."""
 
 import argparse
 import csv as csv_mod
@@ -174,8 +83,6 @@ def read_globals():
     t = open(p, encoding="utf-8", errors="replace").read()
     for key, pat, cast in (
             ("vivado",  r"^VIVADO_PATH\s*=\s*['\"](.+?)['\"]", str),
-            # POWER_CLOCK_NS is the power/XDC clock; CLOCK_PERIOD is only the
-            # latency normaliser (claude/saif-power-flow-working.md).
             ("clock",   r"^POWER_CLOCK_NS\s*=\s*([0-9.]+)", float),
             ("part",    r"^FPGA_DEVICE\s*=\s*['\"](.+?)['\"]", str),
             ("strip",   r"^SAIF_STRIP_PATH\s*=\s*['\"](.+?)['\"]", str),
@@ -192,9 +99,6 @@ def read_globals():
     return d
 
 
-# ---------------------------------------------------------------------------
-# Selection: optimal_designs.py's balance_score, standard library only
-# ---------------------------------------------------------------------------
 def gene_columns(fieldnames):
     """s<stage>_mult / s<stage>_add, ordered by stage then mult-before-add --
     the same key optimal_designs.py sorts on, so the chromosome bit order is
@@ -242,11 +146,6 @@ def select_best(n, results_dir, suffix, sqnr_floor, require_timing=False):
         s = fnum(r.get(MAX_OBJECTIVE))
         if s is None or s < sqnr_floor:
             continue
-        # meets_timing is NOT applied by default. It is written as
-        # (crit_delay <= REFERENCE_CLOCK_PERIOD_NS), i.e. <= 80 ns, and every
-        # design in results/ is 12-37 ns, so it is 1 for all 260 rows across all
-        # ten sizes and excludes nothing. Keeping it in would imply a timing
-        # filter that is not there. --require-meets-timing restores it.
         if require_timing and "meets_timing" in r:
             mt = fnum(r.get("meets_timing"))
             if mt is None or int(mt) != 1:
@@ -290,9 +189,6 @@ def select_best(n, results_dir, suffix, sqnr_floor, require_timing=False):
         if best_score is None or score < best_score:
             best_i, best_score = i, score
 
-    # Every candidate is kept, with its score and its rank, so the full front is
-    # on record and a different point can be measured later with --chromosome
-    # without re-deriving the ranking. Only the winner reaches the report.
     scored.sort()
     diag["candidates_scored"] = []
     for rank, (score, i) in enumerate(scored, start=1):
@@ -428,10 +324,6 @@ def write_selection_table(sel, diags, path, suffix, sqnr_floor,
              " Also meets_timing = 1." if require_timing else
              " meets_timing is NOT applied: it records crit_delay <= 80 ns,"),
          "" if require_timing else
-         "which every design in results/ satisfies, so it excludes nothing.",
-         "Objective: minimise the Euclidean distance to the ideal corner (lowest",
-         "power, smallest area, shortest critical path, highest SQNR) after min-max",
-         "normalising each objective over the solutions that pass the filters:",
          "",
          "    balance score = sqrt( power^2 + area^2 + delay^2 + (1 - SQNR)^2 )",
          "                    with every term min-max normalised to [0, 1]",
@@ -462,7 +354,6 @@ def write_selection_table(sel, diags, path, suffix, sqnr_floor,
     if fb:
         L += ["",
               "WARNING  FFT size(s) %s have no truly mixed chromosome that passes the" % fb,
-              "         filters, so the winner there is uniform precision. It is not a",
               "         mixed-precision data point; say so in the paper or drop the row."]
     for d in diags:
         if d.get("note"):
@@ -473,9 +364,6 @@ def write_selection_table(sel, diags, path, suffix, sqnr_floor,
     return text
 
 
-# ---------------------------------------------------------------------------
-# Generation + synthesis
-# ---------------------------------------------------------------------------
 def design_name_for(n, sol_id):
     return f"mixed_gated_fft_{n}_sol{sol_id}"
 
@@ -598,26 +486,6 @@ def synth_one(row, args, cfg):
             "synth_ok": int(ok), "saif_pass_ok": int(saif_ok),
             "saif_checksum": saif_cksum or "", "pwr_checksum": pwr_cksum or "",
             "checksum_match": int(bool(saif_cksum) and saif_cksum == pwr_cksum)}
-    # Two independent tests, and EITHER is sufficient. Each catches the case the
-    # other misses.
-    #
-    #   coverage    Vivado's own "Design nets matched" count. Catches the failure
-    #               the net-count gate was added for: fft_16_sol12_gen1 had 844
-    #               of 1908 nets annotated while dynamic power and the vectorless
-    #               baseline both read 0.034 W, so a power-delta test alone would
-    #               have rejected a design that was properly annotated.
-    #
-    #   power shift Relative movement of dynamic power away from the vectorless
-    #               baseline. Catches the converse: coverage falls structurally as
-    #               the datapath widens, because a wide multiplier's interior is
-    #               most of its nets and synthesis never names them. FP32 annotates
-    #               8-11 % of nets while its power moves 4-29 %, so a coverage test
-    #               alone rejects seven of ten sizes whose annotation plainly
-    #               worked. Coverage % is therefore not comparable across
-    #               precisions and cannot be the only test.
-    #
-    # The sidecar records which test accepted the row, so the report can say so
-    # rather than presenting the two as equivalent evidence.
     pdyn = num(m, "dynamic_power_w")
     pvl = num(m, "dynamic_power_vectorless_w")
     shift = None
@@ -829,17 +697,11 @@ def build_report(sel, args, cfg):
     L.append("MIXED-PRECISION FP4/FP8 CORES - FPGA SYNTHESIS, POWER AND THROUGHPUT")
     L.append("=" * 78)
     L.append("")
-    L.append("What this reports: area, achievable clock frequency and dynamic power for the")
-    L.append("NSGA-II-selected mixed-precision FFT cores on FPGA, regenerated with the")
-    L.append("gated butterfly wrapper, plus the throughput, energy and efficiency figures")
-    L.append("derived from them. Same Vivado scripts and same testbench as the FP16 and")
-    L.append("FP32 baselines, so the three are comparable by construction.")
     L.append("")
     L.append("Target FPGA device              : %s" % args.part)
     L.append("Clock period used for power/XDC : %.1f ns (%.1f MHz constraint)"
              % (args.clock_period, 1000.0 / args.clock_period))
     L.append("Butterfly wrapper               : butterfly_wrapper_gated, PIPELINE_OPERANDS=0")
-    L.append("                                  (combinational operand isolation, no added latency)")
     L.append("DSP inference for multipliers    : %s"
              % ("enabled" if args.use_dsp else "disabled (-max_dsp 0, multipliers in LUTs)"))
     L.append("Synthesis script                : vivado_synthesis_v2.tcl (unmodified)")
@@ -848,9 +710,6 @@ def build_report(sel, args, cfg):
              % (os.path.basename(args.tb), args.strip_path))
     L.append("Minimum accepted SAIF coverage  : %.0f%% of design nets" % (100 * args.min_coverage))
     L.append("")
-    L.append("The clock constraint above only sets the operating point at which dynamic")
-    L.append("power is reported. Energy per transform is frequency-invariant, so it is the")
-    L.append("same physical quantity whatever constraint is used.")
 
     tbl(L, "TABLE 1  DESIGN UNDER TEST", [
         ("FFT size", "points"),
@@ -862,10 +721,7 @@ def build_report(sel, args, cfg):
         str(r["N"]), str(r["solution_id"]), r["chromosome"],
         "%d of %d" % (sum(int(b) for b in r["chromosome"][0::2]), len(r["chromosome"]) // 2),
         "%d of %d" % (sum(int(b) for b in r["chromosome"][1::2]), len(r["chromosome"]) // 2),
-    ], notes=[
-        "A 1 selects the FP8 datapath for that stage, a 0 selects FP4. Bits run",
-        "stage 0 first, multiply bit before add bit.",
-    ])
+    ], notes=[])
 
     tbl(L, "TABLE 2  RESOURCE UTILISATION", [
         ("FFT size", "points"),
@@ -888,9 +744,7 @@ def build_report(sel, args, cfg):
     ], lambda r: [str(r["N"]), g(r, "fmax_mhz", "{:.2f}"),
                   g(r, "critical_path_delay_ns", "{:.3f}"), g(r, "wns_ns", "{:.3f}"),
                   g(r, "dynamic_power_w", "{:.4f}"), g(r, "static_power_w", "{:.4f}"),
-                  g(r, "total_power_w", "{:.4f}")], notes=[
-        "Maximum frequency is 1 / critical path delay, not the constrained frequency.",
-    ])
+                  g(r, "total_power_w", "{:.4f}")], notes=[])
 
     tbl(L, "TABLE 4  ARE THE POWER NUMBERS TRUSTWORTHY?", [
         ("FFT size", "points"),
@@ -910,12 +764,7 @@ def build_report(sel, args, cfg):
         (r.get("saif_accepted_on") or "-"),
         yn(r.get("checksum_match")), yn(r.get("opt_design_ran")),
         g(r, "dynamic_power_vectorless_w", "{:.4f}"),
-    ], notes=[
-        "This matters more here than for the baselines: the gated wrapper is the only",
-        "reason dynamic power depends on the chromosome at all, and that dependence is",
-        "invisible without a real switching-activity annotation. A row with 'no' here",
-        "carries no information about the precision schedule.",
-    ])
+    ], notes=[])
 
     for tag, title, note_lines in (
             ("compute",
@@ -945,23 +794,15 @@ def build_report(sel, args, cfg):
         ], notes=note_lines)
 
     L.append("")
-    L.append("HOW THE DERIVED COLUMNS ARE COMPUTED")
-    L.append("  Throughput (transforms/s)      = maximum frequency / cycles per transform")
-    L.append("  Energy per transform (nJ)      = dynamic power x cycles x clock period")
-    L.append("  Throughput per watt (transf/J) = 1 / energy per transform. These are the")
-    L.append("                                   same quantity, not a separate measurement.")
-    L.append("  Throughput per 1000 logic LUTs = throughput / (logic LUTs / 1000)")
 
     bad = [r["N"] for r in rows if str(r.get("saif_used")) != "1"]
     if bad:
         L.append("")
         L.append("WARNING  Switching activity was not annotated for FFT size(s) %s." % bad)
-        L.append("         Energy per transform and throughput per watt are omitted there.")
     mism = [r["N"] for r in rows if str(r.get("checksum_match")) == "0"]
     if mism:
         L.append("")
         L.append("WARNING  Netlist checksums disagree for FFT size(s) %s. The activity" % mism)
-        L.append("         file describes a different netlist than the one annotated.")
 
     text = "\n".join(L) + "\n"
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
@@ -1024,7 +865,6 @@ class _Tee:
                     t.flush()
             except OSError:
                 pass
-
 
 
 def main():
@@ -1105,9 +945,6 @@ def main():
     ap.add_argument("--report-only", action="store_true")
     args = ap.parse_args()
 
-    # Hostname in the filename, deliberately: these logs are committed so that
-    # digital-1's results can be read from any machine, and two machines writing
-    # the same path is what turned a pull into an add/add merge conflict.
     import socket
     _host = re.sub(r"[^A-Za-z0-9_-]", "", socket.gethostname().split(".")[0]) or "host"
     log_path = os.path.splitext(os.path.abspath(args.out))[0] + f".{_host}.log"
@@ -1119,8 +956,6 @@ def _run(args, cfg):
     cfg["vivado"] = args.vivado
 
     if args.implement:
-        # Keep the post-synthesis sweep intact: only paths the user left at their
-        # default are redirected, so an explicit --out/--csv/--work-dir still wins.
         if args.work_dir == DEFAULT_WORK:
             args.work_dir = DEFAULT_WORK + "_impl"
         if args.reports == DEFAULT_WORK:

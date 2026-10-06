@@ -1,73 +1,5 @@
 #!/usr/bin/env python3
-"""
-FP16 Baseline FPGA PPA + Throughput  --  Vivado, v2 flow, funcsim SAIF
-=====================================================================
-This is the FPGA track. It does NOT fork either of the repo's Vivado scripts:
-`vivado_synthesis_v2.tcl` and `generate_saif_funcsim.tcl` are already
-format-agnostic (verilog_dir, tb_file, use_dsp and saif_strip_path are all
-arguments), so the FP16 baseline goes through the exact same, already-validated
-scripts the mixed-precision sweep uses. That is the whole point: one flow, so
-the numbers are comparable by construction.
-
-What this driver adds:
-
-  1. **Source assembly.** The TCL scripts glob ONE directory. FP16's RTL spans
-     source/, source/mem_regarray/ and ../verilog_sources/ (agu, bit_reversal),
-     so the driver stages exactly the needed .v files into a flat scratch dir
-     and passes that as verilog_dir. Nothing is copied into the repo.
-
-  2. **The two-pass SAIF discipline**, per claude/saif-power-flow-working.md:
-       pass 1  generate_saif_funcsim.tcl  -- synthesise, write a funcsim
-               netlist, simulate THAT netlist against tb/tb_fp16_power.v under
-               xsim, log a SAIF whose net names match the netlist by
-               construction.
-       pass 2  vivado_synthesis_v2.tcl    -- synthesise identically, annotate
-               that SAIF, report utilisation / timing / split power.
-     Both passes print `Synth Design complete | Checksum:`; the driver compares
-     them and records `checksum_match`. Unequal means the SAIF describes a
-     different netlist than the one annotated, and the design is marked
-     untrustworthy rather than silently used.
-
-  3. **saif_used gating.** v2 already measures vectorless power first and then
-     re-measures with the SAIF, setting saif_used=0 if dynamic power did not
-     move. The driver refuses to report energy for a design with saif_used=0,
-     because vectorless power on an XC7A35T is ~65 % static and takes three
-     values across the whole design space.
-
-  4. **The derived metrics**, both cycle denominators side by side:
-
-       Throughput (transforms/s) = f_max / cycles
-       Energy/FFT (nJ)           = P_dynamic(W) x cycles x clock_period(ns)
-       Throughput/W (transf/J)   = 1e9 / Energy/FFT(nJ)
-       Throughput/kLUT           = Throughput / (LUTs / 1000)
-
-     with cycles = ExecCycles (compute-only, start-to-done) AND
-          cycles = E2E cycles  (load + exec + unload, non-overlapped)
-     both read from sim/perf/fp16_sqnr_results.txt.
-
-     Throughput/W is *identically* 1/energy-per-transform -- dimensionally
-     (transforms/s)/(J/s) = transforms/J -- so it is derived, not separately
-     measured, and it is frequency-invariant for the same reason energy is
-     (Vivado's dynamic power scales linearly with the clock constraint).
-
-Memory: the FPGA track uses the register-array memory
-(source/mem_regarray/fp16_memory.v), which Vivado infers as BRAM. The
-SRAM-macro variant is deliberately NOT offered here -- an OpenRAM macro is a
-blackbox Vivado cannot map, so an FPGA run against it is meaningless.
-
-Usage (from the repository root):
-    python3 fp16_baseline/synth/run_fp16_fpga.py --sizes 256
-    python3 fp16_baseline/synth/run_fp16_fpga.py                    # all 10
-    python3 fp16_baseline/synth/run_fp16_fpga.py --use-dsp 0        # LUT-only area
-    python3 fp16_baseline/synth/run_fp16_fpga.py --report-only      # re-tabulate
-
-Run sim/fp16_performance_evaluator.py first (run_fp16_design.py does this in
-order) so the cycle counts exist; without them throughput and energy are
-reported as N/A rather than guessed.
-
-Output: synth/fp16_fpga_report.txt + synth/fp16_fpga_metrics.csv, with per-design
-Vivado CSVs and logs under synth/fpga_work/.
-"""
+"""FP16 baseline: FPGA area, timing, power and throughput."""
 
 import argparse
 import csv as csv_mod
@@ -106,11 +38,6 @@ MEM_RTL = os.path.join("mem_regarray", "fp16_memory.v")
 SHARED_RTL = ["agu.v", "bit_reversal.v"]
 
 CHECKSUM_RE = re.compile(r"Synth Design complete\s*\|\s*Checksum:\s*(\S+)")
-# Vivado's own annotation count. objectiveEvaluationFFT.py gates saif_used on
-# this rather than on the TCL's power-delta heuristic, because at three decimal
-# places an annotated and a vectorless run frequently round to the same value
-# even when annotation worked (see claude/saif-power-flow-working.md:
-# fft_16_sol12_gen1, 844/1908 nets annotated, both powers 0.034 W, flag inert).
 SAIF_NETS_RE = re.compile(r"Design nets matched\s*=\s*(\d+)\s+of\s+(\d+)")
 
 
@@ -155,16 +82,12 @@ def read_globals():
     m = re.search(r"^VIVADO_PATH\s*=\s*['\"](.+?)['\"]", t, re.M)
     if m:
         d["vivado"] = m.group(1)
-    # POWER_CLOCK_NS is the power/XDC clock; CLOCK_PERIOD is only the latency
-    # normaliser (see claude/saif-power-flow-working.md, "resolution trap").
     m = re.search(r"^POWER_CLOCK_NS\s*=\s*([0-9.]+)", t, re.M)
     if m:
         d["clock"] = float(m.group(1))
     m = re.search(r"^FPGA_DEVICE\s*=\s*['\"](.+?)['\"]", t, re.M)
     if m:
         d["part"] = m.group(1)
-    # The rest of the mixed sweep's parity constants, so this driver cannot
-    # silently drift from objectiveEvaluationFFT.py._run_vivado_synthesis.
     for key, pat, cast in (
             ("frames",  r"^SAIF_FRAMES\s*=\s*(\d+)", int),
             ("use_dsp", r"^USE_DSP\s*=\s*(\d+)", int),
@@ -325,9 +248,6 @@ def synth_one(n, args, cfg):
     log(f"  {design} power pass: {'ok' if ok else 'FAILED'} ({dt:.0f}s)"
         f"  checksum={pwr_cksum}")
 
-    # Vivado's CSV cannot carry the driver's own provenance (the two checksums
-    # come from two separate invocations), so write a sidecar next to it. This
-    # is what makes --report-only able to show checksum_match.
     m = parse_metrics_csv(csv_out) or {}
     side = os.path.join(args.reports, f"{design}_driver.csv")
     prov = {
@@ -337,26 +257,6 @@ def synth_one(n, args, cfg):
         "pwr_checksum": pwr_cksum or "",
         "checksum_match": int(bool(saif_cksum) and saif_cksum == pwr_cksum),
     }
-    # Two independent tests, and EITHER is sufficient. Each catches the case the
-    # other misses.
-    #
-    #   coverage    Vivado's own "Design nets matched" count. Catches the failure
-    #               the net-count gate was added for: fft_16_sol12_gen1 had 844
-    #               of 1908 nets annotated while dynamic power and the vectorless
-    #               baseline both read 0.034 W, so a power-delta test alone would
-    #               have rejected a design that was properly annotated.
-    #
-    #   power shift Relative movement of dynamic power away from the vectorless
-    #               baseline. Catches the converse: coverage falls structurally as
-    #               the datapath widens, because a wide multiplier's interior is
-    #               most of its nets and synthesis never names them. FP32 annotates
-    #               8-11 % of nets while its power moves 4-29 %, so a coverage test
-    #               alone rejects seven of ten sizes whose annotation plainly
-    #               worked. Coverage % is therefore not comparable across
-    #               precisions and cannot be the only test.
-    #
-    # The sidecar records which test accepted the row, so the report can say so
-    # rather than presenting the two as equivalent evidence.
     pdyn = fnum(m, "dynamic_power_w")
     pvl = fnum(m, "dynamic_power_vectorless_w")
     shift = None
@@ -437,8 +337,6 @@ def derive(row, cycles, clock_ns):
         out["throughput_tps"] = thr
         if luts and luts > 0:
             out["throughput_per_klut"] = thr / (luts / 1000.0)
-    # Energy only where the SAIF actually annotated -- vectorless power on this
-    # part is ~65 % static and takes three values across the design space.
     if pdyn is not None and saif_used == 1:
         e_nj = pdyn * cycles * clock_ns
         out["energy_nj"] = e_nj
@@ -566,8 +464,6 @@ def build_report(sizes, args, cfg):
     L.append("FP16 BASELINE - FPGA SYNTHESIS, POWER AND THROUGHPUT")
     L.append("=" * 78)
     L.append("")
-    L.append("What this reports: area, achievable clock frequency and dynamic power for the")
-    L.append("FP16 reference FFT cores on FPGA, plus the throughput, energy and efficiency")
     L.append("figures derived from them.")
     L.append("")
     L.append("Target FPGA device              : %s" % args.part)
@@ -580,9 +476,6 @@ def build_report(sizes, args, cfg):
     L.append("Switching-activity script       : generate_saif_funcsim.tcl (unmodified)")
     L.append("Minimum accepted SAIF coverage  : %.0f%% of design nets" % (100 * args.min_coverage))
     L.append("")
-    L.append("The clock constraint above only sets the operating point at which dynamic")
-    L.append("power is reported. Energy per transform is frequency-invariant, so it is the")
-    L.append("same physical quantity whatever constraint is used.")
 
     tbl(L, "TABLE 1  RESOURCE UTILISATION", [
         ("FFT size", "points"),
@@ -611,9 +504,7 @@ def build_report(sizes, args, cfg):
         g(r, "wns_ns", "{:.3f}"),
         g(r, "dynamic_power_w", "{:.4f}"), g(r, "static_power_w", "{:.4f}"),
         g(r, "total_power_w", "{:.4f}"),
-    ], notes=[
-        "Maximum frequency is 1 / critical path delay, not the constrained frequency.",
-    ])
+    ], notes=[])
 
     tbl(L, "TABLE 3  ARE THE POWER NUMBERS TRUSTWORTHY?", [
         ("FFT size", "points"),
@@ -635,24 +526,7 @@ def build_report(sizes, args, cfg):
         yn(r.get("checksum_match")),
         yn(r.get("opt_design_ran")),
         g(r, "dynamic_power_vectorless_w", "{:.4f}"),
-    ], notes=[
-        "A row is trusted if it clears EITHER test. 'Design nets annotated' is",
-        "Vivado's own matched-net count; 'Dynamic power shift' is how far dynamic",
-        "power moved from the vectorless baseline. Coverage falls structurally as the",
-        "datapath widens -- a wide multiplier's interior is most of its nets and",
-        "synthesis never names them -- so coverage is not comparable across",
-        "precisions and cannot be the only test. The power shift catches those rows;",
-        "coverage catches the converse case where the SAIF annotated properly but",
-        "power happened not to move. 'Accepted on' says which one applied.",
-        "",
-        "'Switching activity annotated' is Vivado's own count of design nets matched by",
-        "the activity file, tested against the coverage floor above. Where it reads 'no',",
-        "energy and throughput-per-watt are left blank in the tables below rather than",
-        "reported from vectorless power, which on this device is mostly static leakage",
-        "and barely varies between designs. The dynamic power in Table 2 and the",
-        "vectorless figure here must differ; if they are equal, the activity file was",
-        "not really applied.",
-    ])
+    ], notes=[])
 
     for tag, title, note_lines in (
             ("compute",
@@ -686,32 +560,18 @@ def build_report(sizes, args, cfg):
         ], notes=note_lines)
 
     L.append("")
-    L.append("HOW THE DERIVED COLUMNS ARE COMPUTED")
-    L.append("  Throughput (transforms/s)      = maximum frequency / cycles per transform")
-    L.append("  Energy per transform (nJ)      = dynamic power x cycles x clock period")
-    L.append("  Throughput per watt (transf/J) = 1 / energy per transform. These are the")
-    L.append("                                   same quantity: transforms per second")
-    L.append("                                   divided by joules per second is")
-    L.append("                                   transforms per joule. It is not a")
     L.append("                                   separate measurement.")
-    L.append("  Throughput per 1000 logic LUTs = throughput / (logic LUTs / 1000)")
 
     bad = [r["N"] for r in rows if str(r.get("saif_used")) != "1"]
     if bad:
         L.append("")
         L.append("WARNING  Switching activity was not annotated for FFT size(s) %s." % bad)
-        L.append("         Energy per transform and throughput per watt are omitted for")
-        L.append("         those rows. Check the SAIF strip path and the activity-pass log.")
     mism = [r["N"] for r in rows if str(r.get("checksum_match")) == "0"]
     if mism:
         L.append("")
         L.append("WARNING  Netlist checksums disagree for FFT size(s) %s. The activity" % mism)
-        L.append("         file describes a different netlist than the one it was applied")
-        L.append("         to. Do not trust those power numbers.")
     if any(r.get("e2e_cycles") in (None, "") for r in rows):
         L.append("")
-        L.append("NOTE     End-to-end cycles are missing for some sizes: the cycle-count")
-        L.append("         table predates the load and unload columns. Re-run")
         L.append("         sim/fp16_performance_evaluator.py to populate them.")
 
     text = "\n".join(L) + "\n"
@@ -775,7 +635,6 @@ class _Tee:
                     t.flush()
             except OSError:
                 pass
-
 
 
 def main():
@@ -850,8 +709,6 @@ def _run(args, cfg):
     cfg["vivado"] = args.vivado
 
     if args.implement:
-        # Keep the post-synthesis sweep intact: only paths the user left at their
-        # default are redirected, so an explicit --out/--csv/--work-dir still wins.
         if args.work_dir == DEFAULT_WORK:
             args.work_dir = DEFAULT_WORK + "_impl"
         if args.reports == DEFAULT_WORK:

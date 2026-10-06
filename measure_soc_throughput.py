@@ -1,54 +1,5 @@
 #!/usr/bin/env python3
-"""
-SoC-level FFT throughput through the RISC-V PCPI interface
-==========================================================
-Measures what the FFT extension actually delivers inside the PicoRV32 SoC, and
-separates it into the three numbers that mean different things:
-
-  datapath        cycles the FFT core spends computing. Already in the core-level
-                  tables as ExecCycles; this run measures it again from inside the
-                  SoC, via the cycles the CPU stalls in FFTWAIT, so the two can be
-                  compared. If they disagree, one of them is wrong.
-
-  accelerator     cycles a custom-0 instruction occupies the CPU: the datapath
-                  plus everything PCPI costs to move 256 samples in and 256 out,
-                  one 16-bit sample per instruction.
-
-  end to end      every cycle from reset to the last result in memory, including
-                  the CPU's own lw/sw/addi/blt loops around each custom
-                  instruction. This is what an application sees.
-
-WHAT IT FIXES ON THE WAY
-  soc_evaluator.py compiles the SoC against generated_cores/fft_256_sol_28/,
-  which is the UNGATED core built from the 2026-07-06 chromosome. The paper
-  reports the gated core at the chromosome in mixed_selected_chromosomes.csv.
-  This driver regenerates that chromosome under the module name the PCPI wrapper
-  expects (mixed_fft_<N>_top) into its own directory, so the SoC measures the
-  design the paper reports. Cycle counts are chromosome-independent -- the FSM
-  does not change -- but binding the SoC to a stale, differently-architected core
-  is not something to leave in place.
-
-  It also copies verilog_sources locally and rewrites the twiddle $readmemb path
-  in the copy. soc_evaluator.py rewrites that path IN PLACE to an absolute
-  /home/digital-1/... path, which makes the committed RTL machine-specific; this
-  driver never writes to verilog_sources.
-
-Usage (from the repository root):
-    python3 measure_soc_throughput.py                      # N=256, 11 frames
-    python3 measure_soc_throughput.py --fmax 28.44         # quote throughput at a
-                                                           # measured f_max
-    python3 measure_soc_throughput.py --keep-work           # leave the sim dir
-
-Needs iverilog, picorv32.v at the repository root, and a chromosome for the
-requested size in synth_mixed/mixed_selected_chromosomes.csv (run
-run_mixed_fpga.py --select-only first).
-
-STATUS: run end to end against Icarus Verilog; all 11 frames completed and the
-  datapath column agreed with the standalone ExecCycles to 1.2 %. The numbers it
-  prints are measured, not modelled. It has NOT been run on a size other than
-  256 -- the firmware (fft_batch_test.asm) hardcodes 256 and 11 tests, so another
-  size needs that asm changed too, and the driver says so rather than pretending.
-"""
+"""Measure FFT throughput through the RISC-V PCPI interface."""
 
 import argparse
 import csv as csv_mod
@@ -206,7 +157,6 @@ class _Tee:
                 pass
 
 
-
 def main():
     ap = argparse.ArgumentParser(
         description="Measure FFT throughput through the RISC-V PCPI interface")
@@ -227,9 +177,6 @@ def main():
     ap.add_argument("--timeout", type=int, default=3600)
     args = ap.parse_args()
 
-    # Hostname in the filename, deliberately: these logs are committed so that
-    # digital-1's results can be read from any machine, and two machines writing
-    # the same path is what turned a pull into an add/add merge conflict.
     import socket
     _host = re.sub(r"[^A-Za-z0-9_-]", "", socket.gethostname().split(".")[0]) or "host"
     log_path = os.path.splitext(os.path.abspath(args.out))[0] + f".{_host}.log"
@@ -361,12 +308,9 @@ def _run(args):
          f"Chromosome          : {chrom} (solution {sol}, gated)",
          f"Frames measured     : {frames} of {args.num_tests}",
          f"Simulation clock    : {args.clock_ns} ns",
-         (f"Frequency quoted at : {fmax:.2f} MHz (the FFT core standalone, NOT the SoC)"
+         (f"Frequency quoted at : {fmax:.2f} MHz (standalone FFT core; the SoC "
           if fmax else "Frequency quoted at : not supplied; cycles only"),
          "",
-         "Measured in simulation, not modelled. One 16-bit sample crosses PCPI per",
-         "custom instruction, so a transform costs 256 loads and 256 stores on top",
-         "of the computation.",
          "",
          "  ".join(c[0].ljust(w) for c, w in zip(COLS, widths)),
          "  ".join(c[1].ljust(w) for c, w in zip(COLS, widths)),
@@ -392,20 +336,6 @@ def _run(args):
               f"{100*(1-p_wait/p_total):.1f} % is",
               "  spent getting samples in and out."]
 
-    L += ["", "WHAT THE FREQUENCY FIGURE IS, AND IS NOT",
-          "  The throughput column converts cycles to transforms per second using the",
-          "  FFT CORE's maximum frequency, measured standalone. The SoC as a whole has",
-          "  never been synthesised: picorv32, the memory and the PCPI handshake all add",
-          "  paths of their own, and the real SoC frequency is whichever of those is",
-          "  slowest -- plausibly lower than the core's. Treat the cycle counts as the",
-          "  measured result and the transforms-per-second column as the core's frequency",
-          "  applied to them. To make it a measurement, synthesise picorv32_fft_soc.v",
-          "  through the same flow and quote that frequency instead.",
-          "", "CROSS-CHECK",
-          "  The datapath row is measured from inside the SoC. The core-level tables",
-          "  measure the same quantity standalone as ExecCycles. They should agree to",
-          "  within the few cycles FFTWAIT misses while the start instruction retires.",
-          "  If they diverge by more than that, one of the two is wrong."]
 
     text = "\n".join(L) + "\n"
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)

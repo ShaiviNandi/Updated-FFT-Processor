@@ -1,42 +1,5 @@
 #!/usr/bin/env python3
-"""
-Post-synthesis vs post-route: how wrong is the estimate?
-========================================================
-Reads the `*_metrics_impl.csv` files that `vivado_implement.tcl` writes and
-answers the one question the 60-design probe exists to answer: by how much, and
-in which direction, does implementation move each number that the paper quotes.
-
-Every row compares two measurements of the SAME netlist from the SAME Vivado
-invocation, because vivado_implement.tcl sources vivado_synthesis_v2.tcl and then
-places and routes the design that returns. Nothing is re-synthesised between the
-two columns, so the difference is implementation and nothing else.
-
-Run the three tracks with --implement first:
-
-    python3 fp16_baseline/synth/run_fp16_fpga.py  --implement
-    python3 fp32_baseline/synth/run_fp32_fpga.py  --implement
-    python3 run_mixed_fpga.py                     --implement
-    python3 report_implementation_delta.py
-
-Reading the deltas:
-  critical path   positive = routing made it slower, which is the normal
-                  direction. A large positive number means the post-synthesis
-                  f_max in the paper is optimistic by that much.
-  f_max           the same fact with the opposite sign.
-  logic LUTs      opt_design and phys_opt_design both change area; this is why
-                  throughput-per-area moves too.
-  dynamic power   post-route report_power works from real routed net
-                  capacitance rather than an estimate, so this column is the
-                  more accurate one. Only meaningful where saif_used = 1.
-
-What to conclude:
-  If the deltas are small AND similar across the three tracks, the systematic
-  part cancels out of the ratio tables and the post-synthesis numbers stand with
-  a footnote naming the spread. If they are large, or if they differ by track,
-  the comparison has to be rebuilt on the post-route numbers -- the mixed core
-  carries three datapaths and more logic levels in its worst path, so there is
-  no guarantee it degrades like FP16 does.
-"""
+"""Post-synthesis vs post-route delta per precision track."""
 
 import argparse
 import csv as csv_mod
@@ -156,16 +119,12 @@ class _Tee:
                 pass
 
 
-
 def main():
     ap = argparse.ArgumentParser(
         description="Post-synthesis vs post-route comparison across the three tracks")
     ap.add_argument("--out", default=DEFAULT_OUT)
     args = ap.parse_args()
 
-    # Hostname in the filename, deliberately: these logs are committed so that
-    # digital-1's results can be read from any machine, and two machines writing
-    # the same path is what turned a pull into an add/add merge conflict.
     import socket
     _host = re.sub(r"[^A-Za-z0-9_-]", "", socket.gethostname().split(".")[0]) or "host"
     log_path = os.path.splitext(os.path.abspath(args.out))[0] + f".{_host}.log"
@@ -203,14 +162,10 @@ def _run(args):
     L = ["=" * 78,
          "POST-SYNTHESIS vs POST-ROUTE",
          "=" * 78, "",
-         "Same netlist, same Vivado invocation: vivado_implement.tcl sources",
-         "vivado_synthesis_v2.tcl unmodified, then places, phys-opts and routes the",
-         "design that returns. The difference between the two columns is",
          "implementation only -- nothing is re-synthesised in between.", ""]
     if missing:
         L.append("MISSING implementation results for: "
                  + ", ".join(f"{n} ({d})" for n, d in missing))
-        L.append("Run that track with --implement.")
         L.append("")
 
     L += render("TABLE 1  DID IMPLEMENTATION COMPLETE?", [
@@ -221,10 +176,7 @@ def _run(args):
         ("Routed", "yes / no", lambda r: yn(r, "route_ran")),
         ("Elapsed", "seconds", lambda r: g(r, "impl_elapsed_s", "{:.0f}")),
         ("Error, if any", "Vivado message", lambda r: (r.get("impl_error") or "").strip('"') or "-"),
-    ], rows, notes=[
-        "A design that did not route contributes no timing or power comparison; its",
-        "cells below are blank rather than filled from the synthesis estimate.",
-    ])
+    ], rows, notes=[])
 
     L += render("TABLE 2  CRITICAL PATH AND ACHIEVABLE FREQUENCY", [
         ("Precision track", "FP16 / FP32 / mixed", lambda r: r["_track"]),
@@ -235,10 +187,7 @@ def _run(args):
         ("Maximum frequency, post-synthesis", "MHz", lambda r: g(r, "synth_fmax_mhz")),
         ("Maximum frequency, post-route", "MHz", lambda r: g(r, "impl_fmax_mhz")),
         ("Change in maximum frequency", "percent", lambda r: g(r, "delta_fmax_pct", "{:+.2f}")),
-    ], rows, notes=[
-        "A positive change in critical path means routing made the design slower,",
-        "so the post-synthesis frequency in the paper was optimistic by that much.",
-    ])
+    ], rows, notes=[])
 
     L += render("TABLE 3  AREA AND DYNAMIC POWER", [
         ("Precision track", "FP16 / FP32 / mixed", lambda r: r["_track"]),
@@ -250,11 +199,7 @@ def _run(args):
         ("Dynamic power, post-route", "watts", lambda r: g(r, "impl_dynamic_power_w", "{:.4f}")),
         ("Change in dynamic power", "percent", lambda r: g(r, "delta_dynamic_power_pct", "{:+.2f}")),
         ("Switching activity annotated", "yes / no", lambda r: yn(r, "saif_used")),
-    ], rows, notes=[
-        "The post-route power column is the more accurate of the two: report_power",
-        "there works from real routed net capacitance instead of an estimate. It is",
-        "only meaningful where switching activity was annotated.",
-    ])
+    ], rows, notes=[])
 
     # ---- the summary that actually decides the question ----
     def spread(track, key):
@@ -283,24 +228,14 @@ def _run(args):
             ("Smallest change", "percent", lambda r: "{:+.2f}".format(r["min"])),
             ("Median change", "percent", lambda r: "{:+.2f}".format(r["med"])),
             ("Largest change", "percent", lambda r: "{:+.2f}".format(r["max"])),
-        ], summary, notes=[
-            "This is the table that settles it. Compare the median critical-path row",
-            "across the three tracks: if they agree, the error is systematic and",
-            "largely cancels out of the ratio tables, and the post-synthesis numbers",
-            "can stand with a footnote quoting this spread. If they disagree, the",
-            "comparison has to be rebuilt on the post-route numbers, because the",
-            "tracks are not degrading alike.",
-        ])
+        ], summary, notes=[])
 
         crit = {s["track"]: s["med"] for s in summary if s["what"] == "critical path"}
         if len(crit) >= 2:
             worst = max(crit.values()) - min(crit.values())
             L += ["", "VERDICT INPUT",
-                  "  Median critical-path change per track: "
                   + ", ".join(f"{k} {v:+.2f} %" for k, v in crit.items()),
                   f"  Spread between tracks: {worst:.2f} percentage points.",
-                  "  Small spread -> the ratio tables are safe; quote the median as the",
-                  "  uncertainty on any absolute frequency. Large spread -> rebuild the",
                   "  comparison on post-route numbers."]
 
     text = "\n".join(L) + "\n"

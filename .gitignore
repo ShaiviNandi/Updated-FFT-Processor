@@ -63,7 +63,7 @@ smoke*.log
 **/synth_work/
 synth_mixed/fpga_work*/
 synth_mixed/constraint_sweep/
-synth_mixed/soc_fpga_work*/
+synth_mixed/sweep_*/
 sim_soc_perf/
 sim/
 
@@ -76,7 +76,6 @@ synth_mixed/mixed_fpga_report.log
 synth_mixed/closing_period.log
 synth_mixed/implementation_delta.log
 synth_mixed/soc_throughput.log
-synth_mixed/soc_fpga_report.log
 fp16_baseline/synth/fp16_fpga_report.log
 fp32_baseline/synth/fp32_fpga_report.log
 
