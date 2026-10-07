@@ -189,15 +189,35 @@ def find_closing_period(track, n, work, args):
                 break
 
     row = {"N": n, "extrapolated_crit_ns": crit0, "extrapolated_fmax_mhz": fmax0,
-           "luts": luts0, "probes": probes}
+           "luts": luts0, "probes": probes,
+           "extrapolated_from_ns": args.start}
     if ok is None:
         row["note"] = (f"no period met timing within {args.max_probes} probes "
                        f"(last tried {period:.2f} ns)")
+        row["bracketed"] = 0
         return row
     row["closing_period_ns"] = ok
     row["slack_at_closing_ns"] = ok_wns
     row["measured_fmax_mhz"] = 1000.0 / ok
-    if crit0:
+
+    # Bracketed means a period BELOW this one was measured and missed, so the
+    # zero crossing is enclosed. Without that, every probe met and the descent
+    # simply ran out of budget: the period is the lowest tried, the true closing
+    # period is lower, and the design is faster than this row says. Reporting
+    # the two as if they were the same thing is how an upper bound gets quoted
+    # as a measurement.
+    row["bracketed"] = 1 if (fail is not None and fail < ok) else 0
+    if not row["bracketed"]:
+        row["note"] = (f"UPPER BOUND: every probe met timing; {ok:.2f} ns is the "
+                       f"lowest of {probes} tried, not the closing period. "
+                       f"Re-run with a lower --start or a larger --max-probes.")
+
+    # The extrapolation is only an estimate of critical path when the design
+    # MISSES the constraint it was taken from: given slack, the router stops as
+    # soon as timing is met, so (constraint - slack) records where it quit. The
+    # error below is therefore only meaningful when wns0 < 0, and is left out
+    # otherwise rather than printed as if it meant the same thing.
+    if crit0 and wns0 is not None and wns0 < 0:
         row["extrapolation_error_pct"] = 100.0 * (ok - crit0) / crit0
     return row
 
@@ -216,8 +236,13 @@ def render(rows, args):
          lambda r: g(r, "slack_at_closing_ns", "{:+.3f}")),
         ("Measured maximum frequency", "MHz",
          lambda r: g(r, "measured_fmax_mhz", "{:.2f}")),
-        ("Extrapolated critical path", "ns, from the 10 ns run",
+        ("Zero crossing bracketed", "yes / UPPER BOUND",
+         lambda r: ("-" if r.get("closing_period_ns") is None
+                    else ("yes" if r.get("bracketed") else "UPPER BOUND"))),
+        ("Extrapolated critical path", "ns, from the probed constraint",
          lambda r: g(r, "extrapolated_crit_ns")),
+        ("Constraint it was taken from", "ns",
+         lambda r: g(r, "extrapolated_from_ns", "{:.2f}")),
         ("Extrapolated maximum frequency", "MHz",
          lambda r: g(r, "extrapolated_fmax_mhz", "{:.2f}")),
         ("Extrapolation error", "percent",
@@ -273,9 +298,9 @@ def render(rows, args):
 
     csv_path = os.path.splitext(args.out)[0] + ".csv"
     fields = ["_track", "N", "closing_period_ns", "slack_at_closing_ns",
-              "measured_fmax_mhz", "extrapolated_crit_ns",
-              "extrapolated_fmax_mhz", "extrapolation_error_pct", "luts",
-              "probes", "note"]
+              "measured_fmax_mhz", "bracketed", "extrapolated_crit_ns",
+              "extrapolated_from_ns", "extrapolated_fmax_mhz",
+              "extrapolation_error_pct", "luts", "probes", "note"]
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         w = csv_mod.DictWriter(f, fieldnames=fields, extrasaction="ignore")
         w.writeheader()
@@ -384,7 +409,9 @@ def _run(args):
             r = find_closing_period(t, n, work, args)
             r["_track"] = TRACKS[t]["label"]
             if r.get("closing_period_ns"):
-                log(f"  N={n}: CLOSES at {r['closing_period_ns']:.2f} ns "
+                verb = ("CLOSES at" if r.get("bracketed")
+                        else "MEETS at (upper bound, never bracketed)")
+                log(f"  N={n}: {verb} {r['closing_period_ns']:.2f} ns "
                     f"(slack {r['slack_at_closing_ns']:+.3f} ns, "
                     f"{r['measured_fmax_mhz']:.2f} MHz) in {r['probes']} runs")
             rows.append(r)

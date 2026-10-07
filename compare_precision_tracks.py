@@ -24,6 +24,30 @@ IMPL_DIRS = {
 }
 N_FROM_NAME = re.compile(r"_fft_?(\d+)(?:_|\b)")
 
+SOURCE_NOTE = {
+    "post-synth": (
+        "Source: post-synthesis estimates (synth_design + opt_design; nothing "
+        "placed or",
+        "routed). Treat the absolute frequencies as estimates."),
+    "post-route": (
+        "Source: POST-ROUTE (placed, physically optimised and routed). Area, "
+        "frequency and",
+        "power are the routed figures; throughput and energy are recomputed "
+        "from them at a %.1f ns clock."),
+    "closing-period": (
+        "Source: MEASURED CLOSING PERIODS. Area and power are the post-route "
+        "figures; frequency is",
+        "the period each design was measured to meet timing at, with positive "
+        "slack. Energy per transform and throughput per watt are "
+        "frequency-invariant and so are unchanged from post-route; throughput "
+        "and throughput per LUT are recomputed at a %.1f ns clock."),
+}
+
+CLOSING_CSV = os.path.join(REPO_ROOT, "synth_mixed", "closing_period_all.csv")
+# sweep_timing_constraint.py writes its track as the human label
+CLOSING_TRACK = {"FP16 baseline": "FP16", "FP32 baseline": "FP32",
+                 "Mixed FP4/FP8": "Mixed"}
+
 SELECTION_CSV = os.path.join(REPO_ROOT, "synth_mixed", "mixed_selected_chromosomes.csv")
 DEFAULT_OUT = os.path.join(REPO_ROOT, "synth_mixed", "three_way_comparison.txt")
 
@@ -124,6 +148,35 @@ def read_sqnr(path):
         m = SQNR_ROW.match(line)
         if m:
             out[int(m.group(1))] = float(m.group(2))
+    return out
+
+
+def read_closing_periods(path):
+    """Measured closing periods from sweep_timing_constraint.py's CSV.
+
+    Returns {track: {N: row}}. A row whose bracketed flag is 0 is an upper
+    bound, not a closing period: every probe met timing and the search ran out
+    of budget, so the design is faster than the row says. Those are carried
+    through with the flag intact and the caller decides; they are never
+    silently treated as measurements.
+    """
+    out = {}
+    if not os.path.isfile(path):
+        return out
+    with open(path, newline="", encoding="utf-8") as f:
+        for r in csv_mod.DictReader(f):
+            track = CLOSING_TRACK.get((r.get("_track") or "").strip())
+            n = fnum(r.get("N"))
+            fmax = fnum(r.get("measured_fmax_mhz"))
+            if track and n and fmax:
+                out.setdefault(track, {})[int(n)] = {
+                    "fmax_mhz": fmax,
+                    "closing_period_ns": fnum(r.get("closing_period_ns")),
+                    "slack_ns": fnum(r.get("slack_at_closing_ns")),
+                    # absent column (a CSV from before the flag existed) is
+                    # unknown, not confirmed -- treat it as unbracketed
+                    "bracketed": str(r.get("bracketed", "")).strip() == "1",
+                }
     return out
 
 
@@ -258,7 +311,8 @@ def main():
     ap.add_argument("--cycles", choices=("compute", "e2e"), default="compute",
                     help="which cycle denominator to compare on; the same one is "
                          "used for all three tracks (default compute-only)")
-    ap.add_argument("--source", choices=("post-synth", "post-route"),
+    ap.add_argument("--source",
+                    choices=("post-synth", "post-route", "closing-period"),
                     default="post-synth",
                     help="post-synth (default) reads the *_fpga_metrics.csv "
                          "roll-ups. post-route reads the per-design "
@@ -268,6 +322,9 @@ def main():
                          "implementation delta differs by track: the tracks then "
                          "do not degrade alike and the post-synthesis ratios are "
                          "not comparable.")
+    ap.add_argument("--closing-csv", default=CLOSING_CSV,
+                    help="CSV from sweep_timing_constraint.py, read only by "
+                         "--source closing-period")
     ap.add_argument("--clock-period", type=float, default=10.0,
                     help="clock period in ns used to recompute energy per "
                          "transform for --source post-route (default 10.0, "
@@ -287,7 +344,7 @@ def _run(args):
 
     data, sqnr, missing = {}, {}, []
     for name, mpath, spath in TRACKS:
-        if args.source == "post-route":
+        if args.source in ("post-route", "closing-period"):
             src = IMPL_DIRS.get(name, "")
             data[name] = read_impl_metrics(src)
             if not data[name]:
@@ -313,7 +370,7 @@ def _run(args):
     def f(v, fmt="{:.2f}", dash="-"):
         return dash if v is None else fmt.format(v)
 
-    if args.source == "post-route":
+    if args.source in ("post-route", "closing-period"):
         cyc_src = {}
         for name, mpath, _ in TRACKS:
             for n, row in read_metrics(mpath).items():
@@ -323,6 +380,43 @@ def _run(args):
                 base = (cyc_src.get(name) or {}).get(n, {})
                 for t, key in (("compute", "exec_cycles"), ("e2e", "e2e_cycles")):
                     row.setdefault(key, base.get(key, ""))
+                    derive_from(row, fnum(row.get(key)), args.clock_period, t)
+
+    closing_stats = {"measured": 0, "upper_bound": 0, "unmeasured": 0}
+    if args.source == "closing-period":
+        # Area and power stay post-route: the sweep's probes run --no-saif, so
+        # they carry no usable power at all, and their area is the same netlist.
+        # Only frequency is replaced, by the period at which the design was
+        # measured to meet timing.
+        #
+        # Energy per transform is dynamic power x cycles x clock period, which
+        # is frequency-invariant, so it carries over from the post-route run
+        # unchanged -- and so does throughput per watt, being its reciprocal.
+        # What changes is throughput (frequency / cycles) and throughput per
+        # LUT. That is the whole of the difference this source makes.
+        meas = read_closing_periods(args.closing_csv)
+        for name in data:
+            for n, row in data[name].items():
+                m = (meas.get(name) or {}).get(n)
+                if m is None:
+                    # No measured period for this design. Blank the frequency
+                    # rather than leaving the post-route estimate in place: a
+                    # ratio of one track's measured frequency over another's
+                    # extrapolated one looks like a result and is an artefact.
+                    closing_stats["unmeasured"] += 1
+                    for k in ("fmax_mhz", "crit_delay_ns",
+                              "compute_throughput_tps", "e2e_throughput_tps",
+                              "compute_throughput_per_klut",
+                              "e2e_throughput_per_klut"):
+                        row[k] = ""
+                    continue
+                closing_stats["measured" if m["bracketed"] else "upper_bound"] += 1
+                row["fmax_mhz"] = m["fmax_mhz"]
+                row["crit_delay_ns"] = m["closing_period_ns"]
+                row["closing_slack_ns"] = m["slack_ns"]
+                row["fmax_is_upper_bound"] = 0 if m["bracketed"] else 1
+                for t, key in (("compute", "exec_cycles"),
+                               ("e2e", "e2e_cycles")):
                     derive_from(row, fnum(row.get(key)), args.clock_period, t)
 
     if args.source == "post-synth":
@@ -369,15 +463,22 @@ def _run(args):
                                     if tag == "compute"
                                     else "end to end (load + compute + unload)"),
          "",
-         ("Source: POST-ROUTE (placed, physically optimised and routed). Area, "
-          "frequency and" if args.source == "post-route" else
-          "Source: post-synthesis estimates (synth_design + opt_design; nothing "
-          "placed or"),
-         ("power are the routed figures; throughput and energy are recomputed "
-          "from them at a %.1f ns clock." % args.clock_period
-          if args.source == "post-route" else
-          "routed). Treat the absolute frequencies as estimates."),
+         SOURCE_NOTE[args.source][0],
+         SOURCE_NOTE[args.source][1] % args.clock_period
+         if "%" in SOURCE_NOTE[args.source][1] else SOURCE_NOTE[args.source][1],
          ""]
+    if args.source == "closing-period":
+        L += ["Frequency basis: %d design(s) measured and bracketed, "
+              "%d upper bound(s), %d with no measured period (frequency and "
+              "throughput left blank for those, never filled from an estimate)."
+              % (closing_stats["measured"], closing_stats["upper_bound"],
+                 closing_stats["unmeasured"]),
+              ""]
+        if closing_stats["upper_bound"]:
+            L += ["An upper bound is a design where every probe met timing, so "
+                  "its true frequency is HIGHER and its throughput ratio is "
+                  "understated. See the closing-period CSV's bracketed column.",
+                  ""]
     if missing:
         L.append("MISSING metrics for: " + ", ".join(f"{n} ({p})" for n, p in missing))
         L.append("")
