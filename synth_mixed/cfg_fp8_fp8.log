@@ -1,0 +1,45 @@
+[constraint-sweep] === Mixed FP4/FP8 ===
+[constraint-sweep]   N=256: at 36.0 ns, WNS +0.442 -> extrapolated critical path 35.558 ns
+[constraint-sweep]   N=256: probe 2 at 35.56 ns -> WNS +0.132 ns  (meets)
+[constraint-sweep]   N=256: probe 3 at 34.56 ns -> WNS +0.645 ns  (meets)
+[constraint-sweep]   N=256: probe 4 at 33.56 ns -> WNS -0.314 ns  (misses)
+[constraint-sweep]   N=256: probe 5 at 34.06 ns -> WNS +0.137 ns  (meets)
+[constraint-sweep]   N=256: CLOSES at 34.06 ns (slack +0.137 ns, 29.36 MHz) in 5 runs
+
+==============================================================================
+CLOCK PERIOD EACH DESIGN ACTUALLY CLOSES AT
+==============================================================================
+
+The reports constrain at 10 ns, which every design misses, so every
+worst-slack figure there is negative and every frequency is an
+extrapolation of (10 ns - worst slack). This table bisects the constraint
+until worst slack crosses zero, so the closing period is measured and its
+slack is positive.
+
+Stage: whichever the probes ran. Forward --driver-arg --implement to
+bisect on POST-ROUTE slack; without it the bisection uses the
+post-synthesis estimate, which on this device has been measured 4-16 %
+pessimistic and non-uniformly so across the three tracks.
+
+Timing only. Do not take power or energy from these runs: changing the
+constraint changes the operating point, so their dynamic power is not
+comparable with the 10 ns figures in the reports.
+
+    Precision track  FFT size  Closing clock period  Worst slack at that period  Measured maximum frequency  Extrapolated critical path  Extrapolated maximum frequency  Extrapolation error  Synthesis runs used
+FP16 / FP32 / mixed    points      ns, meets timing                ns, positive                         MHz      ns, from the 10 ns run                             MHz              percent                count
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      Mixed FP4/FP8       256                 34.06                      +0.137                       29.36                      35.558                           28.12                -4.21                    5
+
+WAS THE EXTRAPOLATION SOUND?
+  1 design(s) compared.
+  Error of (10 ns - worst slack) against the measured closing period:
+    smallest -4.21 %   median -4.21 %   largest -4.21 %
+  A small spread means the extrapolated frequencies in the reports are
+  sound and can be quoted with this as their uncertainty. A large or
+  one-sided error means the reported frequencies need replacing with
+  the measured column above.
+
+[constraint-sweep] table: synth_mixed/cfg_fp8_fp8.txt
+[constraint-sweep] csv  : synth_mixed/cfg_fp8_fp8.csv
+
+[log written to /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/cfg_fp8_fp8.log]

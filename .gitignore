@@ -116,3 +116,6 @@ desktop.ini
 # that, and it rewrites every commit hash, so every existing clone -- digital-1
 # included -- has to be re-cloned. Decide that separately.
 # =============================================================================
+synth_mixed/sweep_*/
+synth_mixed/constraint_sweep/
+synth_mixed/soc_fpga_work*/

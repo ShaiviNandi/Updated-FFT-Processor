@@ -1,0 +1,41 @@
+==============================================================================
+CLOCK PERIOD EACH DESIGN ACTUALLY CLOSES AT
+==============================================================================
+
+The reports constrain at 10 ns, which every design misses, so every
+worst-slack figure there is negative and every frequency is an
+extrapolation of (10 ns - worst slack). This table bisects the constraint
+until worst slack crosses zero, so the closing period is measured and its
+slack is positive.
+
+Stage: whichever the probes ran. Forward --driver-arg --implement to
+bisect on POST-ROUTE slack; without it the bisection uses the
+post-synthesis estimate, which on this device has been measured 4-16 %
+pessimistic and non-uniformly so across the three tracks.
+
+Timing only. Do not take power or energy from these runs: changing the
+constraint changes the operating point, so their dynamic power is not
+comparable with the 10 ns figures in the reports.
+
+    Precision track  FFT size  Closing clock period  Worst slack at that period  Measured maximum frequency  Extrapolated critical path  Extrapolated maximum frequency  Extrapolation error  Synthesis runs used
+FP16 / FP32 / mixed    points      ns, meets timing                ns, positive                         MHz      ns, from the 10 ns run                             MHz              percent                count
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      Mixed FP4/FP8         2                 20.63                      +0.254                       48.47                      25.626                           39.02               -19.50                    8
+      Mixed FP4/FP8         4                 23.58                      +0.294                       42.41                      28.080                           35.61               -16.03                    8
+      Mixed FP4/FP8         8                 23.87                      +0.266                       41.89                      27.866                           35.89               -14.34                    8
+      Mixed FP4/FP8        16                 37.42                      +0.691                       26.72                      39.918                           25.05                -6.26                    6
+      Mixed FP4/FP8        32                 33.11                      +0.124                       30.20                      39.110                           25.57               -15.34                    8
+      Mixed FP4/FP8        64                 34.43                      +0.776                       29.04                      39.421                           25.37               -12.66                    8
+      Mixed FP4/FP8       128                 34.41                      +0.056                       29.06                      38.903                           25.70               -11.55                    8
+      Mixed FP4/FP8       256                 33.36                      +0.057                       29.98                      39.351                           25.41               -15.22                    8
+      Mixed FP4/FP8       512                 32.83                      +0.139                       30.46                      38.830                           25.75               -15.45                    8
+      Mixed FP4/FP8      1024                 33.80                      +0.115                       29.59                      39.795                           25.13               -15.06                    8
+
+WAS THE EXTRAPOLATION SOUND?
+  10 design(s) compared.
+  Error of (10 ns - worst slack) against the measured closing period:
+    smallest -19.50 %   median -15.06 %   largest -6.26 %
+  A small spread means the extrapolated frequencies in the reports are
+  sound and can be quoted with this as their uncertainty. A large or
+  one-sided error means the reported frequencies need replacing with
+  the measured column above.

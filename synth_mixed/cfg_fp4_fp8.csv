@@ -1,0 +1,2 @@
+_track,N,closing_period_ns,slack_at_closing_ns,measured_fmax_mhz,extrapolated_crit_ns,extrapolated_fmax_mhz,extrapolation_error_pct,luts,probes,note
+Mixed FP4/FP8,256,23.76,0.089,42.08754208754208,22.009999999999998,45.43389368468878,7.950931394820552,954.0,7,
