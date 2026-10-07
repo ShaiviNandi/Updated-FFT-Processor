@@ -1,0 +1,136 @@
+[constraint-sweep] === Mixed FP4/FP8 ===
+[constraint-sweep]   N=2: at 40.0 ns, WNS +14.374 -> extrapolated critical path 25.626 ns
+[constraint-sweep]   N=2: probe 2 at 25.63 ns -> WNS +1.928 ns  (meets)
+[constraint-sweep]   N=2: probe 3 at 24.63 ns -> WNS +0.512 ns  (meets)
+[constraint-sweep]   N=2: probe 4 at 23.63 ns -> WNS +0.585 ns  (meets)
+[constraint-sweep]   N=2: probe 5 at 22.63 ns -> WNS +0.184 ns  (meets)
+[constraint-sweep]   N=2: probe 6 at 21.63 ns -> WNS +0.108 ns  (meets)
+[constraint-sweep]   N=2: probe 7 at 20.63 ns -> WNS +0.254 ns  (meets)
+[constraint-sweep]   N=2: probe 8 at 19.63 ns -> WNS -0.073 ns  (misses)
+[constraint-sweep]   N=2: CLOSES at 20.63 ns (slack +0.254 ns, 48.47 MHz) in 8 runs
+[constraint-sweep]   N=4: at 40.0 ns, WNS +11.920 -> extrapolated critical path 28.080 ns
+[constraint-sweep]   N=4: probe 2 at 28.08 ns -> WNS +1.587 ns  (meets)
+[constraint-sweep]   N=4: probe 3 at 27.08 ns -> WNS +1.060 ns  (meets)
+[constraint-sweep]   N=4: probe 4 at 26.08 ns -> WNS +0.575 ns  (meets)
+[constraint-sweep]   N=4: probe 5 at 25.08 ns -> WNS +0.129 ns  (meets)
+[constraint-sweep]   N=4: probe 6 at 24.08 ns -> WNS +0.071 ns  (meets)
+[constraint-sweep]   N=4: probe 7 at 23.08 ns -> WNS -0.239 ns  (misses)
+[constraint-sweep]   N=4: probe 8 at 23.58 ns -> WNS +0.294 ns  (meets)
+[constraint-sweep]   N=4: CLOSES at 23.58 ns (slack +0.294 ns, 42.41 MHz) in 8 runs
+[constraint-sweep]   N=8: at 40.0 ns, WNS +12.134 -> extrapolated critical path 27.866 ns
+[constraint-sweep]   N=8: probe 2 at 27.87 ns -> WNS +0.166 ns  (meets)
+[constraint-sweep]   N=8: probe 3 at 26.87 ns -> WNS +0.443 ns  (meets)
+[constraint-sweep]   N=8: probe 4 at 25.87 ns -> WNS +0.235 ns  (meets)
+[constraint-sweep]   N=8: probe 5 at 24.87 ns -> WNS +0.312 ns  (meets)
+[constraint-sweep]   N=8: probe 6 at 23.87 ns -> WNS +0.266 ns  (meets)
+[constraint-sweep]   N=8: probe 7 at 22.87 ns -> WNS -0.778 ns  (misses)
+[constraint-sweep]   N=8: probe 8 at 23.37 ns -> WNS -0.255 ns  (misses)
+[constraint-sweep]   N=8: CLOSES at 23.87 ns (slack +0.266 ns, 41.89 MHz) in 8 runs
+[constraint-sweep]   N=16: at 40.0 ns, WNS +0.082 -> extrapolated critical path 39.918 ns
+[constraint-sweep]   N=16: probe 2 at 39.92 ns -> WNS +0.412 ns  (meets)
+[constraint-sweep]   N=16: probe 3 at 38.92 ns -> WNS +0.136 ns  (meets)
+[constraint-sweep]   N=16: probe 4 at 37.92 ns -> WNS +0.636 ns  (meets)
+[constraint-sweep]   N=16: probe 5 at 36.92 ns -> WNS -0.002 ns  (misses)
+[constraint-sweep]   N=16: probe 6 at 37.42 ns -> WNS +0.691 ns  (meets)
+[constraint-sweep]   N=16: CLOSES at 37.42 ns (slack +0.691 ns, 26.72 MHz) in 6 runs
+[constraint-sweep]   N=32: at 40.0 ns, WNS +0.890 -> extrapolated critical path 39.110 ns
+[constraint-sweep]   N=32: probe 2 at 39.11 ns -> WNS +0.533 ns  (meets)
+[constraint-sweep]   N=32: probe 3 at 38.11 ns -> WNS +0.433 ns  (meets)
+[constraint-sweep]   N=32: probe 4 at 37.11 ns -> WNS +0.781 ns  (meets)
+[constraint-sweep]   N=32: probe 5 at 36.11 ns -> WNS +0.428 ns  (meets)
+[constraint-sweep]   N=32: probe 6 at 35.11 ns -> WNS +0.223 ns  (meets)
+[constraint-sweep]   N=32: probe 7 at 34.11 ns -> WNS +0.391 ns  (meets)
+[constraint-sweep]   N=32: probe 8 at 33.11 ns -> WNS +0.124 ns  (meets)
+[constraint-sweep]   N=32: CLOSES at 33.11 ns (slack +0.124 ns, 30.20 MHz) in 8 runs
+[constraint-sweep]   N=64: at 40.0 ns, WNS +0.579 -> extrapolated critical path 39.421 ns
+[constraint-sweep]   N=64: probe 2 at 39.43 ns -> WNS +1.084 ns  (meets)
+[constraint-sweep]   N=64: probe 3 at 38.43 ns -> WNS +0.190 ns  (meets)
+[constraint-sweep]   N=64: probe 4 at 37.43 ns -> WNS +0.304 ns  (meets)
+[constraint-sweep]   N=64: probe 5 at 36.43 ns -> WNS +0.931 ns  (meets)
+[constraint-sweep]   N=64: probe 6 at 35.43 ns -> WNS +0.184 ns  (meets)
+[constraint-sweep]   N=64: probe 7 at 34.43 ns -> WNS +0.776 ns  (meets)
+[constraint-sweep]   N=64: probe 8 at 33.43 ns -> WNS -0.754 ns  (misses)
+[constraint-sweep]   N=64: CLOSES at 34.43 ns (slack +0.776 ns, 29.04 MHz) in 8 runs
+[constraint-sweep]   N=128: at 40.0 ns, WNS +1.097 -> extrapolated critical path 38.903 ns
+[constraint-sweep]   N=128: probe 2 at 38.91 ns -> WNS +0.093 ns  (meets)
+[constraint-sweep]   N=128: probe 3 at 37.91 ns -> WNS +0.565 ns  (meets)
+[constraint-sweep]   N=128: probe 4 at 36.91 ns -> WNS +1.261 ns  (meets)
+[constraint-sweep]   N=128: probe 5 at 35.91 ns -> WNS +0.071 ns  (meets)
+[constraint-sweep]   N=128: probe 6 at 34.91 ns -> WNS +0.723 ns  (meets)
+[constraint-sweep]   N=128: probe 7 at 33.91 ns -> WNS -0.193 ns  (misses)
+[constraint-sweep]   N=128: probe 8 at 34.41 ns -> WNS +0.056 ns  (meets)
+[constraint-sweep]   N=128: CLOSES at 34.41 ns (slack +0.056 ns, 29.06 MHz) in 8 runs
+[constraint-sweep]   N=256: at 40.0 ns, WNS +0.649 -> extrapolated critical path 39.351 ns
+[constraint-sweep]   N=256: probe 2 at 39.36 ns -> WNS +0.159 ns  (meets)
+[constraint-sweep]   N=256: probe 3 at 38.36 ns -> WNS +0.624 ns  (meets)
+[constraint-sweep]   N=256: probe 4 at 37.36 ns -> WNS +0.686 ns  (meets)
+[constraint-sweep]   N=256: probe 5 at 36.36 ns -> WNS +0.440 ns  (meets)
+[constraint-sweep]   N=256: probe 6 at 35.36 ns -> WNS +0.354 ns  (meets)
+[constraint-sweep]   N=256: probe 7 at 34.36 ns -> WNS +0.471 ns  (meets)
+[constraint-sweep]   N=256: probe 8 at 33.36 ns -> WNS +0.057 ns  (meets)
+[constraint-sweep]   N=256: CLOSES at 33.36 ns (slack +0.057 ns, 29.98 MHz) in 8 runs
+[constraint-sweep]   N=512: at 40.0 ns, WNS +1.170 -> extrapolated critical path 38.830 ns
+[constraint-sweep]   N=512: probe 2 at 38.83 ns -> WNS +0.774 ns  (meets)
+[constraint-sweep]   N=512: probe 3 at 37.83 ns -> WNS +0.321 ns  (meets)
+[constraint-sweep]   N=512: probe 4 at 36.83 ns -> WNS +0.653 ns  (meets)
+[constraint-sweep]   N=512: probe 5 at 35.83 ns -> WNS +0.451 ns  (meets)
+[constraint-sweep]   N=512: probe 6 at 34.83 ns -> WNS +0.793 ns  (meets)
+[constraint-sweep]   N=512: probe 7 at 33.83 ns -> WNS +0.262 ns  (meets)
+[constraint-sweep]   N=512: probe 8 at 32.83 ns -> WNS +0.139 ns  (meets)
+[constraint-sweep]   N=512: CLOSES at 32.83 ns (slack +0.139 ns, 30.46 MHz) in 8 runs
+[constraint-sweep]   N=1024: at 40.0 ns, WNS +0.205 -> extrapolated critical path 39.795 ns
+[constraint-sweep]   N=1024: probe 2 at 39.80 ns -> WNS +0.499 ns  (meets)
+[constraint-sweep]   N=1024: probe 3 at 38.80 ns -> WNS +0.613 ns  (meets)
+[constraint-sweep]   N=1024: probe 4 at 37.80 ns -> WNS +0.790 ns  (meets)
+[constraint-sweep]   N=1024: probe 5 at 36.80 ns -> WNS +0.314 ns  (meets)
+[constraint-sweep]   N=1024: probe 6 at 35.80 ns -> WNS +0.633 ns  (meets)
+[constraint-sweep]   N=1024: probe 7 at 34.80 ns -> WNS +0.035 ns  (meets)
+[constraint-sweep]   N=1024: probe 8 at 33.80 ns -> WNS +0.115 ns  (meets)
+[constraint-sweep]   N=1024: CLOSES at 33.80 ns (slack +0.115 ns, 29.59 MHz) in 8 runs
+
+==============================================================================
+CLOCK PERIOD EACH DESIGN ACTUALLY CLOSES AT
+==============================================================================
+
+The reports constrain at 10 ns, which every design misses, so every
+worst-slack figure there is negative and every frequency is an
+extrapolation of (10 ns - worst slack). This table bisects the constraint
+until worst slack crosses zero, so the closing period is measured and its
+slack is positive.
+
+Stage: whichever the probes ran. Forward --driver-arg --implement to
+bisect on POST-ROUTE slack; without it the bisection uses the
+post-synthesis estimate, which on this device has been measured 4-16 %
+pessimistic and non-uniformly so across the three tracks.
+
+Timing only. Do not take power or energy from these runs: changing the
+constraint changes the operating point, so their dynamic power is not
+comparable with the 10 ns figures in the reports.
+
+    Precision track  FFT size  Closing clock period  Worst slack at that period  Measured maximum frequency  Extrapolated critical path  Extrapolated maximum frequency  Extrapolation error  Synthesis runs used
+FP16 / FP32 / mixed    points      ns, meets timing                ns, positive                         MHz      ns, from the 10 ns run                             MHz              percent                count
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      Mixed FP4/FP8         2                 20.63                      +0.254                       48.47                      25.626                           39.02               -19.50                    8
+      Mixed FP4/FP8         4                 23.58                      +0.294                       42.41                      28.080                           35.61               -16.03                    8
+      Mixed FP4/FP8         8                 23.87                      +0.266                       41.89                      27.866                           35.89               -14.34                    8
+      Mixed FP4/FP8        16                 37.42                      +0.691                       26.72                      39.918                           25.05                -6.26                    6
+      Mixed FP4/FP8        32                 33.11                      +0.124                       30.20                      39.110                           25.57               -15.34                    8
+      Mixed FP4/FP8        64                 34.43                      +0.776                       29.04                      39.421                           25.37               -12.66                    8
+      Mixed FP4/FP8       128                 34.41                      +0.056                       29.06                      38.903                           25.70               -11.55                    8
+      Mixed FP4/FP8       256                 33.36                      +0.057                       29.98                      39.351                           25.41               -15.22                    8
+      Mixed FP4/FP8       512                 32.83                      +0.139                       30.46                      38.830                           25.75               -15.45                    8
+      Mixed FP4/FP8      1024                 33.80                      +0.115                       29.59                      39.795                           25.13               -15.06                    8
+
+WAS THE EXTRAPOLATION SOUND?
+  10 design(s) compared.
+  Error of (10 ns - worst slack) against the measured closing period:
+    smallest -19.50 %   median -15.06 %   largest -6.26 %
+  A small spread means the extrapolated frequencies in the reports are
+  sound and can be quoted with this as their uncertainty. A large or
+  one-sided error means the reported frequencies need replacing with
+  the measured column above.
+
+[constraint-sweep] table: synth_mixed/closing_period_mixed.txt
+[constraint-sweep] csv  : synth_mixed/closing_period_mixed.csv
+
+[log written to /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/closing_period_mixed.log]

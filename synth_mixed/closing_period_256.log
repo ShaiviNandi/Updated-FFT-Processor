@@ -1,0 +1,68 @@
+[constraint-sweep] === FP16 baseline ===
+[constraint-sweep]   N=256: at 45.0 ns, WNS +14.614 -> extrapolated critical path 30.386 ns
+[constraint-sweep]   N=256: probe 2 at 30.39 ns -> WNS +0.945 ns  (meets)
+[constraint-sweep]   N=256: probe 3 at 29.39 ns -> WNS +0.055 ns  (meets)
+[constraint-sweep]   N=256: probe 4 at 28.39 ns -> WNS +0.468 ns  (meets)
+[constraint-sweep]   N=256: probe 5 at 27.39 ns -> WNS -0.004 ns  (misses)
+[constraint-sweep]   N=256: probe 6 at 27.89 ns -> WNS +0.383 ns  (meets)
+[constraint-sweep]   N=256: CLOSES at 27.89 ns (slack +0.383 ns, 35.86 MHz) in 6 runs
+[constraint-sweep] === FP32 baseline ===
+[constraint-sweep]   N=256: at 45.0 ns, WNS +2.466 -> extrapolated critical path 42.534 ns
+[constraint-sweep]   N=256: probe 2 at 42.54 ns -> WNS +0.397 ns  (meets)
+[constraint-sweep]   N=256: probe 3 at 41.54 ns -> WNS +0.372 ns  (meets)
+[constraint-sweep]   N=256: probe 4 at 40.54 ns -> WNS +0.507 ns  (meets)
+[constraint-sweep]   N=256: probe 5 at 39.54 ns -> WNS +0.228 ns  (meets)
+[constraint-sweep]   N=256: probe 6 at 38.54 ns -> WNS +0.356 ns  (meets)
+[constraint-sweep]   N=256: probe 7 at 37.54 ns -> WNS +0.105 ns  (meets)
+[constraint-sweep]   N=256: probe 8 at 36.54 ns -> WNS -0.953 ns  (misses)
+[constraint-sweep]   N=256: CLOSES at 37.54 ns (slack +0.105 ns, 26.64 MHz) in 8 runs
+[constraint-sweep] === Mixed FP4/FP8 ===
+[constraint-sweep]   N=256: at 45.0 ns, WNS +6.524 -> extrapolated critical path 38.476 ns
+[constraint-sweep]   N=256: probe 2 at 38.48 ns -> WNS +0.172 ns  (meets)
+[constraint-sweep]   N=256: probe 3 at 37.48 ns -> WNS +0.564 ns  (meets)
+[constraint-sweep]   N=256: probe 4 at 36.48 ns -> WNS +0.323 ns  (meets)
+[constraint-sweep]   N=256: probe 5 at 35.48 ns -> WNS +0.275 ns  (meets)
+[constraint-sweep]   N=256: probe 6 at 34.48 ns -> WNS +0.394 ns  (meets)
+[constraint-sweep]   N=256: probe 7 at 33.48 ns -> WNS -0.205 ns  (misses)
+[constraint-sweep]   N=256: probe 8 at 33.98 ns -> WNS +0.147 ns  (meets)
+[constraint-sweep]   N=256: CLOSES at 33.98 ns (slack +0.147 ns, 29.43 MHz) in 8 runs
+
+==============================================================================
+CLOCK PERIOD EACH DESIGN ACTUALLY CLOSES AT
+==============================================================================
+
+The reports constrain at 10 ns, which every design misses, so every
+worst-slack figure there is negative and every frequency is an
+extrapolation of (10 ns - worst slack). This table bisects the constraint
+until worst slack crosses zero, so the closing period is measured and its
+slack is positive.
+
+Stage: whichever the probes ran. Forward --driver-arg --implement to
+bisect on POST-ROUTE slack; without it the bisection uses the
+post-synthesis estimate, which on this device has been measured 4-16 %
+pessimistic and non-uniformly so across the three tracks.
+
+Timing only. Do not take power or energy from these runs: changing the
+constraint changes the operating point, so their dynamic power is not
+comparable with the 10 ns figures in the reports.
+
+    Precision track  FFT size  Closing clock period  Worst slack at that period  Measured maximum frequency  Extrapolated critical path  Extrapolated maximum frequency  Extrapolation error  Synthesis runs used
+FP16 / FP32 / mixed    points      ns, meets timing                ns, positive                         MHz      ns, from the 10 ns run                             MHz              percent                count
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      FP16 baseline       256                 27.89                      +0.383                       35.86                      30.386                           32.91                -8.21                    6
+      FP32 baseline       256                 37.54                      +0.105                       26.64                      42.534                           23.51               -11.74                    8
+      Mixed FP4/FP8       256                 33.98                      +0.147                       29.43                      38.476                           25.99               -11.69                    8
+
+WAS THE EXTRAPOLATION SOUND?
+  3 design(s) compared.
+  Error of (10 ns - worst slack) against the measured closing period:
+    smallest -11.74 %   median -11.69 %   largest -8.21 %
+  A small spread means the extrapolated frequencies in the reports are
+  sound and can be quoted with this as their uncertainty. A large or
+  one-sided error means the reported frequencies need replacing with
+  the measured column above.
+
+[constraint-sweep] table: synth_mixed/closing_period_256.txt
+[constraint-sweep] csv  : synth_mixed/closing_period_256.csv
+
+[log written to /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/closing_period_256.log]

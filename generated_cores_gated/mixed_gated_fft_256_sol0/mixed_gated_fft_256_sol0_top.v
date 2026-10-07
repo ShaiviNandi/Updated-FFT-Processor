@@ -3,7 +3,7 @@
 // =============================================================================
 `timescale 1ns/1ps
 
-module mixed_fft_256_top (
+module mixed_gated_fft_256_sol0_top (
     input  wire        clk,
     input  wire        rst,     
 
@@ -41,7 +41,7 @@ module mixed_fft_256_top (
     );
     wire [23:0] load_data_24 = {load_data, load_fp4};
 
-    mixed_fft_256_core #(
+    mixed_gated_fft_256_sol0_core #(
         .MAX_N     (1024),
         .ADDR_WIDTH(11)
     ) core (

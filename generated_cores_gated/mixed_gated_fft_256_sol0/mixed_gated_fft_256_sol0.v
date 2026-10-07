@@ -4,7 +4,7 @@
 // =============================================================================
 `timescale 1ns/1ps
 
-module mixed_fft_256_core #(
+module mixed_gated_fft_256_sol0_core #(
     parameter MAX_N      = 1024,
     parameter ADDR_WIDTH = 11
 )(
@@ -25,28 +25,28 @@ module mixed_fft_256_core #(
     input  wire                  ext_bank_sel
 );
 
-    localparam STAGE0_MULT_PREC = 0;
+    localparam STAGE0_MULT_PREC = 1;
     localparam STAGE0_ADD_PREC  = 0;
     localparam STAGE0_OUT_PREC  = 0;
     localparam STAGE1_MULT_PREC = 0;
     localparam STAGE1_ADD_PREC  = 0;
     localparam STAGE1_OUT_PREC  = 0;
-    localparam STAGE2_MULT_PREC = 1;
+    localparam STAGE2_MULT_PREC = 0;
     localparam STAGE2_ADD_PREC  = 1;
     localparam STAGE2_OUT_PREC  = 1;
-    localparam STAGE3_MULT_PREC = 1;
-    localparam STAGE3_ADD_PREC  = 1;
-    localparam STAGE3_OUT_PREC  = 1;
+    localparam STAGE3_MULT_PREC = 0;
+    localparam STAGE3_ADD_PREC  = 0;
+    localparam STAGE3_OUT_PREC  = 0;
     localparam STAGE4_MULT_PREC = 1;
-    localparam STAGE4_ADD_PREC  = 1;
-    localparam STAGE4_OUT_PREC  = 1;
+    localparam STAGE4_ADD_PREC  = 0;
+    localparam STAGE4_OUT_PREC  = 0;
     localparam STAGE5_MULT_PREC = 1;
-    localparam STAGE5_ADD_PREC  = 1;
-    localparam STAGE5_OUT_PREC  = 1;
+    localparam STAGE5_ADD_PREC  = 0;
+    localparam STAGE5_OUT_PREC  = 0;
     localparam STAGE6_MULT_PREC = 1;
     localparam STAGE6_ADD_PREC  = 1;
     localparam STAGE6_OUT_PREC  = 1;
-    localparam STAGE7_MULT_PREC = 1;
+    localparam STAGE7_MULT_PREC = 0;
     localparam STAGE7_ADD_PREC  = 1;
     localparam STAGE7_OUT_PREC  = 1;
 
@@ -328,14 +328,14 @@ module mixed_fft_256_core #(
     reg bf_mult_prec, bf_add_prec;
     always @(*) begin
         case (current_stage_stable_delayed)
-            4'd0: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b0; end
+            4'd0: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b0; end
             4'd1: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b0; end
-            4'd2: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
-            4'd3: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
-            4'd4: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
-            4'd5: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
+            4'd2: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b1; end
+            4'd3: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b0; end
+            4'd4: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b0; end
+            4'd5: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b0; end
             4'd6: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
-            4'd7: begin bf_mult_prec = 1'b1; bf_add_prec = 1'b1; end
+            4'd7: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b1; end
             default: begin bf_mult_prec = 1'b0; bf_add_prec = 1'b0; end
         endcase
     end
