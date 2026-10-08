@@ -1,0 +1,46 @@
+[constraint-sweep] === FP16 baseline ===
+[constraint-sweep]   N=2: at 26.0 ns, WNS +0.470 -> extrapolated critical path 25.530 ns
+[constraint-sweep]   N=2: probe 2 at 25.53 ns -> WNS +0.054 ns  (meets)
+[constraint-sweep]   N=2: probe 3 at 24.53 ns -> WNS -0.469 ns  (misses)
+[constraint-sweep]   N=2: probe 4 at 25.03 ns -> WNS +0.432 ns  (meets)
+[constraint-sweep]   N=2: CLOSES at 25.03 ns (slack +0.432 ns, 39.95 MHz) in 4 runs
+[constraint-sweep]   N=32: at 26.0 ns, WNS +0.621 -> extrapolated critical path 25.379 ns
+[constraint-sweep]   N=32: probe 2 at 25.38 ns -> WNS +0.493 ns  (meets)
+[constraint-sweep]   N=32: probe 3 at 24.38 ns -> WNS +0.101 ns  (meets)
+[constraint-sweep]   N=32: probe 4 at 23.38 ns -> WNS -0.645 ns  (misses)
+[constraint-sweep]   N=32: probe 5 at 23.88 ns -> WNS -0.356 ns  (misses)
+[constraint-sweep]   N=32: CLOSES at 24.38 ns (slack +0.101 ns, 41.02 MHz) in 5 runs
+[constraint-sweep]   N=64: at 26.0 ns, WNS +0.190 -> extrapolated critical path 25.810 ns
+[constraint-sweep]   N=64: probe 2 at 25.81 ns -> WNS +0.943 ns  (meets)
+[constraint-sweep]   N=64: probe 3 at 24.81 ns -> WNS -0.239 ns  (misses)
+[constraint-sweep]   N=64: probe 4 at 25.31 ns -> WNS +0.456 ns  (meets)
+[constraint-sweep]   N=64: CLOSES at 25.31 ns (slack +0.456 ns, 39.51 MHz) in 4 runs
+[constraint-sweep]   N=128: at 26.0 ns, WNS +0.375 -> extrapolated critical path 25.625 ns
+[constraint-sweep]   N=128: probe 2 at 25.63 ns -> WNS +0.007 ns  (meets)
+[constraint-sweep]   N=128: probe 3 at 24.63 ns -> WNS -0.039 ns  (misses)
+[constraint-sweep]   N=128: probe 4 at 25.13 ns -> WNS +0.159 ns  (meets)
+[constraint-sweep]   N=128: CLOSES at 25.13 ns (slack +0.159 ns, 39.79 MHz) in 4 runs
+
+==============================================================================
+CLOCK PERIOD EACH DESIGN ACTUALLY CLOSES AT
+==============================================================================
+
+
+post-synthesis estimate, which on this device has been measured 4-16 %
+
+Timing only. Do not take power or energy from these runs: changing the
+constraint changes the operating point, so their dynamic power is not
+comparable with the 10 ns figures in the reports.
+
+    Precision track  FFT size  Closing clock period  Worst slack at that period  Measured maximum frequency  Zero crossing bracketed      Extrapolated critical path  Constraint it was taken from  Extrapolated maximum frequency  Extrapolation error  Synthesis runs used
+FP16 / FP32 / mixed    points      ns, meets timing                ns, positive                         MHz        yes / UPPER BOUND  ns, from the probed constraint                            ns                             MHz              percent                count
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      FP16 baseline         2                 25.03                      +0.432                       39.95                      yes                          25.530                         26.00                           39.17                    -                    4
+      FP16 baseline        32                 24.38                      +0.101                       41.02                      yes                          25.379                         26.00                           39.40                    -                    5
+      FP16 baseline        64                 25.31                      +0.456                       39.51                      yes                          25.810                         26.00                           38.74                    -                    4
+      FP16 baseline       128                 25.13                      +0.159                       39.79                      yes                          25.625                         26.00                           39.02                    -                    4
+
+[constraint-sweep] table: synth_mixed/closing_fp16_low.txt
+[constraint-sweep] csv  : synth_mixed/closing_fp16_low.csv
+
+[log written to /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/closing_fp16_low.localhost.log]

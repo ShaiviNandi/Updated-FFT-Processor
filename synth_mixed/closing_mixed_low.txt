@@ -1,0 +1,23 @@
+==============================================================================
+CLOCK PERIOD EACH DESIGN ACTUALLY CLOSES AT
+==============================================================================
+
+
+post-synthesis estimate, which on this device has been measured 4-16 %
+
+Timing only. Do not take power or energy from these runs: changing the
+constraint changes the operating point, so their dynamic power is not
+comparable with the 10 ns figures in the reports.
+
+    Precision track  FFT size  Closing clock period  Worst slack at that period  Measured maximum frequency  Zero crossing bracketed      Extrapolated critical path  Constraint it was taken from  Extrapolated maximum frequency  Extrapolation error  Synthesis runs used
+FP16 / FP32 / mixed    points      ns, meets timing                ns, positive                         MHz        yes / UPPER BOUND  ns, from the probed constraint                            ns                             MHz              percent                count
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      Mixed FP4/FP8        16                 32.90                      +0.019                       30.40                      yes                          33.400                         32.00                           29.94                -1.50                    4
+      Mixed FP4/FP8       512                 33.35                      +0.214                       29.99                      yes                          32.341                         32.00                           30.92                +3.12                    4
+      Mixed FP4/FP8      1024                 34.23                      +0.109                       29.21                      yes                          33.228                         32.00                           30.10                +3.02                    4
+
+WAS THE EXTRAPOLATION SOUND?
+  3 design(s) compared.
+  Error of (10 ns - worst slack) against the measured closing period:
+    smallest -1.50 %   median +3.02 %   largest +3.12 %
+  the measured column above.

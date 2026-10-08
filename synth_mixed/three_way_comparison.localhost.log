@@ -1,3 +1,4 @@
+
 ==============================================================================
 FP16 vs FP32 vs MIXED FP4/FP8 - FPGA COMPARISON
 ==============================================================================
@@ -116,3 +117,7 @@ FFT size  FP16 average SQNR  FP32 average SQNR  Mixed average SQNR  Accuracy los
      256              71.39             145.46                   -                      -                      -
      512              70.59             144.99                   -                      -                      -
     1024              69.78             143.84               16.80                  52.98                 127.04
+
+[compare] table: /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/three_way_comparison.txt
+
+[log written to /home/digital-1/SRIP2026/Updated-FFT-Processor/synth_mixed/three_way_comparison.localhost.log]

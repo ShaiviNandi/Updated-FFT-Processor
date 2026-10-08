@@ -1,0 +1,5 @@
+_track,N,closing_period_ns,slack_at_closing_ns,measured_fmax_mhz,bracketed,extrapolated_crit_ns,extrapolated_from_ns,extrapolated_fmax_mhz,extrapolation_error_pct,luts,probes,note
+FP16 baseline,2,25.03,0.432,39.95205753096284,1,25.53,26.0,39.16960438699569,,2314.0,4,
+FP16 baseline,32,24.38,0.101,41.01722723543889,1,25.379,26.0,39.402655738996806,,2878.0,5,
+FP16 baseline,64,25.31,0.456,39.51007506914263,1,25.81,26.0,38.74467260751647,,2880.0,4,
+FP16 baseline,128,25.13,0.159,39.79307600477517,1,25.625,26.0,39.02439024390244,,2921.0,4,

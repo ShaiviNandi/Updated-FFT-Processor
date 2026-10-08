@@ -1,0 +1,18 @@
+==============================================================================
+CLOCK PERIOD EACH DESIGN ACTUALLY CLOSES AT
+==============================================================================
+
+
+post-synthesis estimate, which on this device has been measured 4-16 %
+
+Timing only. Do not take power or energy from these runs: changing the
+constraint changes the operating point, so their dynamic power is not
+comparable with the 10 ns figures in the reports.
+
+    Precision track  FFT size  Closing clock period  Worst slack at that period  Measured maximum frequency  Zero crossing bracketed      Extrapolated critical path  Constraint it was taken from  Extrapolated maximum frequency  Extrapolation error  Synthesis runs used
+FP16 / FP32 / mixed    points      ns, meets timing                ns, positive                         MHz        yes / UPPER BOUND  ns, from the probed constraint                            ns                             MHz              percent                count
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      FP16 baseline         2                 25.03                      +0.432                       39.95                      yes                          25.530                         26.00                           39.17                    -                    4
+      FP16 baseline        32                 24.38                      +0.101                       41.02                      yes                          25.379                         26.00                           39.40                    -                    5
+      FP16 baseline        64                 25.31                      +0.456                       39.51                      yes                          25.810                         26.00                           38.74                    -                    4
+      FP16 baseline       128                 25.13                      +0.159                       39.79                      yes                          25.625                         26.00                           39.02                    -                    4
